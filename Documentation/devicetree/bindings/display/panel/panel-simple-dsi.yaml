@@ -59,6 +59,8 @@ properties:
       - tdo,tl070wsh30
         # Sony Kirin nt36672a Truly FHD+ IPS LCD panel
       - sony,kirin-nt36672a-truly
+        # Sony mermaid nt36672a Tianma FHD+ IPS LCD panel
+      - sony,mermaid-nt36672a-tianma
 
   reg:
     maxItems: 1
