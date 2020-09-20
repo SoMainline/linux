@@ -18,6 +18,10 @@
 	qcom,pmic-id = <0x1001b 0x101011a 0x00 0x00 0x1001b 0x201011a 0x00 0x00 0x1001b 0x102001a 0x00 0x00>;
 };
 
+&panel {
+	compatible = "sony,mermaid-nt36672a-tianma";
+};
+
 &sdc2_state_on {
 	clk {
 		drive-strength = <14>;

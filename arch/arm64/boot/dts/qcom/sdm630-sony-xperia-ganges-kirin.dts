@@ -23,4 +23,9 @@
 
 /* Ganges devices feature a Novatek touchscreen instead. */
 /delete-node/ &touchscreen;
+
+&panel {
+	compatible = "sony,kirin-nt36672a-truly";
+};
+
 /delete-node/ &vreg_l18a_1v8;
