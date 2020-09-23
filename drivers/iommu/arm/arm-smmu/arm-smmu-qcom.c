@@ -396,6 +396,18 @@ static int qcom_smmuv2_cfg_probe(struct arm_smmu_device *smmu)
 	return 0;
 }
 
+static void qcom_smmuv2_stream_mapping_reset(struct arm_smmu_device *smmu)
+{
+	/*
+	 * Broken firmware quirk:
+	 * On some Qualcomm SoCs with certain hypervisor configurations,
+	 * some context banks are hyp-protected and cannot be disabled,
+	 * nor the relative S2CRs can be set as bypass, or a hyp-fault
+	 * will be triggered and the system will hang.
+	 */
+	return;
+}
+
 static void qcom_smmuv2_test_smr_masks(struct arm_smmu_device *smmu)
 {
 	/*
@@ -410,6 +422,7 @@ static void qcom_smmuv2_test_smr_masks(struct arm_smmu_device *smmu)
 
 static const struct arm_smmu_impl qcom_smmuv2_impl = {
 	.cfg_probe = qcom_smmuv2_cfg_probe,
+	.stream_mapping_reset = qcom_smmuv2_stream_mapping_reset,
 	.test_smr_masks = qcom_smmuv2_test_smr_masks,
 };
 
