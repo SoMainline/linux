@@ -376,6 +376,30 @@ static const struct arm_smmu_impl qcom_smmu500_impl = {
 	.write_s2cr = qcom_smmu_write_s2cr,
 };
 
+static int qcom_smmuv2_cfg_probe(struct arm_smmu_device *smmu)
+{
+	/*
+	 * Some IOMMUs are getting set-up for Shared Virtual Address, but:
+	 * 1. They are secured by the Hypervisor, so any configuration
+	 *    change will generate a hyp-fault and crash the system
+	 * 2. This 39-bits Virtual Address size deviates from the ARM
+	 *    System MMU Architecture specification for SMMUv2, hence
+	 *    it is non-standard. In this case, the only way to keep the
+	 *    IOMMU as the firmware did configure it, is to hardcode a
+	 *    maximum VA size of 39 bits (because of point 1).
+	 */
+	if (smmu->va_size > 39UL)
+		dev_notice(smmu->dev,
+			   "\tenabling workaround for QCOM SMMUv2 VA size\n");
+	smmu->va_size = min(smmu->va_size, 39UL);
+
+	return 0;
+}
+
+static const struct arm_smmu_impl qcom_smmuv2_impl = {
+	.cfg_probe = qcom_smmuv2_cfg_probe,
+};
+
 static const struct arm_smmu_impl qcom_adreno_smmu_impl = {
 	.init_context = qcom_adreno_smmu_init_context,
 	.def_domain_type = qcom_smmu_def_domain_type,
@@ -409,7 +433,6 @@ static const struct of_device_id __maybe_unused qcom_smmu_impl_of_match[] = {
 	{ .compatible = "qcom,sc7280-smmu-500" },
 	{ .compatible = "qcom,sc8180x-smmu-500" },
 	{ .compatible = "qcom,sc8280xp-smmu-500" },
-	{ .compatible = "qcom,sdm630-smmu-v2" },
 	{ .compatible = "qcom,sdm845-smmu-500" },
 	{ .compatible = "qcom,sm6125-smmu-500" },
 	{ .compatible = "qcom,sm6350-smmu-500" },
@@ -439,6 +462,9 @@ struct arm_smmu_device *qcom_smmu_impl_init(struct arm_smmu_device *smmu)
 			return qcom_smmu_create(smmu, &qcom_smmu_impl);
 	}
 #endif
+
+	if (of_device_is_compatible(np, "qcom,sdm630-smmu-v2"))
+		return qcom_smmu_create(smmu, &qcom_smmuv2_impl);
 
 	/*
 	 * Do not change this order of implementation, i.e., first adreno
