@@ -1615,14 +1615,9 @@ static struct iommu_ops arm_smmu_ops = {
 	}
 };
 
-static void arm_smmu_device_reset(struct arm_smmu_device *smmu)
+static void arm_smmu_stream_mapping_reset(struct arm_smmu_device *smmu)
 {
 	int i;
-	u32 reg;
-
-	/* clear global FSR */
-	reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sGFSR);
-	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sGFSR, reg);
 
 	/*
 	 * Reset stream mapping groups: Initial values mark all SMRn as
@@ -1636,6 +1631,18 @@ static void arm_smmu_device_reset(struct arm_smmu_device *smmu)
 		arm_smmu_write_context_bank(smmu, i);
 		arm_smmu_cb_write(smmu, i, ARM_SMMU_CB_FSR, ARM_SMMU_FSR_FAULT);
 	}
+}
+
+static void arm_smmu_device_reset(struct arm_smmu_device *smmu)
+{
+	u32 reg;
+
+	/* clear global FSR */
+	reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sGFSR);
+	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sGFSR, reg);
+
+	/* Reset stream mapping */
+	arm_smmu_stream_mapping_reset(smmu);
 
 	/* Invalidate the TLB, just in case */
 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLH, QCOM_DUMMY_VAL);
