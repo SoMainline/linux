@@ -396,8 +396,21 @@ static int qcom_smmuv2_cfg_probe(struct arm_smmu_device *smmu)
 	return 0;
 }
 
+static void qcom_smmuv2_test_smr_masks(struct arm_smmu_device *smmu)
+{
+	/*
+	 * Broken firmware quirk:
+	 * On some Qualcomm SoCs with certain hypervisor configurations,
+	 * writing the streamid masks to the SMRs will trigger a hyp-fault
+	 * and crash the system.
+	 */
+	smmu->streamid_mask = 0x7FFF;
+	smmu->smr_mask_mask = 0x7FFF;
+}
+
 static const struct arm_smmu_impl qcom_smmuv2_impl = {
 	.cfg_probe = qcom_smmuv2_cfg_probe,
+	.test_smr_masks = qcom_smmuv2_test_smr_masks,
 };
 
 static const struct arm_smmu_impl qcom_adreno_smmu_impl = {
