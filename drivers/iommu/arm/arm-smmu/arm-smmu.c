@@ -1619,6 +1619,11 @@ static void arm_smmu_stream_mapping_reset(struct arm_smmu_device *smmu)
 {
 	int i;
 
+	if (smmu->impl && smmu->impl->stream_mapping_reset) {
+		smmu->impl->stream_mapping_reset(smmu);
+		return;
+	}
+
 	/*
 	 * Reset stream mapping groups: Initial values mark all SMRn as
 	 * invalid and all S2CRn as bypass unless overridden.
