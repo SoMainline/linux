@@ -953,6 +953,12 @@ static void arm_smmu_test_smr_masks(struct arm_smmu_device *smmu)
 
 	if (!smmu->smrs)
 		return;
+
+	if (smmu->impl && smmu->impl->test_smr_masks) {
+		smmu->impl->test_smr_masks(smmu);
+		return;
+	}
+
 	/*
 	 * If we've had to accommodate firmware memory regions, we may
 	 * have live SMRs by now; tread carefully...
