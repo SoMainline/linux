@@ -397,6 +397,30 @@ static int qcom_sdm845_smmu500_reset(struct arm_smmu_device *smmu)
 	return ret;
 }
 
+static int qcom_smmuv2_cfg_probe(struct arm_smmu_device *smmu)
+{
+	/*
+	 * Some IOMMUs are getting set-up for Shared Virtual Address, but:
+	 * 1. They are secured by the Hypervisor, so any configuration
+	 *    change will generate a hyp-fault and crash the system
+	 * 2. This 39-bits Virtual Address size deviates from the ARM
+	 *    System MMU Architecture specification for SMMUv2, hence
+	 *    it is non-standard. In this case, the only way to keep the
+	 *    IOMMU as the firmware did configure it, is to hardcode a
+	 *    maximum VA size of 39 bits (because of point 1).
+	 */
+	if (smmu->va_size > 39UL)
+		dev_notice(smmu->dev,
+			   "\tenabling workaround for QCOM SMMUv2 VA size\n");
+	smmu->va_size = min(smmu->va_size, 39UL);
+
+	return 0;
+}
+
+static const struct arm_smmu_impl qcom_sdm630_smmu_v2_impl = {
+	.cfg_probe = qcom_smmuv2_cfg_probe,
+};
+
 static const struct arm_smmu_impl qcom_smmu_v2_impl = {
 	.init_context = qcom_smmu_init_context,
 	.cfg_probe = qcom_smmu_cfg_probe,
@@ -497,6 +521,11 @@ static const struct qcom_smmu_match_data qcom_smmu_v2_data = {
 	.adreno_impl = &qcom_adreno_smmu_v2_impl,
 };
 
+static const struct qcom_smmu_match_data qcom_sdm630_smmu_v2_data = {
+	.impl = &qcom_sdm630_smmu_v2_impl,
+	.adreno_impl = &qcom_sdm630_smmu_v2_impl,
+};
+
 static const struct qcom_smmu_match_data sdm845_smmu_500_data = {
 	.impl = &sdm845_smmu_500_impl,
 	/*
@@ -526,7 +555,7 @@ static const struct of_device_id __maybe_unused qcom_smmu_impl_of_match[] = {
 	{ .compatible = "qcom,sc7280-smmu-500", .data = &qcom_smmu_500_impl0_data },
 	{ .compatible = "qcom,sc8180x-smmu-500", .data = &qcom_smmu_500_impl0_data },
 	{ .compatible = "qcom,sc8280xp-smmu-500", .data = &qcom_smmu_500_impl0_data },
-	{ .compatible = "qcom,sdm630-smmu-v2", .data = &qcom_smmu_v2_data },
+	{ .compatible = "qcom,sdm630-smmu-v2", .data = &qcom_sdm630_smmu_v2_data },
 	{ .compatible = "qcom,sdm845-smmu-v2", .data = &qcom_smmu_v2_data },
 	{ .compatible = "qcom,sdm845-smmu-500", .data = &sdm845_smmu_500_data },
 	{ .compatible = "qcom,sm6115-smmu-500", .data = &qcom_smmu_500_impl0_data},
