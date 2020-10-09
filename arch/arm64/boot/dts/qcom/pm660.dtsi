@@ -49,8 +49,10 @@
 		};
 
 		pon: pon@800 {
-			compatible = "qcom,pm8916-pon";
-
+			compatible = "qcom,pm8998-pon";
+                        mode-bootloader = <0x2>;
+                        mode-recovery = <0x1>;
+			
 			reg = <0x800>;
 
 			pwrkey {
