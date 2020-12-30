@@ -57,6 +57,8 @@ properties:
       - samsung,sofef00
         # Shangai Top Display Optoelectronics 7" TL070WSH30 1024x600 TFT LCD panel
       - tdo,tl070wsh30
+        # Sony Kirin nt36672a Truly FHD+ IPS LCD panel
+      - sony,kirin-nt36672a-truly
 
   reg:
     maxItems: 1
