@@ -217,7 +217,18 @@
 &blsp2_uart1 {
 	status = "okay";
 
-	/* HCI Bluetooth */
+	bluetooth: wcn3990-bt {
+		compatible = "qcom,wcn3998-bt";
+
+		vddio-supply = <&vreg_l13a_1p8>;
+		vddxo-suppky = <&vreg_l9a_1p8>;
+		vddrf-supply = <&vreg_l6a_1p3>;
+		vddch0-supply = <&vreg_l19a_3p3>;
+
+		max-speed = <3200000>;
+
+		clocks = <&rpmcc RPM_SMD_RF_CLK1_PIN>;
+	};
 };
 
 &pm660l_lpg {
