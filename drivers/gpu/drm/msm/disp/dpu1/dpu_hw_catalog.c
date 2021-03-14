@@ -375,6 +375,7 @@ static const struct dpu_caps sm8150_dpu_caps = {
 	.has_dim_layer = true,
 	.has_idle_pc = true,
 	.has_3d_merge = true,
+	.has_active_ctls = true,
 	.max_linewidth = 4096,
 	.pixel_ram_size = DEFAULT_PIXEL_RAM_SIZE,
 	.max_hdeci_exp = MAX_HORZ_DECIMATION,
@@ -421,6 +422,7 @@ static const struct dpu_caps sm8250_dpu_caps = {
 	.has_dim_layer = true,
 	.has_idle_pc = true,
 	.has_3d_merge = true,
+	.has_active_ctls = true,
 	.max_linewidth = 4096,
 	.pixel_ram_size = DEFAULT_PIXEL_RAM_SIZE,
 };
@@ -436,6 +438,7 @@ static const struct dpu_caps sm8350_dpu_caps = {
 	.has_idle_pc = true,
 	.has_3d_merge = true,
 	.max_linewidth = 4096,
+	.has_active_ctls = true,
 	.pixel_ram_size = DEFAULT_PIXEL_RAM_SIZE,
 };
 
