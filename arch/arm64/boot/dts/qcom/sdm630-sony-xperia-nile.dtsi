@@ -23,27 +23,6 @@
 		mmc1 = &sdhc_2; /* SDC2 SD card slot */
 	};
 
-	/* This part enables graphical output via bootloader-enabled display */
-	chosen {
-		bootargs = "earlycon=tty0 console=tty0";
-
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-
-		stdout-path = "framebuffer0";
-
-		framebuffer0: framebuffer@9d400000 {
-			compatible = "simple-framebuffer";
-			reg = <0 0x9d400000 0 (1920 * 1080 * 4)>;
-			width = <1080>;
-			height = <1920>;
-			stride = <(1080 * 4)>;
-			format = "a8r8g8b8";
-			status= "okay";
-		};
-	};
-
 	board_vbat: vbat-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "VBAT";
