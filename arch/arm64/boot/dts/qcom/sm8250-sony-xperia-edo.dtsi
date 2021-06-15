@@ -64,20 +64,6 @@
 			height = <2560>;
 			stride = <(1096 * 4)>;
 			format = "a8r8g8b8";
-			/*
-			 * That's a lot of clocks, but it's necessary due
-			 * to unused clk cleanup & no panel driver yet..
-			 */
-			clocks = <&dispcc DISP_CC_MDSS_AHB_CLK>,
-				 <&gcc GCC_DISP_HF_AXI_CLK>,
-				 <&gcc GCC_DISP_SF_AXI_CLK>,
-				 <&dispcc DISP_CC_MDSS_VSYNC_CLK>,
-				 <&dispcc DISP_CC_MDSS_MDP_CLK>,
-				 <&dispcc DISP_CC_MDSS_BYTE0_CLK>,
-				 <&dispcc DISP_CC_MDSS_BYTE0_INTF_CLK>,
-				 <&dispcc DISP_CC_MDSS_PCLK0_CLK>,
-				 <&dispcc DISP_CC_MDSS_ESC0_CLK>;
-			power-domains = <&dispcc MDSS_GDSC>;
 		};
 	};
 
@@ -470,6 +456,44 @@
 	status = "okay";
 };
 
+&mdss_dsi0 {
+	status = "okay";
+	vdda-supply = <&vreg_l9a_1p2>;
+
+	panel: panel@0 {
+		/* The compatible is assigned in device DTs. */
+		reg = <0>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;
+
+		pinctrl-0 = <&sde_dsi_active &sde_te_active_sleep>;
+		pinctrl-1 = <&sde_dsi_sleep &sde_te_active_sleep>;
+		pinctrl-names = "default", "sleep";
+
+		vci-supply = <&vreg_l11c_3p0>;
+		vddio-supply = <&vreg_l14a_1p8>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&mdss_dsi0_out>;
+			};
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	remote-endpoint = <&panel_in>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi0_phy {
+	vdds-supply = <&vreg_l5a_0p88>;
+	status = "okay";
+};
+
 &gpi_dma0 {
 	status = "okay";
 };
@@ -565,6 +589,10 @@
 	/* Qcom SMB1390 @ 10 */
 	/* Qcom SMB1390_slave @ 18 */
 	/* HALO HL6111R Qi charger @ 25 */
+};
+
+&mdss {
+	status = "okay";
 };
 
 &pcie0 {
@@ -884,6 +912,27 @@
 		function = "gpio";
 		bias-pull-up;
 		drive-strength = <2>;
+	};
+
+	sde_dsi_active: sde-dsi-active {
+		pins = "gpio75"/* , "gpio60" */;
+		function = "gpio";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	sde_dsi_sleep: sde-dsi-sleep {
+		pins = "gpio75"/* , "gpio60" */;
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	sde_te_active_sleep: sde-te-active-sleep {
+		pins = "gpio66";
+		function = "mdp_vsync";
+		drive-strength = <2>;
+		bias-pull-down;
 	};
 };
 
