@@ -132,6 +132,10 @@
 	};
 };
 
+&panel {
+	compatible = "samsung,souxp00_a-amb650wh07";
+};
+
 &pm8009_gpios {
 	gpio-line-names = "NC", /* GPIO_1 */
 			  "CAM_PWR_LD_EN",
