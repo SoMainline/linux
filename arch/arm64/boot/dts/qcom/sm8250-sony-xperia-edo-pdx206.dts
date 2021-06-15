@@ -32,6 +32,10 @@
 	};
 };
 
+&panel {
+	compatible = "samsung,sofef03-m";
+};
+
 &pm8009_gpios {
 	gpio-line-names = "NC", /* GPIO_1 */
 			  "NC",
