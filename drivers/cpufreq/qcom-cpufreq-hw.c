@@ -7,6 +7,8 @@
  *                     <angelogioacchino.delregno@somainline.org>
  */
 
+#define DEBUG
+
 #include <linux/bitfield.h>
 #include <linux/clk-provider.h>
 #include <linux/cpufreq.h>
@@ -28,7 +30,7 @@
 #include <linux/units.h>
 #include <soc/qcom/cpr.h>
 
-#define LUT_MAX_ENTRIES			40U
+#define LUT_MAX_ENTRIES			40U /* 12 for SM6125?? */
 #define LUT_SRC_845			GENMASK(31, 30)
 #define LUT_SRC_8998			GENMASK(27, 26)
 #define LUT_PLL_DIV			GENMASK(25, 24)
@@ -1099,6 +1101,8 @@ static int qcom_cpufreq_hw_read_lut(struct device *cpu_dev,
 		else
 			freq = cpu_hw_rate / 1000;
 
+		dev_err(cpu_dev, "freq %d cc %d src %d\n", freq, core_count, src);
+
 		if (freq != prev_freq && core_count != LUT_TURBO_IND) {
 			if (!qcom_cpufreq_update_opp(cpu_dev, freq, volt)) {
 				table[i].frequency = freq;
@@ -1756,6 +1760,9 @@ static int qcom_cpufreq_hw_driver_probe(struct platform_device *pdev)
 	clk_div = soc_data->clk_hw_div ? soc_data->clk_hw_div : 1;
 	cpu_hw_rate = clk_get_rate(clk) / clk_div;
 
+	pr_err("alternate rate %lu\n", cpu_hw_rate);
+	// TODO: Clock doesn't read the initial value!
+	// cpu_hw_rate = 300000000;
 	clk_put(clk);
 
 	cpufreq_qcom_hw_driver.driver_data = pdev;
