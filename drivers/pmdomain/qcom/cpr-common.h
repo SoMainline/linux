@@ -65,6 +65,8 @@ struct corner {
 struct corner_data {
 	unsigned int fuse_corner;
 	u64 freq;
+	int oloop_vadj;
+	int cloop_vadj;
 };
 
 struct acc_desc {
