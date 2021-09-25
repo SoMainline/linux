@@ -144,10 +144,9 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		pm8941_wled: wled@d800 {
+		pm8941_wled: backlight@d800 {
 			compatible = "qcom,pm8941-wled";
 			reg = <0xd800>;
-			label = "backlight";
 
 			status = "disabled";
 		};
