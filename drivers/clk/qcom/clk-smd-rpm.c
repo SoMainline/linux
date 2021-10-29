@@ -198,7 +198,7 @@ struct rpm_smd_clk_desc {
 
 static DEFINE_MUTEX(rpm_smd_clk_lock);
 
-static int clk_smd_rpm_handoff(struct clk_smd_rpm *r)
+static int clk_smd_rpm_handoff(struct clk_smd_rpm *r, bool disable_unused_clks)
 {
 	int ret;
 	struct clk_smd_rpm_req req = {
@@ -222,6 +222,10 @@ static int clk_smd_rpm_handoff(struct clk_smd_rpm *r)
 				 sizeof(req));
 	if (ret)
 		return ret;
+
+	/* Marking clocks enabled here will trigger unused cleanup */
+	if (disable_unused_clks)
+		r->enabled = true;
 
 	return 0;
 }
@@ -1338,12 +1342,21 @@ static int rpm_smd_clk_probe(struct platform_device *pdev)
 	struct qcom_smd_rpm *rpm;
 	struct clk_smd_rpm **rpm_smd_clks;
 	const struct rpm_smd_clk_desc *desc;
+	bool disable_unused_clks = false;
 
 	rpm = dev_get_drvdata(pdev->dev.parent);
 	if (!rpm) {
 		dev_err(&pdev->dev, "Unable to retrieve handle to RPM\n");
 		return -ENODEV;
 	}
+
+	/*
+	 * We can only really park unused clocks if we have a sane interconnect
+	 * driver. Otherwise, the platform may (and probably will) try accessing
+	 * IPs that are hosted on unclocked buses. In an effort not to break
+	 * older DTs, make this an opt-in through a DT property.
+	 */
+	disable_unused_clks = of_property_read_bool(pdev->dev.of_node, "qcom,clk-disable-unused");
 
 	desc = of_device_get_match_data(&pdev->dev);
 	if (!desc)
@@ -1358,7 +1371,7 @@ static int rpm_smd_clk_probe(struct platform_device *pdev)
 
 		rpm_smd_clks[i]->rpm = rpm;
 
-		ret = clk_smd_rpm_handoff(rpm_smd_clks[i]);
+		ret = clk_smd_rpm_handoff(rpm_smd_clks[i], disable_unused_clks);
 		if (ret)
 			goto err;
 	}
