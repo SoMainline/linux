@@ -1298,6 +1298,9 @@ static int rpm_smd_clk_probe(struct platform_device *pdev)
 		ret = clk_smd_rpm_handoff(rpm_smd_clks[i]);
 		if (ret)
 			goto err;
+
+		/* Marking clocks enabled here will trigger unused cleanup */
+		rpm_smd_clks[i]->enabled = true;
 	}
 
 	for (i = 0; i < desc->num_icc_clks; i++) {
