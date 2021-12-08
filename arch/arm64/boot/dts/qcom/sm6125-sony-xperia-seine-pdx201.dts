@@ -169,7 +169,19 @@
 	clock-frequency = <400000>;
 	status = "okay";
 
-	/* Samsung touchscreen @ 48 */
+	touchscreen@48 {
+		compatible = "samsung,s6sy761";
+		reg = <0x48>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <88 IRQ_TYPE_LEVEL_LOW>;
+
+		/* It's "vddio" downstream but it works anyway! */
+		// vdd-supply = <&vreg_l1c_1p8>;
+		// avdd-supply = <&vreg_l10c_3p3>;
+
+		pinctrl-0 = <&ts_reset_default &ts_int_default>;
+		pinctrl-names = "default";
+	};
 };
 
 &i2c3 {
@@ -512,6 +524,14 @@
 		bias-disable;
 	};
 
+	ts_int_default: ts-int-default-state {
+		pins = "gpio88";
+		function = "gpio";
+		drive-strength = <2>;
+		input-enable;
+		bias-disable;
+	};
+
 	mdss_te_active_sleep: mdss-te-active-sleep-state {
 		pins = "gpio89";
 		function = "mdp_vsync";
@@ -533,6 +553,13 @@
 		bias-pull-down;
 	};
 
+	ts_reset_default: ts-reset-default-state {
+		pins = "gpio97";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
+	};
 };
 
 &usb3 {
