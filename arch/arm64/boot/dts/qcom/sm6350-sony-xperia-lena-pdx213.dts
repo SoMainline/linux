@@ -379,6 +379,18 @@
 	status = "okay";
 };
 
+&gmu {
+	status = "okay";
+};
+
+&gpu {
+	status = "okay";
+
+	zap-shader {
+		firmware-name = "qcom/sm6350/Sony/lena/a615_zap.mbn";
+	};
+};
+
 &pm6150l_gpios {
 	panel_reset_pin: panel-reset-state {
 		pins = "gpio9";
