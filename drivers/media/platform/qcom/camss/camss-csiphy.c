@@ -572,6 +572,7 @@ int msm_csiphy_subdev_init(struct camss *camss,
 		csiphy->nformats = ARRAY_SIZE(csiphy_formats_8x16);
 		break;
 	case CAMSS_8x96:
+	case CAMSS_8x98:
 	case CAMSS_660:
 		csiphy->formats = csiphy_formats_8x96;
 		csiphy->nformats = ARRAY_SIZE(csiphy_formats_8x96);
@@ -670,7 +671,7 @@ int msm_csiphy_subdev_init(struct camss *camss,
 			if (csiphy->rate_set[i])
 				break;
 
-			if (camss->res->version == CAMSS_660) {
+			if (camss->res->version == CAMSS_660 || camss->res->version == CAMSS_8x98) {
 				csiphy->rate_set[i] = csiphy_match_clock_name(clock->name,
 									      "csi%d_phy", k);
 				if (csiphy->rate_set[i])

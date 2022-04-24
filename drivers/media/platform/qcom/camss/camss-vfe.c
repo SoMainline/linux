@@ -222,6 +222,7 @@ static u32 vfe_src_pad_code(struct vfe_line *line, u32 sink_code,
 		}
 		break;
 	case CAMSS_8x96:
+	case CAMSS_8x98:
 	case CAMSS_660:
 	case CAMSS_845:
 	case CAMSS_8250:
@@ -1507,6 +1508,7 @@ int msm_vfe_subdev_init(struct camss *camss, struct vfe_device *vfe,
 			}
 			break;
 		case CAMSS_8x96:
+		case CAMSS_8x98:
 		case CAMSS_660:
 			if (i == VFE_LINE_PIX) {
 				l->formats = formats_pix_8x96;
