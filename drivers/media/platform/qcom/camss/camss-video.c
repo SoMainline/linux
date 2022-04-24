@@ -1017,6 +1017,7 @@ int msm_video_register(struct camss_video *video, struct v4l2_device *v4l2_dev,
 		}
 		break;
 	case CAMSS_8x96:
+	case CAMSS_8x98:
 	case CAMSS_660:
 		if (is_pix) {
 			video->formats = formats_pix_8x96;
