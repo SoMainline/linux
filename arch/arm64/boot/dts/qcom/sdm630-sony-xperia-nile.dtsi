@@ -231,6 +231,10 @@
 	};
 };
 
+&gpucc {
+	status = "okay";
+};
+
 &pm660l_lpg {
 	status = "okay";
 
