@@ -210,7 +210,46 @@
 	};
 };
 
+&dsi0 {
+	status = "okay";
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	vdda-supply = <&vreg_l1a_1p225>;
+
+	panel: panel@0 {
+		reg = <0>;
+
+		reset-gpios = <&tlmm 53 GPIO_ACTIVE_HIGH>;
+		disp-te-gpios = <&tlmm 59 GPIO_ACTIVE_HIGH>;
+
+		backlight = <&pm660l_wled>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&panel_reset_n &mdp_vsync_n>;
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&dsi0_out>;
+			};
+		};
+	};
+};
+
+&dsi0_out {
+	remote-endpoint = <&panel_in>;
+	data-lanes = <0 1 2 3>;
+};
+
+&dsi0_phy {
+	status = "okay";
+};
+
 &gpucc {
+	status = "okay";
+};
+
+&mdss {
 	status = "okay";
 };
 
@@ -661,6 +700,20 @@
 		function = "gpio";
 		bias-disable;
 		drive-strength = <2>;
+	};
+
+	panel_reset_n: panel-rst-n {
+		pins = "gpio53";
+		function = "gpio";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	mdp_vsync_n: mdp-vsync-n {
+		pins = "gpio59";
+		function = "mdp_vsync";
+		drive-strength = <2>;
+		bias-pull-down;
 	};
 };
 
