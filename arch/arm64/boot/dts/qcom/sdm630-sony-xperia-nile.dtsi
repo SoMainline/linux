@@ -228,6 +228,10 @@
 	};
 };
 
+&gpucc {
+	status = "okay";
+};
+
 &pm660l_lpg {
 	qcom,power-source = <1>;
 
