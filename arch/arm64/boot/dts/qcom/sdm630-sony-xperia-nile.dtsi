@@ -18,6 +18,11 @@
 	qcom,board-id = <8 1>;
 	qcom,pmic-id = <0x1001b 0x101011a 0x00 0x00 0x1001b 0x201011a 0x00 0x00>;
 
+	aliases {
+		mmc0 = &sdhc_1; /* SDC1 eMMC slot */
+		mmc1 = &sdhc_2; /* SDC2 SD card slot */
+	};
+
 	/* This part enables graphical output via bootloader-enabled display */
 	chosen {
 		bootargs = "earlycon=tty0 console=tty0";
