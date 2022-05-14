@@ -138,6 +138,10 @@
 	};
 };
 
+&adreno_gpu {
+	status = "okay";
+};
+
 &adsp_pil {
 	firmware-name = "qcom/sdm630/Sony/nile/adsp.mdt";
 };
