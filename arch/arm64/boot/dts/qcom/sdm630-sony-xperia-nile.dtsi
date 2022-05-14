@@ -141,6 +141,10 @@
 	};
 };
 
+&adreno_gpu {
+	status = "okay";
+};
+
 &adsp_pil {
 	firmware-name = "adsp.mdt";
 };
