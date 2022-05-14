@@ -247,6 +247,7 @@
 
 &mdss_dsi0_phy {
 	status = "okay";
+	vcca-supply = <&vreg_l1b_0p925>;
 };
 
 &pm660l_lpg {
