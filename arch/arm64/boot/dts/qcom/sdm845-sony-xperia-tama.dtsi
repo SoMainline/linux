@@ -503,6 +503,12 @@
 	regulator-pull-down;
 };
 
+&ipa {
+	memory-region = <&ipa_fw_mem>;
+	firmware-name = "qcom/sdm845/Sony/tama/ipa_fws.mbn";
+	status = "okay";
+};
+
 &lab {
 	regulator-min-microvolt = <5500000>;
 	regulator-max-microvolt = <5700000>;
@@ -551,6 +557,11 @@
 
 &mdss_dsi0_phy {
 	vdds-supply = <&vreg_l1a_0p9>;
+	status = "okay";
+};
+
+&mss_pil {
+	firmware-name = "qcom/sdm845/Sony/tama/mba.mbn", "qcom/sdm845/Sony/tama/modem.mbn";
 	status = "okay";
 };
 
