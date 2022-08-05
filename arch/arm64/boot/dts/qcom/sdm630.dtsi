@@ -1527,6 +1527,13 @@
 			interrupt-controller;
 			#interrupt-cells = <1>;
 
+			interconnects = <&mnoc MASTER_MDP_P0 &bimc SLAVE_EBI>,
+					<&mnoc MASTER_MDP_P1 &bimc SLAVE_EBI>,
+					<&gnoc MASTER_APSS_PROC &mnoc SLAVE_DISPLAY_CFG>;
+			interconnect-names = "mdp0-mem",
+					     "mdp1-mem",
+					     "rotator-mem";
+
 			#address-cells = <1>;
 			#size-cells = <1>;
 			ranges;
@@ -1553,12 +1560,6 @@
 					      "core",
 					      "vsync";
 
-				interconnects = <&mnoc MASTER_MDP_P0 &bimc SLAVE_EBI>,
-						<&mnoc MASTER_MDP_P1 &bimc SLAVE_EBI>,
-						<&gnoc MASTER_APSS_PROC &mnoc SLAVE_DISPLAY_CFG>;
-				interconnect-names = "mdp0-mem",
-						     "mdp1-mem",
-						     "rotator-mem";
 				iommus = <&mmss_smmu 0>;
 				operating-points-v2 = <&mdp_opp_table>;
 				power-domains = <&rpmpd SDM660_VDDCX>;
