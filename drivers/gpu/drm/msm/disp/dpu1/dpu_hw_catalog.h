@@ -51,9 +51,9 @@ enum {
 /**
  * SSPP sub-blocks/features
  * @DPU_SSPP_SCALER_QSEED2,  QSEED2 algorithm support
- * @DPU_SSPP_SCALER_QSEED3_COMPATIBLE,  QSEED3-compatible alogorithm support (includes QSEED3, QSEED3LITE and QSEED4)
+ * @DPU_SSPP_SCALER_QSEED3_COMPATIBLE,  QSEED3-compatible algorithm support (includes QSEED3, QSEED3LITE and QSEED4)
  * @DPU_SSPP_SCALER_RGB,     RGB Scaler, supported by RGB pipes
- * @DPU_SSPP_CSC,            Support of Color space converion
+ * @DPU_SSPP_CSC,            Support of Color space conversion
  * @DPU_SSPP_CSC_10BIT,      Support of 10-bit Color space conversion
  * @DPU_SSPP_CURSOR,         SSPP can be used as a cursor layer
  * @DPU_SSPP_QOS,            SSPP support QoS control, danger/safe/creq
@@ -62,7 +62,7 @@ enum {
  * @DPU_SSPP_SMART_DMA_V1,   SmartDMA 1.0 support
  * @DPU_SSPP_SMART_DMA_V2,   SmartDMA 2.0 support
  * @DPU_SSPP_TS_PREFILL      Supports prefill with traffic shaper
- * @DPU_SSPP_TS_PREFILL_REC1 Supports prefill with traffic shaper multirec
+ * @DPU_SSPP_TS_PREFILL_REC1 Supports prefill with traffic shaper multirect
  * @DPU_SSPP_CDP             Supports client driven prefetch
  * @DPU_SSPP_INLINE_ROTATION Support inline rotation
  * @DPU_SSPP_MAX             maximum value
