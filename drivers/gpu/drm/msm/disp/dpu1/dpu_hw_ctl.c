@@ -35,7 +35,7 @@
 #define   CTL_CDM_ACTIVE                0x0F8
 #define   CTL_FETCH_PIPE_ACTIVE         0x0FC
 #define   CTL_MERGE_3D_FLUSH            0x100
-#define   CTL_DSC_FLUSH                0x104
+#define   CTL_DSC_FLUSH                 0x104
 #define   CTL_WB_FLUSH                  0x108
 #define   CTL_INTF_FLUSH                0x110
 #define   CTL_CDM_FLUSH                0x114
@@ -50,10 +50,10 @@
 #define  DSC_IDX        22
 #define CDM_IDX         26
 #define  INTF_IDX       31
-#define WB_IDX          16
+#define  WB_IDX         16
 #define  DSPP_IDX       29  /* From DPU hw rev 7.x.x */
 #define CTL_INVALID_BIT                 0xffff
-#define CTL_DEFAULT_GROUP_ID		0xf
+#define CTL_DEFAULT_GROUP_ID            0xf
 
 static const u32 fetch_tbl[SSPP_MAX] = {CTL_INVALID_BIT, 16, 17, 18, 19,
 	CTL_INVALID_BIT, CTL_INVALID_BIT, CTL_INVALID_BIT, CTL_INVALID_BIT, 0,
