@@ -47,6 +47,7 @@
 #define DPU_HW_VER_630	DPU_HW_VER(6, 3, 0) /* sm6115|sm4250 */
 #define DPU_HW_VER_640	DPU_HW_VER(6, 4, 0) /* sm6350 */
 #define DPU_HW_VER_650	DPU_HW_VER(6, 5, 0) /* qcm2290|sm4125 */
+#define DPU_HW_VER_690	DPU_HW_VER(6, 9, 0) /* sm6375 */
 #define DPU_HW_VER_700	DPU_HW_VER(7, 0, 0) /* sm8350 */
 #define DPU_HW_VER_720	DPU_HW_VER(7, 2, 0) /* sc7280 */
 #define DPU_HW_VER_800	DPU_HW_VER(8, 0, 0) /* sc8280xp */
