@@ -121,11 +121,6 @@ static const struct dpu_vbif_cfg sm6350_vbif[] = {
 	},
 };
 
-static const struct dpu_qos_lut_entry sm6350_qos_linear_macrotile[] = {
-	{.fl = 0, .lut = 0x0011223344556677 },
-	{.fl = 0, .lut = 0x0011223445566777 },
-};
-
 static const struct dpu_perf_cfg sm6350_perf_data = {
 	.max_bw_low = 4200000,
 	.max_bw_high = 5100000,
