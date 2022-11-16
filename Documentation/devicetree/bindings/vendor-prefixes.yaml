@@ -194,6 +194,8 @@ patternProperties:
     description: Beckhoff Automation GmbH & Co. KG
   "^bitmain,.*":
     description: Bitmain Technologies
+  "^bigtreetech,.*":
+    description: Shenzhen BigTree Tech CO., LTD
   "^blutek,.*":
     description: BluTek Power
   "^boe,.*":
