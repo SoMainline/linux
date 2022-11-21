@@ -1210,6 +1210,88 @@
 			#iommu-cells = <2>;
 		};
 
+		gpu: gpu@5900000 {
+			compatible = "qcom,adreno-610.0", "qcom,adreno";
+			reg = <0x05900000 0x90000>;
+			reg-names = "kgsl_3d0_reg_memory";
+
+			/* There's no (real) GMU, so we have to handle quite a bunch of clocks! */
+			clocks = <&gpucc GPU_CC_GX_GFX3D_CLK>,
+				 <&gpucc GPU_CC_AHB_CLK>,
+				 <&gcc GCC_BIMC_GPU_AXI_CLK>,
+				 <&gcc GCC_GPU_MEMNOC_GFX_CLK>,
+				 <&gpucc GPU_CC_CX_GMU_CLK>,
+				 <&gpucc GPU_CC_CXO_CLK>;
+			clock-names = "core",
+				      "iface",
+				      "mem_iface",
+				      "alt_mem_iface",
+				      "gmu",
+				      "xo";
+
+			interrupts = <GIC_SPI 177 IRQ_TYPE_LEVEL_HIGH>;
+
+			iommus = <&adreno_smmu 0 1>;
+			operating-points-v2 = <&gpu_opp_table>;
+			power-domains = <&rpmpd SM6125_VDDCX>;
+			qcom,gmu = <&gmu_wrapper>;
+
+			status = "disabled";
+
+			zap-shader {
+				memory-region = <&gpu_mem>;
+			};
+
+			gpu_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-320000000 {
+					opp-hz = /bits/ 64 <320000000>;
+					required-opps = <&rpmpd_opp_low_svs>;
+				};
+
+				opp-465000000 {
+					opp-hz = /bits/ 64 <465000000>;
+					required-opps = <&rpmpd_opp_svs>;
+				};
+
+				opp-600000000 {
+					opp-hz = /bits/ 64 <600000000>;
+					required-opps = <&rpmpd_opp_svs_plus>;
+				};
+
+				opp-745000000 {
+					opp-hz = /bits/ 64 <745000000>;
+					required-opps = <&rpmpd_opp_nom>;
+				};
+
+				opp-820000000 {
+					opp-hz = /bits/ 64 <820000000>;
+					required-opps = <&rpmpd_opp_nom_plus>;
+				};
+
+				opp-900000000 {
+					opp-hz = /bits/ 64 <900000000>;
+					required-opps = <&rpmpd_opp_turbo>;
+				};
+
+				opp-950000000 {
+					opp-hz = /bits/ 64 <950000000>;
+					required-opps = <&rpmpd_opp_turbo_no_cpr>;
+				};
+			};
+		};
+
+		gmu_wrapper: gmu@596a000 {
+			compatible = "qcom,adreno-gmu-wrapper";
+			reg = <0x0596a000 0x30000>;
+			reg-names = "gmu";
+			power-domains = <&gpucc GPU_CX_GDSC>,
+					<&gpucc GPU_GX_GDSC>;
+			power-domain-names = "cx", "gx";
+			status = "disabled";
+		};
+
 		gpucc: clock-controller@5990000 {
 			compatible = "qcom,sm6125-gpucc";
 			reg = <0x05990000 0x9000>;
