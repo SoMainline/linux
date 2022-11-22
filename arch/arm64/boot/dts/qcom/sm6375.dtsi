@@ -712,6 +712,60 @@
 			status = "disabled";
 		};
 
+		system_noc: interconnect@1880000 {
+			compatible = "qcom,sm6375-snoc";
+			reg = <0 0x01880000 0 0x5f080>;
+			clocks = <&rpmcc RPM_SMD_SNOC_CLK>,
+				 <&rpmcc RPM_SMD_SNOC_A_CLK>,
+				 <&gcc GCC_SYS_NOC_CPUSS_AHB_CLK>,
+				 <&gcc GCC_SYS_NOC_UFS_PHY_AXI_CLK>,
+				 <&gcc GCC_SYS_NOC_USB3_PRIM_AXI_CLK>;
+			clock-names = "bus",
+				      "bus_a",
+				      "cpu_axi",
+				      "ufs_axi",
+				      "usb_axi";
+			#interconnect-cells = <2>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			clk_virt: interconnect-clk {
+				compatible = "qcom,sm6375-clk-virt";
+				clocks = <&rpmcc RPM_SMD_QUP_CLK>,
+					 <&rpmcc RPM_SMD_QUP_A_CLK>;
+				clock-names = "bus", "bus_a";
+				#interconnect-cells = <2>;
+			};
+
+			mmrt_virt: interconnect-mmrt {
+				compatible = "qcom,sm6375-mmrt-virt";
+				clocks = <&rpmcc RPM_SMD_MMRT_CLK>,
+					 <&rpmcc RPM_SMD_MMRT_A_CLK>;
+				clock-names = "bus", "bus_a";
+				#interconnect-cells = <2>;
+			};
+
+			mmnrt_virt: interconnect-mmnrt {
+				compatible = "qcom,sm6375-mmnrt-virt";
+				clocks = <&rpmcc RPM_SMD_MMNRT_CLK>,
+					 <&rpmcc RPM_SMD_MMNRT_A_CLK>;
+				clock-names = "bus", "bus_a";
+				#interconnect-cells = <2>;
+			};
+		};
+
+		config_noc: interconnect@1900000 {
+			compatible = "qcom,sm6375-cnoc";
+			reg = <0 0x01900000 0 0x6200>;
+			clocks = <&rpmcc RPM_SMD_CNOC_CLK>,
+				 <&rpmcc RPM_SMD_CNOC_A_CLK>,
+				 <&gcc GCC_CFG_NOC_USB3_PRIM_AXI_CLK>;
+			clock-names = "bus",
+				      "bus_a",
+				      "usb_axi";
+			#interconnect-cells = <2>;
+		};
+
 		spmi_bus: spmi@1c40000 {
 			compatible = "qcom,spmi-pmic-arb";
 			reg = <0 0x01c40000 0 0x1100>,
@@ -728,6 +782,15 @@
 			#size-cells = <0>;
 			interrupt-controller;
 			#interrupt-cells = <4>;
+		};
+
+		bimc: interconnect@4480000 {
+			compatible = "qcom,sm6375-bimc";
+			reg = <0 0x04480000 0 0x80000>;
+			clocks = <&rpmcc RPM_SMD_BIMC_CLK>,
+				 <&rpmcc RPM_SMD_BIMC_A_CLK>;
+			clock-names = "bus", "bus_a";
+			#interconnect-cells = <2>;
 		};
 
 		rpm_msg_ram: sram@45f0000 {
