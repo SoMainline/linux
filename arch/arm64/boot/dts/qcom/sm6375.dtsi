@@ -956,6 +956,18 @@
 			#interconnect-cells = <2>;
 		};
 
+		qfprom: efuse@1b46000 {
+			compatible = "qcom,sm6375-qfprom", "qcom,qfprom";
+			reg = <0 0x01b46000 0 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			gpu_speed_bin: gpu-speed-bin@15 {
+				reg = <0x15 0x1>;
+				bits = <0 8>;
+			};
+		};
+
 		spmi_bus: spmi@1c40000 {
 			compatible = "qcom,spmi-pmic-arb";
 			reg = <0 0x01c40000 0 0x1100>,
@@ -1484,6 +1496,98 @@
 			};
 		};
 
+		gpu: gpu@5900000 {
+			compatible = "qcom,adreno-619.1", "qcom,adreno";
+			reg = <0 0x05900000 0 0x40000>, <0 0x05961000 0 0x800>;
+			reg-names = "kgsl_3d0_reg_memory", "cx_dbgc";
+
+			/* There's no (real) GMU, so we have to handle quite a bunch of clocks! */
+			clocks = <&gpucc GPU_CC_GX_GFX3D_CLK>,
+				 <&gpucc GPU_CC_AHB_CLK>,
+				 <&gcc GCC_BIMC_GPU_AXI_CLK>,
+				 <&gcc GCC_GPU_MEMNOC_GFX_CLK>,
+				 <&gpucc GPU_CC_CX_GMU_CLK>,
+				 <&gpucc GPU_CC_CXO_CLK>;
+			clock-names = "core",
+				      "iface",
+				      "mem_iface",
+				      "alt_mem_iface",
+				      "gmu",
+				      "xo";
+
+			interrupts = <GIC_SPI 177 IRQ_TYPE_LEVEL_HIGH>;
+
+			iommus = <&adreno_smmu 0>;
+			operating-points-v2 = <&gpu_opp_table>;
+			power-domains = <&rpmpd SM6375_VDDGX>;
+			qcom,gmu = <&gmu_wrapper>;
+
+			interconnects = <&bimc MASTER_GRAPHICS_3D 0 &bimc SLAVE_EBI 0>;
+			interconnect-names = "gfx-mem";
+
+			nvmem-cells = <&gpu_speed_bin>;
+			nvmem-cell-names = "speed_bin";
+
+			status = "disabled";
+
+			zap-shader {
+				memory-region = <&pil_gpu_micro_code_mem>;
+			};
+
+			gpu_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-266000000 {
+					opp-hz = /bits/ 64 <266000000>;
+					required-opps = <&rpmpd_opp_low_svs>;
+					opp-peak-kBps = <2086000>;
+					opp-supported-hw = <0x7>;
+				};
+
+				opp-390000000 {
+					opp-hz = /bits/ 64 <390000000>;
+					required-opps = <&rpmpd_opp_svs>;
+					opp-peak-kBps = <2929000>;
+					opp-supported-hw = <0x7>;
+				};
+
+				opp-490000000 {
+					opp-hz = /bits/ 64 <490000000>;
+					required-opps = <&rpmpd_opp_svs_plus>;
+					opp-peak-kBps = <3879000>;
+					opp-supported-hw = <0x7>;
+				};
+
+				opp-650000000 {
+					opp-hz = /bits/ 64 <650000000>;
+					required-opps = <&rpmpd_opp_nom>;
+					opp-peak-kBps = <5161000>;
+					opp-supported-hw = <0x7>;
+				};
+
+				opp-770000000 {
+					opp-hz = /bits/ 64 <770000000>;
+					required-opps = <&rpmpd_opp_nom_plus>;
+					opp-peak-kBps = <5931000>;
+					opp-supported-hw = <0x7>;
+				};
+
+				opp-840000000 {
+					opp-hz = /bits/ 64 <840000000>;
+					required-opps = <&rpmpd_opp_turbo>;
+					opp-peak-kBps = <6881000>;
+					opp-supported-hw = <0x7>;
+				};
+
+				opp-900000000 {
+					opp-hz = /bits/ 64 <900000000>;
+					required-opps = <&rpmpd_opp_turbo_no_cpr>;
+					opp-peak-kBps = <7980000>;
+					opp-supported-hw = <0x3>;
+				};
+			};
+		};
+
 		adreno_smmu: iommu@5940000 {
 			compatible = "qcom,sdm845-smmu-v2", "qcom,smmu-v2";
 			reg = <0 0x05940000 0 0x10000>;
@@ -1504,6 +1608,17 @@
 			clock-names = "bus";
 
 			power-domains = <&gpucc GPU_CX_GDSC>;
+		};
+
+		/* This GMU is *fake* and is essentially a register space in the GPU region. */
+		gmu_wrapper: gmu@596a000 {
+			compatible = "qcom,adreno-gmu-wrapper";
+			reg = <0 0x0596a000 0 0x30000>;
+			reg-names = "gmu";
+			power-domains = <&gpucc GPU_CX_GDSC>,
+					<&gpucc GPU_GX_GDSC>;
+			power-domain-names = "cx", "gx";
+			status = "disabled";
 		};
 
 		gpucc: clock-controller@5990000 {
