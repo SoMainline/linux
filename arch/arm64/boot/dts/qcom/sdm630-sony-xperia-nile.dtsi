@@ -247,6 +247,12 @@
 	vcca-supply = <&vreg_l1b_0p925>;
 };
 
+&adreno_gpu {
+	zap-shader {
+		firmware-name = "qcom/sdm630/Sony/nile/a508_zap.mbn";
+	};
+};
+
 &gpucc {
 	status = "okay";
 };
