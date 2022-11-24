@@ -140,6 +140,10 @@
 
 &adreno_gpu {
 	status = "okay";
+
+	zap-shader {
+		firmware-name = "qcom/sdm630/Sony/nile/a508_zap.mbn";
+	};
 };
 
 &adsp_pil {
