@@ -513,7 +513,17 @@
 &i2c10 {
 	status = "okay";
 
-	/* Samsung touchscreen @ 48 */
+	touchscreen@48 {
+		compatible = "samsung,s6sy761";
+		reg = <0x48>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <122 0x2008>;
+		/* It's "vddio" downstream but it works anyway! */
+		vdd-supply = <&vreg_l14a_1p8>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&ts_int_default>;
+	};
 };
 
 &pm8150_gpios {
@@ -836,6 +846,14 @@
 		function = "gpio";
 		drive-strength = <2>;
 		bias-pull-down;
+	};
+
+	ts_int_default: ts-int-default-state {
+		pins = "gpio122";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-disable;
 	};
 };
 
