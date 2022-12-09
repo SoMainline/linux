@@ -1042,7 +1042,21 @@
 				snps,hird-threshold = /bits/ 8 <0x10>;
 				snps,usb3_lpm_capable;
 				maximum-speed = "high-speed";
-				dr_mode = "peripheral";
+				dr_mode = "otg";
+				usb-role-switch;
+
+				port {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					dwc3_hs_ep: endpoint@0 {
+						reg = <0>;
+					};
+
+					dwc3_ss_ep: endpoint@1 {
+						reg = <1>;
+					};
+				};
 			};
 		};
 
