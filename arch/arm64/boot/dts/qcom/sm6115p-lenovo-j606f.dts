@@ -7,6 +7,7 @@
 
 #include "sm6115.dtsi"
 #include "pm6125.dtsi"
+#include "pmi632.dtsi"
 
 / {
 	model = "Lenovo Tab P11";
@@ -73,6 +74,101 @@
 	};
 };
 
+&gpi_dma0 {
+	status = "okay";
+};
+
+&i2c0 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+	/* Some devices use FUSB302(@22) instead of the RT1715. */
+
+	rt1715: typec-portc@4e {
+		compatible = "richtek,rt1715";
+		reg = <0x4e>;
+		interrupts-extended = <&tlmm 97 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-0 = <&typec_int>;
+		pinctrl-names = "default";
+
+		vbus-supply = <&pmi632_vbus>;
+
+		usb_con: connector {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			data-role = "dual";
+			self-powered;
+
+			/* TODO: Add a proper PD setup */
+			typec-power-opmode = "default";
+			try-power-role = "sink";
+			power-role = "dual";
+			pd-disable;
+
+			accessory-mode-audio;
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+
+					rt1715_hs_ep: endpoint {
+						remote-endpoint = <&usb_dwc3_hs>;
+					};
+				};
+
+				port@2 {
+					reg = <2>;
+
+					rt1715_sbu_ep: endpoint {
+						remote-endpoint = <&fsa4480_sbu_mux>;
+					};
+				};
+			};
+		};
+	};
+
+	fuel-gauge@55 {
+		compatible = "mitsumi,mm8013";
+		reg = <0x55>;
+	};
+
+	/* AW882xx speaker amp @ 34, 35, 36, 37 (CHIP_ID = 0x1852) */
+	/* HID-over-I2C for the touchpad on keyboard folio @ 60 */
+};
+
+&i2c1 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+	tps65132@3e {
+		compatible = "ti,tps65132";
+		reg = <0x3e>;
+	};
+
+	fsa4480: typec-mux@42 {
+		compatible = "fcs,fsa4480";
+		reg = <0x42>;
+		interrupts-extended = <&tlmm 89 IRQ_TYPE_LEVEL_LOW>;
+		orientation-switch;
+		mode-switch;
+
+		port {
+			fsa4480_sbu_mux: endpoint {
+				remote-endpoint = <&rt1715_sbu_ep>;
+			};
+		};
+	};
+
+	/* PM8008 @ 8, 9 */
+	/* SMB1355 @ c */
+	/* SGM37604A WLED driver @ 36 */
+	/* ES7210 audio ADC @ 40 */
+	/* HID-over-I2C for the keyboard on keyboard folio @ 61 */
+};
+
 &mdss {
 	status = "okay";
 };
@@ -120,12 +216,22 @@
 	};
 };
 
+&pmi632_vbus {
+	regulator-min-microamp = <500000>;
+	regulator-max-microamp = <1000000>;
+	status = "okay";
+};
+
 &pon_pwrkey {
 	status = "okay";
 };
 
 &pon_resin {
 	linux,code = <KEY_VOLUMEDOWN>;
+	status = "okay";
+};
+
+&qupv3_id_0 {
 	status = "okay";
 };
 
@@ -309,6 +415,12 @@
 	clock-frequency = <32764>;
 };
 
+&spi2 {
+	status = "okay";
+
+	/* HIMAX83102P or NT36523W touchscreen */
+};
+
 &tlmm {
 	gpio-reserved-ranges = <14 4>;
 
@@ -337,6 +449,14 @@
 		drive-strength = <8>;
 		bias-disable;
 	};
+
+	typec_int: typec-int-state {
+		pins = "gpio97";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+		input-enable;
+	};
 };
 
 &ufs_mem_hc {
@@ -360,10 +480,14 @@
 
 &usb_dwc3 {
 	maximum-speed = "high-speed";
-	dr_mode = "peripheral";
+	dr_mode = "otg";
 
 	phys = <&usb_hsphy>;
 	phy-names = "usb2-phy";
+};
+
+&usb_dwc3_hs {
+	remote-endpoint = <&rt1715_hs_ep>;
 };
 
 &usb_hsphy {
