@@ -54,6 +54,99 @@
 	};
 };
 
+&dwc3_hs_ep {
+	remote-endpoint = <&rt1715_hs_ep>;
+};
+
+&dwc3_sbu_ep {
+	remote-endpoint = <&fsa4480_sbu_mux>;
+};
+
+&gpi_dma0 {
+	status = "okay";
+};
+
+&i2c0 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+	/*
+	 * Some devices use FUSB302(@22) and others use RT1715.
+	 * Adding support for the former one should be super easy, the
+	 * interrupt pin is the same as on RT1715. The FUSB302 driver will not
+	 * behave well when the chip is absent, so that has to be fixed and of
+	 * course the addition should be tested on a device which has it.
+	 */
+
+	/* Downstream calls this RT1711H, but the device ID reveals it's RT1715. */
+	rt1715: typec-portc@4e {
+		compatible = "richtek,rt1715";
+		reg = <0x4e>;
+		interrupts-extended = <&tlmm 97 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-0 = <&typec_int>;
+		pinctrl-names = "default";
+
+		usb_con: connector {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			data-role = "dual";
+
+			/* TODO: Add a proper PD setup after *at least* fuel gauge is present.. */
+			typec-power-opmode = "default";
+			try-power-role = "sink";
+			power-role = "dual";
+			pd-disable;
+
+			port {
+				rt1715_hs_ep: endpoint {
+					remote-endpoint = <&dwc3_hs_ep>;
+				};
+			};
+		};
+	};
+
+	/* AW882xx speaker amp @ 34, 35, 36, 37 (yes, the tab has 4 nice speakers!) */
+	/* MM8013 fuel gauge @ 55 */
+	/* HID-over-I2C for the touchpad on keyboard folio @ 60 */
+};
+
+&i2c1 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+	tps65132@3e {
+		compatible = "ti,tps65132";
+		reg = <0x3e>;
+	};
+
+	fsa4480: typec-mux@42 {
+		compatible = "fcs,fsa4480";
+		reg = <0x42>;
+		interrupts-extended = <&tlmm 89 IRQ_TYPE_LEVEL_LOW>;
+		orientation-switch;
+		mode-switch;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@2 {
+				reg = <2>;
+
+				fsa4480_sbu_mux: endpoint {
+					remote-endpoint = <&dwc3_sbu_ep>;
+				};
+			};
+		};
+	};
+
+	/* PM8008 @ 8, 9 */
+	/* SMB1355 @ c */
+	/* SGM37604A WLED driver @ 36 */
+	/* ES7210 audio ADC @ 40 */
+	/* HID-over-I2C for the keyboard on keyboard folio @ 61 */
+};
+
 &mdss {
 	status = "okay";
 };
@@ -107,6 +200,10 @@
 
 &pon_resin {
 	linux,code = <KEY_VOLUMEDOWN>;
+	status = "okay";
+};
+
+&qupv3_id_0 {
 	status = "okay";
 };
 
@@ -255,6 +352,7 @@
 		pm6125_l24: l24 {
 			regulator-min-microvolt = <2704000>;
 			regulator-max-microvolt = <3600000>;
+			regulator-always-on;
 		};
 	};
 };
@@ -273,6 +371,12 @@
 
 &sleep_clk {
 	clock-frequency = <32764>;
+};
+
+&spi2 {
+	status = "okay";
+
+	/* HIMAX83102P (rev x0/x1?) or NT36523W (rev x2?) touchscreen */
 };
 
 &tlmm {
@@ -303,6 +407,14 @@
 		drive-strength = <8>;
 		bias-disable;
 	};
+
+	typec_int: typec-int-state {
+		pins = "gpio97";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+		input-enable;
+	};
 };
 
 &ufs_mem_hc {
@@ -326,7 +438,7 @@
 
 &usb_dwc3 {
 	maximum-speed = "high-speed";
-	dr_mode = "peripheral";
+	dr_mode = "otg";
 };
 
 &usb_hsphy {
