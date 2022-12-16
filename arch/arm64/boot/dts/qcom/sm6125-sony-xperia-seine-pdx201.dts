@@ -179,7 +179,7 @@
 		// vdd-supply = <&vreg_l1c_1p8>;
 		// avdd-supply = <&vreg_l10c_3p3>;
 
-		pinctrl-0 = <&ts_reset_default &ts_int_default>;
+		pinctrl-0 = </* &ts_reset_default */ &ts_int_default>;
 		pinctrl-names = "default";
 	};
 };
@@ -527,9 +527,11 @@
 	ts_int_default: ts-int-default-state {
 		pins = "gpio88";
 		function = "gpio";
-		drive-strength = <2>;
-		input-enable;
-		bias-disable;
+		drive-strength = <8>;
+		bias-pull-up;
+		// drive-strength = <2>;
+		// input-enable;
+		// bias-disable;
 	};
 
 	mdss_te_active_sleep: mdss-te-active-sleep-state {
