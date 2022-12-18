@@ -234,7 +234,8 @@ static const struct msm_dsi_cfg_handler *dsi_get_config(
 
 	cfg_hnd = msm_dsi_cfg_get(major, minor);
 
-	DBG("%s: Version %x:%x\n", __func__, major, minor);
+	// DBG("%s: Version %x:%x\n", __func__, major, minor);
+	DRM_DEV_ERROR(dev, "%s: Version %x:%x\n", __func__, major, minor);
 
 disable_clks:
 	clk_disable_unprepare(ahb_clk);
