@@ -585,9 +585,9 @@ struct dpu_dsc_cfg {
  * @features           bit mask identifying sub-blocks/features
  * @type:              Interface type(DSI, DP, HDMI)
  * @controller_id:     Controller Instance ID in case of multiple of intf type
- * @prog_fetch_lines_worst_case	Worst case latency num lines needed to prefetch
- * @intr_underrun:	index for INTF underrun interrupt
- * @intr_vsync:	        index for INTF VSYNC interrupt
+ * @prog_fetch_lines_worst_case: Worst case latency num lines needed to prefetch
+ * @intr_underrun:     Index for INTF underrun interrupt
+ * @intr_vsync:        Index for INTF VSYNC interrupt
  * @intr_tear_rd_ptr:  Index for INTF TEAR_RD_PTR interrupt
  */
 struct dpu_intf_cfg  {
@@ -607,9 +607,9 @@ struct dpu_intf_cfg  {
  * @maxlinewidth:       max line width supported by writeback block
  * @xin_id:             bus client identifier
  * @intr_wb_done:       interrupt index for WB_DONE
- * @format_list:	    list of formats supported by this writeback block
- * @num_formats:	    number of formats supported by this writeback block
- * @clk_ctrl:	        clock control identifier
+ * @format_list:        list of formats supported by this writeback block
+ * @num_formats:        number of formats supported by this writeback block
+ * @clk_ctrl:           clock control identifier
  */
 struct dpu_wb_cfg {
 	DPU_HW_BLK_INFO;
