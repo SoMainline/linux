@@ -1,0 +1,148 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+/*
+ * Qualcomm MSM8994 interconnect IDs
+ *
+ * Copyright (c) 2022, The Linux Foundation. All rights reserved.
+ */
+
+#ifndef __DT_BINDINGS_INTERCONNECT_QCOM_MSM8994_H
+#define __DT_BINDINGS_INTERCONNECT_QCOM_MSM8994_H
+
+#define MASTER_LPASS_AHB		0
+#define MASTER_QDSS_BAM			1
+#define MASTER_BIMC_SNOC		2
+#define MASTER_CNOC_SNOC		3
+#define MASTER_CRYPTO_CORE0		4
+#define MASTER_CRYPTO_CORE1		5
+#define MASTER_CRYPTO_CORE2		6
+#define MASTER_LPASS_PROC		7
+#define MASTER_OVNOC_SNOC		8
+#define MASTER_PNOC_SNOC		9
+#define MASTER_PCIE			10
+#define MASTER_PCIE_1			11
+#define MASTER_QDSS_ETR			12
+#define MASTER_UFS			13
+#define MASTER_USB3			14
+#define MASTER_IPA			15
+#define SLAVE_AMPSS			16
+#define SLAVE_LPASS			17
+#define SLAVE_SNOC_BIMC			18
+#define SLAVE_SNOC_CNOC			19
+#define SLAVE_OCIMEM			20
+#define SLAVE_SNOC_OVNOC		21
+#define SLAVE_SNOC_PNOC			22
+#define SLAVE_QDSS_STM			23
+#define SLAVE_USB3			24
+#define SLAVE_PCIE_0			25
+#define SLAVE_PCIE_1			26
+
+#define MASTER_AMPSS_M0			0
+#define BIMC_INT_APPS_EBI		1
+#define BIMC_INT_APPS_SNOC		2
+#define MASTER_GRAPHICS_3D		3
+#define MASTER_MNOC_BIMC		4
+#define MASTER_SNOC_BIMC		5
+#define SLAVE_EBI_CH0			6
+#define SLAVE_AMPSS_L2			7
+#define SLAVE_BIMC_SNOC			8
+
+#define MASTER_BAM_DMA			0
+#define MASTER_BLSP_2			1
+#define MASTER_BLSP_1			2
+#define MASTER_TSIF			3
+#define MASTER_USB_HS			4
+#define MASTER_PNOC_CFG			5
+#define MASTER_SDCC_1			6
+#define MASTER_SDCC_2			7
+#define MASTER_SDCC_3			8
+#define MASTER_SDCC_4			9
+#define MASTER_SNOC_PNOC		10
+#define SLAVE_BAM_DMA			11
+#define SLAVE_SDCC_1			12
+#define SLAVE_SDCC_3			13
+#define SLAVE_BLSP_2			14
+#define SLAVE_SDCC_2			15
+#define SLAVE_SDCC_4			16
+#define SLAVE_BLSP_1			17
+#define SLAVE_TSIF			18
+#define SLAVE_USB_HS			19
+#define SLAVE_PDM			20
+#define SLAVE_PRNG			21
+#define SLAVE_PNOC_SNOC			22
+
+#define MASTER_CNOC_MNOC_MMSS_CFG	0
+#define MASTER_CNOC_MNOC_CFG		1
+#define MASTER_JPEG			2
+#define MASTER_MDP_PORT0		3
+#define MASTER_MDP_PORT1		4
+#define MASTER_VIDEO_P0			5
+#define MASTER_VIDEO_P1			6
+#define MASTER_VFE			7
+#define MASTER_CPP			8
+#define MASTER_VPU			9
+#define SLAVE_CAMERA_CFG		10
+#define SLAVE_CPR_CFG			11
+#define SLAVE_CPR_XPU_CFG		12
+#define SLAVE_OCMEM_CFG			13
+#define SLAVE_MISC_CFG			14
+#define SLAVE_MISC_XPU_CFG		15
+#define SLAVE_GRAPHICS_3D_CFG		16
+#define SLAVE_MISC_VENUS_CFG		17
+#define SLAVE_MMSS_CLK_CFG		18
+#define SLAVE_MMSS_CLK_XPU_CFG		19
+#define SLAVE_MNOC_MPU_CFG		20
+#define SLAVE_DISPLAY_CFG		21
+#define SLAVE_AVSYNC_CFG		22
+#define SLAVE_VPU_CFG			23
+#define SLAVE_MNOC_BIMC			24
+#define SLAVE_SRVC_MNOC			25
+
+#define MASTER_RPM_INST			0
+#define MASTER_RPM_SYS			1
+#define MASTER_DEHR			2
+#define MASTER_SPDM			3
+#define MASTER_TIC			4
+#define MASTER_SNOC_CNOC		5
+#define MASTER_QDSS_DAP			6
+#define SLAVE_CLK_CTL			7
+#define SLAVE_CRYPTO_2_CFG		8
+#define SLAVE_SECURITY			9
+#define SLAVE_TCSR			10
+#define SLAVE_TLMM			11
+#define SLAVE_CRYPTO_0_CFG		12
+#define SLAVE_CRYPTO_1_CFG		13
+#define SLAVE_IMEM_CFG			14
+#define SLAVE_MESSAGE_RAM		15
+#define SLAVE_BIMC_CFG			16
+#define SLAVE_BOOT_ROM			17
+#define SLAVE_CNOC_MNOC_MMSS_CFG	18
+#define SLAVE_PMIC_ARB			19
+#define SLAVE_SPDM_WRAPPER		20
+#define SLAVE_DEHR_CFG			21
+#define SLAVE_MPM			22
+#define SLAVE_QDSS_CFG			23
+#define SLAVE_RBCPR_QDSS_APU_CFG	24
+#define SLAVE_RBCPR_CFG			25
+#define SLAVE_CNOC_MNOC_CFG		26
+#define SLAVE_PNOC_CFG			27
+#define SLAVE_SNOC_CFG			28
+#define SLAVE_SNOC_MPU_CFG		29
+#define SLAVE_EBI1_DLL_CFG		30
+#define SLAVE_PHY_APU_CFG		31
+#define SLAVE_EBI1_PHY_CFG		32
+#define SLAVE_RPM			33
+#define SLAVE_PCIE_0_CFG		34
+#define SLAVE_PCIE_1_CFG		35
+#define SLAVE_GENI_IR_CFG		36
+#define SLAVE_UFS_CFG			37
+#define SLAVE_CNOC_SNOC			38
+
+#define MASTER_SNOC_OVNOC		0
+#define MASTER_OCMEM_DMA		1
+#define MASTER_V_OCMEM_GFX3D		2
+#define MASTER_VIDEO_P0_OCMEM		3
+#define SLAVE_OCMEM			4
+#define SLAVE_OCMEM_GFX			5
+#define SLAVE_OVNOC_SNOC		6
+
+#endif
