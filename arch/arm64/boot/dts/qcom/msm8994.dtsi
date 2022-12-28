@@ -160,6 +160,14 @@
 		};
 	};
 
+	ovirt: interconnect {
+		// compatible = "qcom,msm8994-ovirt";
+		clocks = <&rpmcc RPM_SMD_OCMEMGX_CLK>,
+			 <&rpmcc RPM_SMD_OCMEMGX_A_CLK>;
+		clock-names = "bus", "bus_a";
+		#interconnect-cells = <1>;
+	};
+
 	memory@80000000 {
 		device_type = "memory";
 		/* We expect the bootloader to fill in the reg */
@@ -717,6 +725,65 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 			status = "disabled";
+		};
+
+		bimc: interconnect@fc380000 {
+			compatible = "qcom,msm8994-bimc";
+			reg = <0xfc380000 0x80000>;
+			clocks = <&rpmcc RPM_SMD_BIMC_CLK>,
+				 <&rpmcc RPM_SMD_BIMC_A_CLK>;
+			clock-names = "bus", "bus_a";
+			#interconnect-cells = <1>;
+		};
+
+		snoc: interconnect@fc460000 {
+			compatible = "qcom,msm8994-snoc";
+			reg = <0xfc460000 0x5880>;
+			clocks = <&rpmcc RPM_SMD_SNOC_CLK>,
+				 <&rpmcc RPM_SMD_SNOC_A_CLK>;
+			clock-names = "bus", "bus_a";
+			#interconnect-cells = <1>;
+		};
+
+		pnoc: interconnect@fc468000 {
+			compatible = "qcom,msm8994-pnoc";
+			reg = <0xfc468000 0x10000>;
+			clocks = <&rpmcc RPM_SMD_PNOC_CLK>,
+				 <&rpmcc RPM_SMD_PNOC_A_CLK>;
+			clock-names = "bus", "bus_a";
+			#interconnect-cells = <1>;
+		};
+
+		mnoc: interconnect@fc478000 {
+			compatible = "qcom,msm8994-mnoc";
+			reg = <0xfc478000 0x8000>;
+			clocks = <&rpmcc RPM_SMD_MMSSNOC_AHB_CLK>,
+				 <&rpmcc RPM_SMD_MMSSNOC_AHB_A_CLK>,
+				 <&mmcc MMSS_MMSSNOC_AXI_CLK>,
+				 <&mmcc MMSS_S0_AXI_CLK>,
+				 <&mmcc MDSS_AXI_CLK>,
+				 <&mmcc MDSS_AHB_CLK>,
+				 <&mmcc MDSS_MDP_CLK>,
+				 <&mmcc OCMEMNOC_CLK_SRC>;
+			clock-names = "bus",
+				      "bus_a",
+				      "maxi",
+				      "axi",
+				      "mdp_ahb",
+				      "mdp_axi",
+				      "mdp",
+				      "ocmem";
+			power-domains = <&mmcc MDSS_GDSC>;
+			#interconnect-cells = <1>;
+		};
+
+		cnoc: interconnect@fc480000 {
+			compatible = "qcom,msm8994-cnoc";
+			reg = <0xfc480000 0x4000>;
+			clocks = <&rpmcc RPM_SMD_CNOC_CLK>,
+				 <&rpmcc RPM_SMD_CNOC_A_CLK>;
+			clock-names = "bus", "bus_a";
+			#interconnect-cells = <1>;
 		};
 
 		gcc: clock-controller@fc400000 {
