@@ -294,9 +294,19 @@ static int venus_probe(struct platform_device *pdev)
 	if (IS_ERR(core->base))
 		return PTR_ERR(core->base);
 
+	core->res = of_device_get_match_data(dev);
+	if (!core->res)
+		return -ENODEV;
+
 	core->video_path = devm_of_icc_get(dev, "video-mem");
 	if (IS_ERR(core->video_path))
 		return PTR_ERR(core->video_path);
+
+	if (core->res->has_llcc_path) {
+		core->llcc_path = devm_of_icc_get(dev, "video-llcc");
+		if (IS_ERR(core->llcc_path))
+			return PTR_ERR(core->llcc_path);
+	}
 
 	core->cpucfg_path = devm_of_icc_get(dev, "cpu-cfg");
 	if (IS_ERR(core->cpucfg_path))
@@ -305,10 +315,6 @@ static int venus_probe(struct platform_device *pdev)
 	core->irq = platform_get_irq(pdev, 0);
 	if (core->irq < 0)
 		return core->irq;
-
-	core->res = of_device_get_match_data(dev);
-	if (!core->res)
-		return -ENODEV;
 
 	mutex_init(&core->pm_lock);
 
@@ -481,12 +487,20 @@ static __maybe_unused int venus_runtime_suspend(struct device *dev)
 	if (ret)
 		goto err_cpucfg_path;
 
+	if (core->res->has_llcc_path) {
+		ret = icc_set_bw(core->llcc_path, 0, 0);
+		if (ret)
+			goto err_llcc_path;
+	}
+
 	ret = icc_set_bw(core->video_path, 0, 0);
 	if (ret)
 		goto err_video_path;
 
 	return ret;
 
+err_llcc_path:
+	icc_set_bw(core->video_path, kbps_to_icc(20000), 0);
 err_video_path:
 	icc_set_bw(core->cpucfg_path, kbps_to_icc(1000), 0);
 err_cpucfg_path:
@@ -505,6 +519,12 @@ static __maybe_unused int venus_runtime_resume(struct device *dev)
 	ret = icc_set_bw(core->video_path, kbps_to_icc(20000), 0);
 	if (ret)
 		return ret;
+
+	if (core->res->has_llcc_path) {
+		ret = icc_set_bw(core->llcc_path, kbps_to_icc(20000), 0);
+		if (ret)
+			return ret;
+	}
 
 	ret = icc_set_bw(core->cpucfg_path, kbps_to_icc(1000), 0);
 	if (ret)
