@@ -463,6 +463,33 @@ static struct snd_soc_dai_driver q6dsp_audio_fe_dais[] = {
 		},
 		.id = QUINARY_MI2S_TX,
 		.name = "QUIN_MI2S_TX",
+	}, {
+		.playback = {
+			.stream_name = "Senary MI2S Playback",
+			.rates = SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_8000 |
+			SNDRV_PCM_RATE_16000 | SNDRV_PCM_RATE_96000 |
+			SNDRV_PCM_RATE_192000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+			.channels_min = 1,
+			.channels_max = 8,
+			.rate_min =     8000,
+			.rate_max =     192000,
+		},
+		.id = SENARY_MI2S_RX,
+		.name = "SEN_MI2S_RX",
+	}, {
+		.capture = {
+			.stream_name = "Senary MI2S Capture",
+			.rates = SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_8000 |
+				 SNDRV_PCM_RATE_16000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE,
+			.channels_min = 1,
+			.channels_max = 8,
+			.rate_min =     8000,
+			.rate_max =     48000,
+		},
+		.id = SENARY_MI2S_TX,
+		.name = "SEN_MI2S_TX",
 	},
 	Q6AFE_TDM_PB_DAI("Primary", 0, PRIMARY_TDM_RX_0),
 	Q6AFE_TDM_PB_DAI("Primary", 1, PRIMARY_TDM_RX_1),
@@ -552,6 +579,38 @@ static struct snd_soc_dai_driver q6dsp_audio_fe_dais[] = {
 	Q6AFE_DP_RX_DAI(DISPLAY_PORT_RX_5),
 	Q6AFE_DP_RX_DAI(DISPLAY_PORT_RX_6),
 	Q6AFE_DP_RX_DAI(DISPLAY_PORT_RX_7),
+	{
+		.playback = {
+			.stream_name = "Display Port Playback",
+			.rates = SNDRV_PCM_RATE_48000 |
+				 SNDRV_PCM_RATE_96000 |
+				 SNDRV_PCM_RATE_192000,
+			.formats = SNDRV_PCM_FMTBIT_S16_LE |
+				   SNDRV_PCM_FMTBIT_S24_LE,
+			.channels_min = 2,
+			.channels_max = 8,
+			.rate_max =     192000,
+			.rate_min =	48000,
+		},
+		.id = DISPLAY_PORT_RX,
+		.name = "DISPLAY_PORT",
+	},
+	Q6AFE_TDM_PB_DAI("Senary", 0, SENARY_TDM_RX_0),
+	Q6AFE_TDM_PB_DAI("Senary", 1, SENARY_TDM_RX_1),
+	Q6AFE_TDM_PB_DAI("Senary", 2, SENARY_TDM_RX_2),
+	Q6AFE_TDM_PB_DAI("Senary", 3, SENARY_TDM_RX_3),
+	Q6AFE_TDM_PB_DAI("Senary", 4, SENARY_TDM_RX_4),
+	Q6AFE_TDM_PB_DAI("Senary", 5, SENARY_TDM_RX_5),
+	Q6AFE_TDM_PB_DAI("Senary", 6, SENARY_TDM_RX_6),
+	Q6AFE_TDM_PB_DAI("Senary", 7, SENARY_TDM_RX_7),
+	Q6AFE_TDM_CAP_DAI("Senary", 0, SENARY_TDM_TX_0),
+	Q6AFE_TDM_CAP_DAI("Senary", 1, SENARY_TDM_TX_1),
+	Q6AFE_TDM_CAP_DAI("Senary", 2, SENARY_TDM_TX_2),
+	Q6AFE_TDM_CAP_DAI("Senary", 3, SENARY_TDM_TX_3),
+	Q6AFE_TDM_CAP_DAI("Senary", 4, SENARY_TDM_TX_4),
+	Q6AFE_TDM_CAP_DAI("Senary", 5, SENARY_TDM_TX_5),
+	Q6AFE_TDM_CAP_DAI("Senary", 6, SENARY_TDM_TX_6),
+	Q6AFE_TDM_CAP_DAI("Senary", 7, SENARY_TDM_TX_7),
 	Q6AFE_CDC_DMA_RX_DAI(WSA_CODEC_DMA_RX_0),
 	Q6AFE_CDC_DMA_TX_DAI(WSA_CODEC_DMA_TX_0),
 	Q6AFE_CDC_DMA_RX_DAI(WSA_CODEC_DMA_RX_1),
