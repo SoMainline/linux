@@ -573,7 +573,7 @@
 
 &mss_pil {
 	firmware-name = "qcom/sdm845/Sony/tama/mba.mbn", "qcom/sdm845/Sony/tama/modem.mbn";
-	status = "okay";
+	// status = "okay";
 };
 
 &pm8005_gpios {
