@@ -175,7 +175,7 @@ static int q6tdm_set_tdm_slot(struct snd_soc_dai *dai,
 	}
 
 	switch (dai->id) {
-	case PRIMARY_TDM_RX_0 ... QUINARY_TDM_TX_7:
+	case PRIMARY_TDM_RX_0 ... SENARY_TDM_TX_7:
 		tdm->nslots_per_frame = slots;
 		tdm->slot_width = slot_width;
 		/* TDM RX dais ids are even and tx are odd */
@@ -202,6 +202,7 @@ static int q6tdm_set_channel_map(struct snd_soc_dai *dai,
 
 	switch (dai->id) {
 	case PRIMARY_TDM_RX_0 ... QUINARY_TDM_TX_7:
+	case SENARY_TDM_RX_0 ... SENARY_TDM_TX_7:
 		if (dai->id & 0x1) {
 			if (!tx_slot) {
 				dev_err(dai->dev, "tx slot not found\n");
@@ -393,8 +394,9 @@ static int q6afe_dai_prepare(struct snd_pcm_substream *substream,
 		q6afe_slim_port_prepare(dai_data->port[dai->id],
 					&dai_data->port_config[dai->id].slim);
 		break;
-	case QUINARY_MI2S_RX ... QUINARY_MI2S_TX:
 	case PRIMARY_MI2S_RX ... QUATERNARY_MI2S_TX:
+	case QUINARY_MI2S_RX ... QUINARY_MI2S_TX:
+	case SENARY_MI2S_RX ... SENARY_MI2S_TX:
 		rc = q6afe_i2s_port_prepare(dai_data->port[dai->id],
 			       &dai_data->port_config[dai->id].i2s_cfg);
 		if (rc < 0) {
@@ -404,6 +406,7 @@ static int q6afe_dai_prepare(struct snd_pcm_substream *substream,
 		}
 		break;
 	case PRIMARY_TDM_RX_0 ... QUINARY_TDM_TX_7:
+	case SENARY_TDM_RX_0 ... SENARY_TDM_TX_7:
 		q6afe_tdm_port_prepare(dai_data->port[dai->id],
 					&dai_data->port_config[dai->id].tdm);
 		break;
@@ -484,7 +487,7 @@ static int q6afe_mi2s_set_sysclk(struct snd_soc_dai *dai,
 					     Q6AFE_LPASS_CLK_ATTRIBUTE_COUPLE_NO,
 					     Q6AFE_LPASS_CLK_ROOT_DEFAULT,
 					     freq, dir);
-	case Q6AFE_LPASS_CLK_ID_PRI_TDM_IBIT ... Q6AFE_LPASS_CLK_ID_QUIN_TDM_EBIT:
+	case Q6AFE_LPASS_CLK_ID_PRI_TDM_IBIT ... Q6AFE_LPASS_CLK_ID_SEN_TDM_EBIT:
 		return q6afe_port_set_sysclk(port, clk_id,
 					     Q6AFE_LPASS_CLK_ATTRIBUTE_INVERT_COUPLE_NO,
 					     Q6AFE_LPASS_CLK_ROOT_DEFAULT,
@@ -518,6 +521,7 @@ static const struct snd_soc_dapm_route q6afe_dapm_routes[] = {
 	{"Tertiary MI2S Playback", NULL, "TERT_MI2S_RX"},
 	{"Quaternary MI2S Playback", NULL, "QUAT_MI2S_RX"},
 	{"Quinary MI2S Playback", NULL, "QUIN_MI2S_RX"},
+	{"Senary MI2S Playback", NULL, "SEN_MI2S_RX"},
 
 	{"Primary TDM0 Playback", NULL, "PRIMARY_TDM_RX_0"},
 	{"Primary TDM1 Playback", NULL, "PRIMARY_TDM_RX_1"},
@@ -564,6 +568,15 @@ static const struct snd_soc_dapm_route q6afe_dapm_routes[] = {
 	{"Quinary TDM6 Playback", NULL, "QUIN_TDM_RX_6"},
 	{"Quinary TDM7 Playback", NULL, "QUIN_TDM_RX_7"},
 
+	{"Senary TDM0 Playback", NULL, "SEN_TDM_RX_0"},
+	{"Senary TDM1 Playback", NULL, "SEN_TDM_RX_1"},
+	{"Senary TDM2 Playback", NULL, "SEN_TDM_RX_2"},
+	{"Senary TDM3 Playback", NULL, "SEN_TDM_RX_3"},
+	{"Senary TDM4 Playback", NULL, "SEN_TDM_RX_4"},
+	{"Senary TDM5 Playback", NULL, "SEN_TDM_RX_5"},
+	{"Senary TDM6 Playback", NULL, "SEN_TDM_RX_6"},
+	{"Senary TDM7 Playback", NULL, "SEN_TDM_RX_7"},
+
 	{"PRIMARY_TDM_TX_0", NULL, "Primary TDM0 Capture"},
 	{"PRIMARY_TDM_TX_1", NULL, "Primary TDM1 Capture"},
 	{"PRIMARY_TDM_TX_2", NULL, "Primary TDM2 Capture"},
@@ -609,11 +622,21 @@ static const struct snd_soc_dapm_route q6afe_dapm_routes[] = {
 	{"QUIN_TDM_TX_6", NULL, "Quinary TDM6 Capture"},
 	{"QUIN_TDM_TX_7", NULL, "Quinary TDM7 Capture"},
 
+	{"SEN_TDM_TX_0", NULL, "Senary TDM0 Capture"},
+	{"SEN_TDM_TX_1", NULL, "Senary TDM1 Capture"},
+	{"SEN_TDM_TX_2", NULL, "Senary TDM2 Capture"},
+	{"SEN_TDM_TX_3", NULL, "Senary TDM3 Capture"},
+	{"SEN_TDM_TX_4", NULL, "Senary TDM4 Capture"},
+	{"SEN_TDM_TX_5", NULL, "Senary TDM5 Capture"},
+	{"SEN_TDM_TX_6", NULL, "Senary TDM6 Capture"},
+	{"SEN_TDM_TX_7", NULL, "Senary TDM7 Capture"},
+
 	{"TERT_MI2S_TX", NULL, "Tertiary MI2S Capture"},
 	{"PRI_MI2S_TX", NULL, "Primary MI2S Capture"},
 	{"SEC_MI2S_TX", NULL, "Secondary MI2S Capture"},
 	{"QUAT_MI2S_TX", NULL, "Quaternary MI2S Capture"},
 	{"QUIN_MI2S_TX", NULL, "Quinary MI2S Capture"},
+	{"SEN_MI2S_TX", NULL, "Senary MI2S Capture"},
 
 	{"WSA_CODEC_DMA_RX_0 Playback", NULL, "WSA_CODEC_DMA_RX_0"},
 	{"WSA_CODEC_DMA_TX_0", NULL, "WSA_CODEC_DMA_TX_0 Capture"},
@@ -718,6 +741,10 @@ static const struct snd_soc_dapm_widget q6afe_dai_widgets[] = {
 	SND_SOC_DAPM_AIF_OUT("SLIMBUS_4_TX", NULL, 0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_AIF_OUT("SLIMBUS_5_TX", NULL, 0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_AIF_OUT("SLIMBUS_6_TX", NULL, 0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("SEN_MI2S_RX", NULL,
+						0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("SEN_MI2S_TX", NULL,
+						0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_AIF_IN("QUIN_MI2S_RX", NULL,
 						0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_AIF_OUT("QUIN_MI2S_TX", NULL,
@@ -906,6 +933,39 @@ static const struct snd_soc_dapm_widget q6afe_dai_widgets[] = {
 						0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_AIF_OUT("QUIN_TDM_TX_7", NULL,
 						0, SND_SOC_NOPM, 0, 0),
+
+	SND_SOC_DAPM_AIF_IN("SEN_TDM_RX_0", NULL,
+			     0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("SEN_TDM_RX_1", NULL,
+			     0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("SEN_TDM_RX_2", NULL,
+			     0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("SEN_TDM_RX_3", NULL,
+			     0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("SEN_TDM_RX_4", NULL,
+			     0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("SEN_TDM_RX_5", NULL,
+			     0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("SEN_TDM_RX_6", NULL,
+			     0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("SEN_TDM_RX_7", NULL,
+			     0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("SEN_TDM_TX_0", NULL,
+						0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("SEN_TDM_TX_1", NULL,
+						0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("SEN_TDM_TX_2", NULL,
+						0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("SEN_TDM_TX_3", NULL,
+						0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("SEN_TDM_TX_4", NULL,
+						0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("SEN_TDM_TX_5", NULL,
+						0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("SEN_TDM_TX_6", NULL,
+						0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("SEN_TDM_TX_7", NULL,
+						0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_AIF_OUT("DISPLAY_PORT_RX", "NULL", 0, SND_SOC_NOPM, 0, 0),
 
 	SND_SOC_DAPM_AIF_IN("WSA_CODEC_DMA_RX_0", "NULL",
@@ -983,8 +1043,9 @@ static void of_q6afe_parse_dai_data(struct device *dev,
 
 		switch (id) {
 		/* MI2S specific properties */
-		case QUINARY_MI2S_RX ... QUINARY_MI2S_TX:
 		case PRIMARY_MI2S_RX ... QUATERNARY_MI2S_TX:
+		case QUINARY_MI2S_RX ... QUINARY_MI2S_TX:
+		case SENARY_MI2S_RX ... SENARY_MI2S_TX:
 			priv = &data->priv[id];
 			ret = of_property_read_variable_u32_array(node,
 							"qcom,sd-lines",
@@ -1002,6 +1063,7 @@ static void of_q6afe_parse_dai_data(struct device *dev,
 
 			break;
 		case PRIMARY_TDM_RX_0 ... QUINARY_TDM_TX_7:
+		case SENARY_TDM_RX_0 ... SENARY_TDM_TX_7:
 			priv = &data->priv[id];
 			ret = of_property_read_u32(node, "qcom,tdm-sync-mode",
 						   &priv->sync_mode);
