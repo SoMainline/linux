@@ -41,6 +41,8 @@
 #define LPASS_CDC_DMA_VA_TX7 32
 #define LPASS_CDC_DMA_VA_TX8 33
 
+#define MI2S_SENARY	34
+
 #define LPASS_MCLK0	0
 
 #endif /* __DT_QCOM_LPASS_H */
