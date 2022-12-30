@@ -5,7 +5,7 @@
 
 #include <dt-bindings/sound/qcom,q6afe.h>
 
-#define AFE_PORT_MAX		129
+#define AFE_PORT_MAX		SENARY_MI2S_TX+1
 
 #define MSM_AFE_PORT_TYPE_RX 0
 #define MSM_AFE_PORT_TYPE_TX 1
@@ -94,6 +94,10 @@
 #define Q6AFE_LPASS_CLK_ID_QUIN_PCM_EBIT                          0x209
 /* Clock ID for QUINARY PCM OSR  */
 #define Q6AFE_LPASS_CLK_ID_QUI_PCM_OSR                            0x20A
+/* Clock ID for Senary PCM IBIT */
+#define Q6AFE_LPASS_CLK_ID_SEN_PCM_IBIT                           0x20B
+/* Clock ID for Senary PCM EBIT */
+#define Q6AFE_LPASS_CLK_ID_SEN_PCM_EBIT                           0x20C
 
 /** Clock ID for Primary TDM IBIT */
 #define Q6AFE_LPASS_CLK_ID_PRI_TDM_IBIT                           0x200
@@ -117,6 +121,10 @@
 #define Q6AFE_LPASS_CLK_ID_QUIN_TDM_EBIT                          0x209
 /** Clock ID for Quinary TDM OSR */
 #define Q6AFE_LPASS_CLK_ID_QUIN_TDM_OSR                           0x20A
+/** Clock ID for Senary TDM IBIT */
+#define Q6AFE_LPASS_CLK_ID_SEN_TDM_IBIT                           0x20B
+/** Clock ID for Senary TDM EBIT */
+#define Q6AFE_LPASS_CLK_ID_SEN_TDM_EBIT                           0x20C
 
 /* Clock ID for MCLK1 */
 #define Q6AFE_LPASS_CLK_ID_MCLK_1                                 0x300
