@@ -466,9 +466,9 @@ struct dpu_clk_ctrl_reg {
 };
 
 /* struct dpu_mdp_cfg : MDP TOP-BLK instance info
- * @id:                index identifying this block
- * @base:              register base offset to mdss
- * @features           bit mask identifying sub-blocks/features
+ * @id:                Enum identifying this block
+ * @base:              Register offset to mdss
+ * @features:          Bit mask identifying sub-blocks/features
  * @clk_ctrls          clock control register definition
  */
 struct dpu_mdp_cfg {
@@ -477,9 +477,9 @@ struct dpu_mdp_cfg {
 };
 
 /* struct dpu_ctl_cfg : MDP CTL instance info
- * @id:                index identifying this block
- * @base:              register base offset to mdss
- * @features           bit mask identifying sub-blocks/features
+ * @id:                Enum identifying this block
+ * @base:              Register offset to mdss
+ * @features:          Bit mask identifying sub-blocks/features
  * @intr_start:        interrupt index for CTL_START
  */
 struct dpu_ctl_cfg {
@@ -489,9 +489,9 @@ struct dpu_ctl_cfg {
 
 /**
  * struct dpu_sspp_cfg - information of source pipes
- * @id:                index identifying this block
- * @base               register offset of this block
- * @features           bit mask identifying sub-blocks/features
+ * @id:                Enum identifying this block
+ * @base:              Register offset of this block
+ * @features:          Bit mask identifying sub-blocks/features
  * @sblk:              SSPP sub-blocks information
  * @xin_id:            bus client identifier
  * @clk_ctrl           clock control identifier
@@ -507,9 +507,9 @@ struct dpu_sspp_cfg {
 
 /**
  * struct dpu_lm_cfg - information of layer mixer blocks
- * @id:                index identifying this block
- * @base               register offset of this block
- * @features           bit mask identifying sub-blocks/features
+ * @id:                Enum identifying this block
+ * @base:              Register offset of this block
+ * @features:          Bit mask identifying sub-blocks/features
  * @sblk:              LM Sub-blocks information
  * @pingpong:          ID of connected PingPong, PINGPONG_NONE if unsupported
  * @lm_pair:           ID of LM that can be controlled by same CTL
@@ -524,9 +524,9 @@ struct dpu_lm_cfg {
 
 /**
  * struct dpu_dspp_cfg - information of DSPP blocks
- * @id                 enum identifying this block
- * @base               register offset of this block
- * @features           bit mask identifying sub-blocks/features
+ * @id:                Enum identifying this block
+ * @base:              Register offset of this block
+ * @features:          Bit mask identifying sub-blocks/features
  *                     supported by this block
  * @sblk               sub-blocks information
  */
@@ -537,12 +537,12 @@ struct dpu_dspp_cfg  {
 
 /**
  * struct dpu_pingpong_cfg - information of PING-PONG blocks
- * @id                 enum identifying this block
- * @base               register offset of this block
- * @features           bit mask identifying sub-blocks/features
+ * @id:                Enum identifying this block
+ * @base:              Register offset of this block
+ * @features:          Bit mask identifying sub-blocks/features
  * @intr_done:         index for PINGPONG done interrupt
  * @intr_rdptr:        index for PINGPONG readpointer done interrupt
- * @sblk               sub-blocks information
+ * @sblk:              sub-blocks information
  */
 struct dpu_pingpong_cfg  {
 	DPU_HW_BLK_INFO;
@@ -554,9 +554,9 @@ struct dpu_pingpong_cfg  {
 
 /**
  * struct dpu_merge_3d_cfg - information of DSPP blocks
- * @id                 enum identifying this block
- * @base               register offset of this block
- * @features           bit mask identifying sub-blocks/features
+ * @id:                Enum identifying this block
+ * @base:              Register offset of this block
+ * @features:          Bit mask identifying sub-blocks/features
  *                     supported by this block
  * @sblk               sub-blocks information
  */
@@ -567,10 +567,10 @@ struct dpu_merge_3d_cfg  {
 
 /**
  * struct dpu_dsc_cfg - information of DSC blocks
- * @id                 enum identifying this block
- * @base               register offset of this block
+ * @id:                Enum identifying this block
+ * @base:              Register offset of this block
  * @len:               length of hardware block
- * @features           bit mask identifying sub-blocks/features
+ * @features:          Bit mask identifying sub-blocks/features
  * @sblk:              sub-blocks information
  */
 struct dpu_dsc_cfg {
@@ -580,9 +580,9 @@ struct dpu_dsc_cfg {
 
 /**
  * struct dpu_intf_cfg - information of timing engine blocks
- * @id                 enum identifying this block
- * @base               register offset of this block
- * @features           bit mask identifying sub-blocks/features
+ * @id:                Enum identifying this block
+ * @base:              Register offset of this block
+ * @features:          Bit mask identifying sub-blocks/features
  * @type:              Interface type(DSI, DP, HDMI)
  * @controller_id:     Controller Instance ID in case of multiple of intf type
  * @prog_fetch_lines_worst_case: Worst case latency num lines needed to prefetch
@@ -655,9 +655,9 @@ struct dpu_vbif_qos_tbl {
 
 /**
  * struct dpu_vbif_cfg - information of VBIF blocks
- * @id                 enum identifying this block
- * @base               register offset of this block
- * @features           bit mask identifying sub-blocks/features
+ * @id:                Enum identifying this block
+ * @base:              Register offset of this block
+ * @features:          Bit mask identifying sub-blocks/features
  * @ot_rd_limit        default OT read limit
  * @ot_wr_limit        default OT write limit
  * @xin_halt_timeout   maximum time (in usec) for xin to halt
