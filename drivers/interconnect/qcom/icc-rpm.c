@@ -239,15 +239,27 @@ static int qcom_icc_rpm_set(int mas_rpm_id, int slv_rpm_id, u64 sum_bw)
 static int __qcom_icc_set(struct icc_node *n, struct qcom_icc_node *qn,
 			  u64 sum_bw)
 {
+	struct qcom_icc_provider *qp = to_qcom_provider(n->provider);
+	bool vote_ap, vote_rpm;
 	int ret;
 
-	if (!qn->qos.ap_owned) {
-		/* send bandwidth request message to the RPM processor */
+	if (qp->type == QCOM_ICC_QNOC) {
+		vote_ap = true;
+		vote_rpm = true;
+	} else {
+		vote_ap = qn->qos.ap_owned;
+		vote_rpm = !vote_ap;
+	}
+
+	if (vote_rpm) {
+		/* Send bandwidth request message to the RPM processor */
 		ret = qcom_icc_rpm_set(qn->mas_rpm_id, qn->slv_rpm_id, sum_bw);
 		if (ret)
 			return ret;
-	} else if (qn->qos.qos_mode != -1) {
-		/* set bandwidth directly from the AP */
+	}
+
+	if (vote_ap && qn->qos.qos_mode != NOC_QOS_MODE_INVALID) {
+		/* Set QoS params from the AP */
 		ret = qcom_icc_qos_set(n, sum_bw);
 		if (ret)
 			return ret;
