@@ -982,6 +982,60 @@
 			#interconnect-cells = <2>;
 		};
 
+		pmu@4520300 {
+			compatible = "qcom,sm6375-cpu-bwmon", "qcom,sdm845-bwmon";
+			reg = <0 0x04520300 0 0x600>;
+			interrupts = <GIC_SPI 421 IRQ_TYPE_LEVEL_HIGH>;
+
+			operating-points-v2 = <&cpu_bwmon_opp_table>;
+			interconnects = <&bimc MASTER_AMPSS_M0 QCOM_ICC_TAG_ACTIVE_ONLY
+					 &bimc SLAVE_EBI QCOM_ICC_TAG_ACTIVE_ONLY>;
+
+			cpu_bwmon_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-0 {
+					opp-peak-kBps = <762000>;
+				};
+
+				opp-1 {
+					opp-peak-kBps = <1720000>;
+				};
+
+				opp-2 {
+					opp-peak-kBps = <2086000>;
+				};
+
+				opp-3 {
+					opp-peak-kBps = <2597000>;
+				};
+
+				opp-4 {
+					opp-peak-kBps = <2929000>;
+				};
+
+				opp-5 {
+					opp-peak-kBps = <3879000>;
+				};
+
+				opp-6 {
+					opp-peak-kBps = <5161000>;
+				};
+
+				opp-7 {
+					opp-peak-kBps = <5931000>;
+				};
+
+				opp-8 {
+					opp-peak-kBps = <6881000>;
+				};
+
+				opp-9 {
+					opp-peak-kBps = <7980000>;
+				};
+			};
+		};
+
 		rpm_msg_ram: sram@45f0000 {
 			compatible = "qcom,rpm-msg-ram";
 			reg = <0 0x045f0000 0 0x7000>;
