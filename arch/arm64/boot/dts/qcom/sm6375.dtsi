@@ -10,6 +10,7 @@
 #include <dt-bindings/firmware/qcom,scm.h>
 #include <dt-bindings/interconnect/qcom,osm-l3.h>
 #include <dt-bindings/interconnect/qcom,sm6375.h>
+#include <dt-bindings/interconnect/qcom,rpm-icc.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/mailbox/qcom-ipcc.h>
 #include <dt-bindings/power/qcom-rpmpd.h>
@@ -1056,6 +1057,64 @@
 			compatible = "qcom,sm6375-bimc";
 			reg = <0 0x04480000 0 0x80000>;
 			#interconnect-cells = <2>;
+		};
+
+		pmu@4520300 {
+			compatible = "qcom,sm6375-cpu-bwmon", "qcom,sdm845-bwmon";
+			reg = <0 0x04520300 0 0x600>;
+			interrupts = <GIC_SPI 421 IRQ_TYPE_LEVEL_HIGH>;
+
+			operating-points-v2 = <&cpu_bwmon_opp_table>;
+			interconnects = <&bimc MASTER_AMPSS_M0 RPM_ACTIVE_TAG
+					 &bimc SLAVE_EBI RPM_ACTIVE_TAG>;
+
+			cpu_bwmon_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-0 {
+					opp-peak-kBps = <762000>;
+				};
+
+				opp-1 {
+					opp-peak-kBps = <1144000>;
+				};
+
+				opp-2 {
+					opp-peak-kBps = <1720000>;
+				};
+
+				opp-3 {
+					opp-peak-kBps = <2086000>;
+				};
+
+				opp-4 {
+					opp-peak-kBps = <2597000>;
+				};
+
+				opp-5 {
+					opp-peak-kBps = <2929000>;
+				};
+
+				opp-6 {
+					opp-peak-kBps = <3879000>;
+				};
+
+				opp-7 {
+					opp-peak-kBps = <5161000>;
+				};
+
+				opp-8 {
+					opp-peak-kBps = <5931000>;
+				};
+
+				opp-9 {
+					opp-peak-kBps = <6881000>;
+				};
+
+				opp-10 {
+					opp-peak-kBps = <7980000>;
+				};
+			};
 		};
 
 		rpm_msg_ram: sram@45f0000 {
