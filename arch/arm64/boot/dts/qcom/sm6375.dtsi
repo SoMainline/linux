@@ -274,6 +274,7 @@
 			clocks = <&rpmcc RPM_SMD_CE1_CLK>;
 			clock-names = "core";
 			#reset-cells = <1>;
+			interconnects = <&system_noc MASTER_CRYPTO_CORE0 &bimc SLAVE_EBI>;
 		};
 	};
 
