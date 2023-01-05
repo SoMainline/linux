@@ -7,6 +7,8 @@
 #include <dt-bindings/clock/qcom,mmcc-msm8998.h>
 #include <dt-bindings/clock/qcom,rpmcc.h>
 #include <dt-bindings/firmware/qcom,scm.h>
+#include <dt-bindings/interconnect/qcom,icc.h>
+#include <dt-bindings/interconnect/qcom,msm8998.h>
 #include <dt-bindings/power/qcom-rpmpd.h>
 #include <dt-bindings/gpio/gpio.h>
 
@@ -877,6 +879,78 @@
 			};
 		};
 
+		bimc: interconnect@1008300 {
+			compatible = "qcom,msm8998-bimc";
+			reg = <0x01008300 0x80000>;
+			clocks = <&rpmcc RPM_SMD_BIMC_CLK>,
+				 <&rpmcc RPM_SMD_BIMC_A_CLK>;
+			clock-names = "bus", "bus_a";
+			#interconnect-cells = <2>;
+		};
+
+		pmu@1008000 {
+			compatible = "qcom,msm8998-bwmon";
+			reg = <0x01008000 0x300>, <0x01001000 0x200>;
+			reg-names = "monitor", "global";
+			interrupts = <GIC_SPI 183 IRQ_TYPE_LEVEL_HIGH>;
+			operating-points-v2 = <&cpu_bwmon_opp_table>;
+			interconnects = <&gnoc MASTER_APSS_PROC QCOM_ICC_TAG_ACTIVE_ONLY
+					 &bimc SLAVE_EBI QCOM_ICC_TAG_ACTIVE_ONLY>;
+
+			cpu_bwmon_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-0 {
+					opp-peak-kBps = <762000>;
+				};
+
+				opp-1 {
+					opp-peak-kBps = <1144000>;
+				};
+
+				opp-2 {
+					opp-peak-kBps = <1525000>;
+				};
+
+				opp-3 {
+					opp-peak-kBps = <2288000>;
+				};
+
+				opp-4 {
+					opp-peak-kBps = <3143000>;
+				};
+
+				opp-5 {
+					opp-peak-kBps = <4173000>;
+				};
+
+				opp-6 {
+					opp-peak-kBps = <5195000>;
+				};
+
+				opp-7 {
+					opp-peak-kBps = <5859000>;
+				};
+
+				opp-8 {
+					opp-peak-kBps = <7759000>;
+				};
+
+				opp-9 {
+					opp-peak-kBps = <9987000>;
+				};
+
+				opp-10 {
+					opp-peak-kBps = <11863000>;
+				};
+
+				/*
+				 * TODO: The SoC supports 13763Mbps@1804MHz, but on some devices
+				 * trying to vote for that, hangs seemingly communication with RPM.
+				 */
+			};
+		};
+
 		tsens0: thermal@10ab000 {
 			compatible = "qcom,msm8998-tsens", "qcom,tsens-v2";
 			reg = <0x010ab000 0x1000>, /* TM */
@@ -897,6 +971,47 @@
 				     <GIC_SPI 430 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "uplow", "critical";
 			#thermal-sensor-cells = <1>;
+		};
+
+		cnoc: interconnect@1500000 {
+			compatible = "qcom,msm8998-cnoc";
+			reg = <0x01500000 0x10000>;
+			clocks = <&rpmcc RPM_SMD_CNOC_CLK>,
+				 <&rpmcc RPM_SMD_CNOC_A_CLK>,
+				 <&gcc GCC_CFG_NOC_USB3_AXI_CLK>;
+			clock-names = "bus",
+				      "bus_a",
+				      "iface";
+			#interconnect-cells = <2>;
+		};
+
+		snoc: interconnect@1620000 {
+			compatible = "qcom,msm8998-snoc";
+			reg = <0x01620000 0x40000>;
+			clocks = <&rpmcc RPM_SMD_SNOC_CLK>,
+				 <&rpmcc RPM_SMD_SNOC_A_CLK>,
+				 <&gcc GCC_MMSS_SYS_NOC_AXI_CLK>;
+			clock-names = "bus",
+				      "bus_a",
+				      "iface";
+			#interconnect-cells = <2>;
+		};
+
+		a1noc: interconnect@1660000 {
+			compatible = "qcom,msm8998-a1noc";
+			/* size = 0x60000 downstream, but that would clash with SMMUs! */
+			reg = <0x01660000 0x20000>;
+			clocks = <&rpmcc RPM_SMD_AGGR1_NOC_CLK>,
+				 <&rpmcc RPM_SMD_AGGR1_NOC_A_CLK>,
+				 <&gcc GCC_AGGRE1_UFS_AXI_CLK>,
+				 <&gcc GCC_AGGRE1_USB3_AXI_CLK>,
+				 <&gcc GCC_BLSP2_AHB_CLK>;
+			clock-names = "bus",
+				      "bus_a",
+				      "aggre1_ufs_axi",
+				      "usb_axi",
+				      "blsp2_ahb";
+			#interconnect-cells = <2>;
 		};
 
 		anoc1_smmu: iommu@1680000 {
@@ -931,6 +1046,47 @@
 				<GIC_SPI 463 IRQ_TYPE_EDGE_RISING>,
 				<GIC_SPI 464 IRQ_TYPE_EDGE_RISING>,
 				<GIC_SPI 465 IRQ_TYPE_EDGE_RISING>;
+		};
+
+		a2noc: interconnect@1700000 {
+			compatible = "qcom,msm8998-a2noc";
+			/* size = 0x60000 downstream, but that would clash with MNoC! */
+			reg = <0x01700000 0x40000>;
+			clocks = <&rpmcc RPM_SMD_AGGR2_NOC_CLK>,
+				 <&rpmcc RPM_SMD_AGGR2_NOC_A_CLK>,
+				 <&gcc GCC_SDCC2_AHB_CLK>,
+				 <&gcc GCC_SDCC4_AHB_CLK>,
+				 <&gcc GCC_BLSP1_AHB_CLK>,
+				 <&rpmcc RPM_SMD_IPA_CLK>;
+			clock-names = "bus",
+				      "bus_a",
+				      "sdcc2_ahb",
+				      "sdcc4_ahb",
+				      "blsp1_ahb",
+				      "ipa";
+			#interconnect-cells = <2>;
+		};
+
+		mnoc: interconnect@1740000 {
+			compatible = "qcom,msm8998-mnoc";
+			reg = <0x01740000 0x10000>;
+			clocks = <&rpmcc RPM_SMD_MMAXI_CLK>,
+				 <&rpmcc RPM_SMD_MMAXI_A_CLK>,
+				 <&mmcc MNOC_AHB_CLK>,
+				 <&mmcc MNOC_MAXI_CLK>;
+			clock-names = "bus",
+				      "bus_a",
+				      "iface",
+				      "mnoc_bus";
+			#interconnect-cells = <2>;
+
+			mnoc_ahb: interconnect-mnoc-ahb {
+				compatible = "qcom,msm8998-mnoc-ahb";
+				clocks = <&mmcc AHB_CLK_SRC>,
+					 <&mmcc AHB_CLK_SRC>;
+				clock-names = "bus", "bus_a";
+				#interconnect-cells = <2>;
+			};
 		};
 
 		pcie0: pcie@1c00000 {
@@ -2288,12 +2444,35 @@
 				     <GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "hc_irq", "pwr_irq";
 
-			clock-names = "iface", "core", "xo";
 			clocks = <&gcc GCC_SDCC2_AHB_CLK>,
 				 <&gcc GCC_SDCC2_APPS_CLK>,
 				 <&rpmcc RPM_SMD_XO_CLK_SRC>;
+			clock-names = "iface", "core", "xo";
+			interconnects = <&a2noc MASTER_SDCC_2 QCOM_ICC_TAG_ALWAYS
+					 &bimc SLAVE_EBI QCOM_ICC_TAG_ALWAYS>;
+			interconnect-names = "sdhc-ddr";
+			power-domains = <&rpmpd MSM8998_VDDCX>;
+			operating-points-v2 = <&sdhc2_opp_table>;
 			bus-width = <4>;
 			status = "disabled";
+
+			sdhc2_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-100000000 {
+					opp-hz = /bits/ 64 <100000000>;
+					required-opps = <&rpmpd_opp_svs>;
+					opp-peak-kBps = <200000>;
+					opp-avg-kBps = <100000>;
+				};
+
+				opp-200000000 {
+					opp-hz = /bits/ 64 <200000000>;
+					required-opps = <&rpmpd_opp_nom>;
+					opp-peak-kBps = <4096000>;
+					opp-avg-kBps = <2048000>;
+				};
+			};
 		};
 
 		blsp1_dma: dma-controller@c144000 {
@@ -3353,6 +3532,18 @@
 				qcom,remote-pid = <2>;
 				mboxes = <&apcs_glb 9>;
 			};
+		};
+
+		gnoc: interconnect@17900000 {
+			compatible = "qcom,msm8998-gnoc";
+			reg = <0x17900000 0x10000>;
+			/*
+			 * This one apparently features no clocks,
+			 * so let's not mess with the driver needlessly
+			 */
+			clocks = <&xo>, <&xo>;
+			clock-names = "bus", "bus_a";
+			#interconnect-cells = <2>;
 		};
 
 		apcs_glb: mailbox@17911000 {
