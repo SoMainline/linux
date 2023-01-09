@@ -6,6 +6,7 @@
 #include <dt-bindings/clock/qcom,gpucc-msm8998.h>
 #include <dt-bindings/clock/qcom,mmcc-msm8998.h>
 #include <dt-bindings/clock/qcom,rpmcc.h>
+#include <dt-bindings/interconnect/qcom,msm8998.h>
 #include <dt-bindings/power/qcom-rpmpd.h>
 #include <dt-bindings/gpio/gpio.h>
 
@@ -849,13 +850,76 @@
 			};
 		};
 
-		bimc: interconnect@1000000 {
+		bimc: interconnect@1008300 {
 			compatible = "qcom,msm8998-bimc";
-			reg = <0x01000000 0x80000>;
+			reg = <0x01008300 0x80000>;
 			clocks = <&rpmcc RPM_SMD_BIMC_CLK>,
 				 <&rpmcc RPM_SMD_BIMC_A_CLK>;
 			clock-names = "bus", "bus_a";
 			#interconnect-cells = <2>;
+		};
+
+		pmu@1008000 {
+			compatible = "qcom,msm8998-bwmon";
+			reg = <0x01008000 0x300>, <0x01001000 0x200>;
+			reg-names = "monitor", "global";
+			interrupts = <GIC_SPI 183 IRQ_TYPE_LEVEL_HIGH>;
+			operating-points-v2 = <&cpu_bwmon_opp_table>;
+			interconnects = <&gnoc MASTER_APSS_PROC QCOM_ICC_TAG_ACTIVE_ONLY
+					 &bimc SLAVE_EBI QCOM_ICC_TAG_ACTIVE_ONLY>;
+
+			cpu_bwmon_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-0 {
+					opp-peak-kBps = <762000>;
+				};
+
+				opp-1 {
+					opp-peak-kBps = <1144000>;
+				};
+
+				opp-2 {
+					opp-peak-kBps = <1525000>;
+				};
+
+				opp-3 {
+					opp-peak-kBps = <2288000>;
+				};
+
+				opp-4 {
+					opp-peak-kBps = <3143000>;
+				};
+
+				opp-5 {
+					opp-peak-kBps = <4173000>;
+				};
+
+				opp-6 {
+					opp-peak-kBps = <5195000>;
+				};
+
+				opp-7 {
+					opp-peak-kBps = <5859000>;
+				};
+
+				opp-8 {
+					opp-peak-kBps = <7759000>;
+				};
+
+				opp-9 {
+					opp-peak-kBps = <9987000>;
+				};
+
+				opp-10 {
+					opp-peak-kBps = <11863000>;
+				};
+
+				/*
+				 * TODO: The SoC supports 13763Mbps@1804MHz, but at least
+				 * one Sony Maple device is unstable with that setting.
+				 */
+			};
 		};
 
 		tsens0: thermal@10ab000 {
