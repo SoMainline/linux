@@ -28,6 +28,7 @@ enum qcom_icc_type {
  * @type: the ICC provider type
  * @regmap: regmap for QoS registers read/write access
  * @qos_offset: offset to QoS registers
+ * @always_set_qos: whether to always set QoS registers regardless of bus type
  * @bus_clk_rate: bus clock rate in Hz
  * @bus_clks: the clk_bulk_data table of bus clocks
  * @intf_clks: the clk_bulk_data table of interface clocks
@@ -39,6 +40,7 @@ struct qcom_icc_provider {
 	enum qcom_icc_type type;
 	struct regmap *regmap;
 	unsigned int qos_offset;
+	bool always_set_qos;
 	u64 bus_clk_rate[2];
 	struct clk_bulk_data bus_clks[2];
 	struct clk_bulk_data intf_clks[];
@@ -103,6 +105,7 @@ struct qcom_icc_desc {
 	enum qcom_icc_type type;
 	const struct regmap_config *regmap_cfg;
 	unsigned int qos_offset;
+	bool always_set_qos;
 };
 
 /* Valid for all bus types */
