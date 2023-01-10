@@ -243,7 +243,7 @@ static int __qcom_icc_set(struct icc_node *n, struct qcom_icc_node *qn,
 	bool vote_ap, vote_rpm;
 	int ret;
 
-	if (qp->type == QCOM_ICC_QNOC) {
+	if (qp->type == QCOM_ICC_QNOC || qp->always_set_qos) {
 		vote_ap = true;
 		vote_rpm = true;
 	} else {
@@ -496,6 +496,7 @@ int qnoc_probe(struct platform_device *pdev)
 
 	qp->type = desc->type;
 	qp->qos_offset = desc->qos_offset;
+	qp->always_set_qos = desc->always_set_qos;
 
 	if (desc->regmap_cfg) {
 		struct resource *res;
