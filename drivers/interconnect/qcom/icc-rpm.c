@@ -453,6 +453,27 @@ int qnoc_probe(struct platform_device *pdev)
 	qnodes = desc->nodes;
 	num_nodes = desc->num_nodes;
 
+	if (desc->num_intf_clocks) {
+		cds = desc->intf_clocks;
+		cd_num = desc->num_intf_clocks;
+	} else {
+		/* 0 intf clocks is perfectly fine */
+		cd_num = 0;
+	}
+
+	qp = devm_kzalloc(dev, struct_size(qp, intf_clks, cd_num), GFP_KERNEL);
+	if (!qp)
+		return -ENOMEM;
+
+	data = devm_kzalloc(dev, struct_size(data, nodes, num_nodes),
+			    GFP_KERNEL);
+	if (!data)
+		return -ENOMEM;
+
+	for (i = 0; i < cd_num; i++)
+		qp->intf_clks[i].id = cds[i];
+	qp->num_intf_clks = cd_num;
+
 	if (desc->num_bus_clocks) {
 		cds = desc->bus_clocks;
 		cd_num = desc->num_bus_clocks;
@@ -461,19 +482,13 @@ int qnoc_probe(struct platform_device *pdev)
 		cd_num = ARRAY_SIZE(bus_clocks);
 	}
 
-	qp = devm_kzalloc(dev, struct_size(qp, bus_clks, cd_num), GFP_KERNEL);
-	if (!qp)
-		return -ENOMEM;
-
-	qp->bus_clk_rate = devm_kcalloc(dev, cd_num, sizeof(*qp->bus_clk_rate),
-					GFP_KERNEL);
-	if (!qp->bus_clk_rate)
-		return -ENOMEM;
-
-	data = devm_kzalloc(dev, struct_size(data, nodes, num_nodes),
-			    GFP_KERNEL);
-	if (!data)
-		return -ENOMEM;
+	/*
+	 * This is not realistic, scaling is only possible with an
+	 * always-active and an active-only clock, or at least one
+	 * of them in some very bizzare cases.
+	 */
+	if (WARN_ON(cd_num > 2))
+		cd_num = 2;
 
 	for (i = 0; i < cd_num; i++)
 		qp->bus_clks[i].id = cds[i];
@@ -515,6 +530,14 @@ regmap_done:
 	if (ret)
 		return ret;
 
+	ret = devm_clk_bulk_get(dev, qp->num_intf_clks, qp->intf_clks);
+	if (ret)
+		return ret;
+
+	ret = clk_bulk_prepare_enable(qp->num_intf_clks, qp->intf_clks);
+	if (ret)
+		return ret;
+
 	if (desc->has_bus_pd) {
 		ret = dev_pm_domain_attach(dev, true);
 		if (ret)
@@ -533,6 +556,7 @@ regmap_done:
 	ret = icc_provider_add(provider);
 	if (ret) {
 		dev_err(dev, "error adding interconnect provider: %d\n", ret);
+		clk_bulk_disable_unprepare(qp->num_intf_clks, qp->intf_clks);
 		clk_bulk_disable_unprepare(qp->num_bus_clks, qp->bus_clks);
 		return ret;
 	}
@@ -566,6 +590,7 @@ regmap_done:
 	return 0;
 err:
 	icc_nodes_remove(provider);
+	clk_bulk_disable_unprepare(qp->num_intf_clks, qp->intf_clks);
 	clk_bulk_disable_unprepare(qp->num_bus_clks, qp->bus_clks);
 	icc_provider_del(provider);
 
@@ -578,6 +603,7 @@ int qnoc_remove(struct platform_device *pdev)
 	struct qcom_icc_provider *qp = platform_get_drvdata(pdev);
 
 	icc_nodes_remove(&qp->provider);
+	clk_bulk_disable_unprepare(qp->num_intf_clks, qp->intf_clks);
 	clk_bulk_disable_unprepare(qp->num_bus_clks, qp->bus_clks);
 	icc_provider_del(&qp->provider);
 
