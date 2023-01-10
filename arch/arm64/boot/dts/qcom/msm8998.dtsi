@@ -6,6 +6,7 @@
 #include <dt-bindings/clock/qcom,gpucc-msm8998.h>
 #include <dt-bindings/clock/qcom,mmcc-msm8998.h>
 #include <dt-bindings/clock/qcom,rpmcc.h>
+#include <dt-bindings/interconnect/qcom,icc.h>
 #include <dt-bindings/interconnect/qcom,msm8998.h>
 #include <dt-bindings/power/qcom-rpmpd.h>
 #include <dt-bindings/gpio/gpio.h>
@@ -2333,12 +2334,35 @@
 				     <GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "hc_irq", "pwr_irq";
 
-			clock-names = "iface", "core", "xo";
 			clocks = <&gcc GCC_SDCC2_AHB_CLK>,
 				 <&gcc GCC_SDCC2_APPS_CLK>,
 				 <&rpmcc RPM_SMD_XO_CLK_SRC>;
+			clock-names = "iface", "core", "xo";
+			interconnects = <&a2noc MASTER_SDCC_2 QCOM_ICC_TAG_ALWAYS
+					 &bimc SLAVE_EBI QCOM_ICC_TAG_ALWAYS>;
+			interconnect-names = "sdhc-ddr";
+			power-domains = <&rpmpd MSM8998_VDDCX>;
+			operating-points-v2 = <&sdhc2_opp_table>;
 			bus-width = <4>;
 			status = "disabled";
+
+			sdhc2_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-100000000 {
+					opp-hz = /bits/ 64 <100000000>;
+					required-opps = <&rpmpd_opp_svs>;
+					opp-peak-kBps = <200000>;
+					opp-avg-kBps = <100000>;
+				};
+
+				opp-200000000 {
+					opp-hz = /bits/ 64 <200000000>;
+					required-opps = <&rpmpd_opp_nom>;
+					opp-peak-kBps = <4096000>;
+					opp-avg-kBps = <2048000>;
+				};
+			};
 		};
 
 		blsp1_dma: dma-controller@c144000 {
