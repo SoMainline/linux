@@ -148,6 +148,7 @@
 			operating-points-v2 = <&cpu0_opp_table>;
 			power-domains = <&apc_cprh 0>;
 			power-domain-names = "cprh";
+			qcom,freq-domain = <&cpufreq_hw 0>;
 			L2_0: l2-cache {
 				compatible = "cache";
 				cache-level = <2>;
@@ -165,6 +166,7 @@
 			operating-points-v2 = <&cpu0_opp_table>;
 			power-domains = <&apc_cprh 0>;
 			power-domain-names = "cprh";
+			qcom,freq-domain = <&cpufreq_hw 0>;
 		};
 
 		CPU2: cpu@2 {
@@ -178,6 +180,7 @@
 			operating-points-v2 = <&cpu0_opp_table>;
 			power-domains = <&apc_cprh 0>;
 			power-domain-names = "cprh";
+			qcom,freq-domain = <&cpufreq_hw 0>;
 		};
 
 		CPU3: cpu@3 {
@@ -191,6 +194,7 @@
 			operating-points-v2 = <&cpu0_opp_table>;
 			power-domains = <&apc_cprh 0>;
 			power-domain-names = "cprh";
+			qcom,freq-domain = <&cpufreq_hw 0>;
 		};
 
 		CPU4: cpu@100 {
@@ -204,6 +208,7 @@
 			operating-points-v2 = <&cpu4_opp_table>;
 			power-domains = <&apc_cprh 1>;
 			power-domain-names = "cprh";
+			qcom,freq-domain = <&cpufreq_hw 1>;
 			L2_1: l2-cache {
 				compatible = "cache";
 				cache-level = <2>;
@@ -221,6 +226,7 @@
 			operating-points-v2 = <&cpu4_opp_table>;
 			power-domains = <&apc_cprh 1>;
 			power-domain-names = "cprh";
+			qcom,freq-domain = <&cpufreq_hw 1>;
 		};
 
 		CPU6: cpu@102 {
@@ -234,6 +240,7 @@
 			operating-points-v2 = <&cpu4_opp_table>;
 			power-domains = <&apc_cprh 1>;
 			power-domain-names = "cprh";
+			qcom,freq-domain = <&cpufreq_hw 1>;
 		};
 
 		CPU7: cpu@103 {
@@ -247,6 +254,7 @@
 			operating-points-v2 = <&cpu4_opp_table>;
 			power-domains = <&apc_cprh 1>;
 			power-domain-names = "cprh";
+			qcom,freq-domain = <&cpufreq_hw 1>;
 		};
 
 		cpu-map {
@@ -3740,6 +3748,11 @@
 			};
 		};
 
+		power-manager@17812000 {
+			compatible = "qcom,msm8998-gold-saw2-v4.1-l2", "qcom,saw2";
+			reg = <0x17812000 0x1000>;
+		};
+
 		gnoc: interconnect@17900000 {
 			compatible = "qcom,msm8998-gnoc";
 			reg = <0x17900000 0x10000>;
@@ -3757,6 +3770,11 @@
 			reg = <0x17911000 0x1000>;
 
 			#mbox-cells = <1>;
+		};
+
+		power-manager@17912000 {
+			compatible = "qcom,msm8998-silver-saw2-v4.1-l2", "qcom,saw2";
+			reg = <0x17912000 0x1000>;
 		};
 
 		timer@17920000 {
@@ -3815,6 +3833,26 @@
 				reg = <0x17928000 0x1000>;
 				status = "disabled";
 			};
+		};
+
+		cpufreq_hw: cpufreq@179c1000 {
+			compatible = "qcom,msm8998-cpufreq-hw";
+			reg = <0x179c1000 0x1000>, <0x179c3000 0x1000>,
+			      <0x179c0000 0x1000>, <0x179c2000 0x1000>,
+			      <0x17914800 0x100>, <0x17814800 0x100>;
+			reg-names = "freq-domain0", "freq-domain1",
+				    "osm-domain0", "osm-domain1",
+				    "osm-acd0", "osm-acd1";
+
+			clocks = <&rpmcc RPM_SMD_XO_A_CLK_SRC>,
+				 <&gcc HMSS_GPLL0_CLK_SRC>;
+			clock-names = "xo", "alternate";
+
+			/* The SMUX *must* be at 300 MHz for LUT[0] entry */
+			assigned-clocks = <&gcc HMSS_GPLL0_CLK_SRC>;
+			assigned-clock-rates = <300000000>;
+
+			#freq-domain-cells = <1>;
 		};
 
 		apc_cprh: power-controller@179c8000 {
