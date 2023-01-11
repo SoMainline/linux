@@ -48,7 +48,7 @@ patternProperties:
       reg:
         maxItems: 1
         description: |
-          Pair of (device index, instande ID), where::
+          Pair of (device index, instance ID), where::
            - Device index, which uniquely identifies multiple devices within a
              single component.
            - Instance ID, can be used for the cases where multiple devices of
