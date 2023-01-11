@@ -651,8 +651,9 @@ static int qcom_cpufreq_hw_driver_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct device_node *soc_node;
 	struct device *cpu_dev;
+	const char *reg_name;
 	struct clk *clk;
-	int ret, i, num_domains, reg_sz;
+	int ret, i, num_reg_names, num_domains = 0;
 
 	clk = clk_get(dev, "xo");
 	if (IS_ERR(clk))
@@ -684,19 +685,32 @@ static int qcom_cpufreq_hw_driver_probe(struct platform_device *pdev)
 	if (!soc_node)
 		return -EINVAL;
 
-	ret = of_property_read_u32(soc_node, "#address-cells", &reg_sz);
-	if (ret)
+	num_reg_names = of_property_count_strings(dev->of_node, "reg-names");
+	if (num_reg_names <= 0) {
+		ret = num_reg_names ? num_reg_names : -ENODATA;
 		goto of_exit;
+	}
 
-	ret = of_property_read_u32(soc_node, "#size-cells", &i);
-	if (ret)
+	for (i = 0; i < num_reg_names; i++) {
+		ret = of_property_read_string_index(dev->of_node, "reg-names", i, &reg_name);
+		if (ret < 0)
+			goto of_exit;
+
+		/*
+		 * Check if the i-th reg is a freq-domain base, no need to add 1
+		 * more byte for idx, as sizeof counts \0 whereas strlen does not.
+		 */
+		if (strlen(reg_name) == sizeof("freq-domain")) {
+			/* Check if this reg-name begins with "freq-domain" */
+			if (!strncmp(reg_name, "freq-domain", sizeof("freq-domain") - 1))
+				num_domains++;
+		}
+	}
+
+	if (num_domains <= 0) {
+		ret = -EINVAL;
 		goto of_exit;
-
-	reg_sz += i;
-
-	num_domains = of_property_count_elems_of_size(dev->of_node, "reg", sizeof(u32) * reg_sz);
-	if (num_domains <= 0)
-		return num_domains;
+	}
 
 	qcom_cpufreq.data = devm_kzalloc(dev, sizeof(struct qcom_cpufreq_data) * num_domains,
 					 GFP_KERNEL);
