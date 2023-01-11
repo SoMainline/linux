@@ -79,6 +79,7 @@ properties:
 required:
   - compatible
   - reg
+  - reg-names
   - clocks
   - clock-names
   - '#freq-domain-cells'
