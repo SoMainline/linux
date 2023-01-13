@@ -19,6 +19,7 @@ properties:
   compatible:
     oneOf:
       - enum:
+          - qcom,msm8998-lmh
           - qcom,sc8180x-lmh
           - qcom,sdm845-lmh
           - qcom,sm8150-lmh
