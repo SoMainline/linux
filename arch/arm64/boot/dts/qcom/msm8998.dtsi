@@ -3825,6 +3825,8 @@
 				    "osm-domain0", "osm-domain1",
 				    "osm-acd0", "osm-acd1";
 
+			interrupts-extended = <&lmh_cluster0 0>, <&lmh_cluster1 0>;
+
 			clocks = <&rpmcc RPM_SMD_XO_A_CLK_SRC>,
 				 <&gcc HMSS_GPLL0_CLK_SRC>;
 			clock-names = "xo", "alternate";
@@ -3915,6 +3917,30 @@
 					   "cpr1_ring_osc2",
 					   "cpr1_ring_osc3",
 					   "cpr1_ring_osc4";
+		};
+
+		lmh_cluster1: lmh@179cc800 {
+			compatible = "qcom,msm8998-lmh";
+			reg = <0x179cc800 0x400>;
+			interrupts = <GIC_SPI 38 IRQ_TYPE_LEVEL_HIGH>;
+			cpus = <&CPU4>;
+			qcom,lmh-temp-arm-millicelsius = <65000>;
+			qcom,lmh-temp-low-millicelsius = <94500>;
+			qcom,lmh-temp-high-millicelsius = <95000>;
+			interrupt-controller;
+			#interrupt-cells = <1>;
+		};
+
+		lmh_cluster0: lmh@179ce800 {
+			compatible = "qcom,msm8998-lmh";
+			reg = <0x179ce800 0x400>;
+			interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
+			cpus = <&CPU0>;
+			qcom,lmh-temp-arm-millicelsius = <65000>;
+			qcom,lmh-temp-low-millicelsius = <94500>;
+			qcom,lmh-temp-high-millicelsius = <95000>;
+			interrupt-controller;
+			#interrupt-cells = <1>;
 		};
 
 		intc: interrupt-controller@17a00000 {
