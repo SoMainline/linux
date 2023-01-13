@@ -28,7 +28,7 @@
 
 #define LMH_REG_DCVS_INTR_CLR		0x8
 
-#define LMH_ENABLE_ALGOS		1
+#define LMH_ENABLE_ALGOS		BIT(0)
 
 struct lmh_hw_data {
 	void __iomem *base;
@@ -92,8 +92,10 @@ static int lmh_probe(struct platform_device *pdev)
 	struct device_node *cpu_node;
 	struct lmh_hw_data *lmh_data;
 	int temp_low, temp_high, temp_arm, cpu_id, ret;
-	unsigned int enable_alg;
+	unsigned int flags;
 	u32 node_id;
+
+	flags = (uintptr_t)of_device_get_match_data(dev);
 
 	lmh_data = devm_kzalloc(dev, sizeof(*lmh_data), GFP_KERNEL);
 	if (!lmh_data)
@@ -144,9 +146,7 @@ static int lmh_probe(struct platform_device *pdev)
 	if (!qcom_scm_lmh_dcvsh_available())
 		return -EINVAL;
 
-	enable_alg = (uintptr_t)of_device_get_match_data(dev);
-
-	if (enable_alg) {
+	if (flags & LMH_ENABLE_ALGOS) {
 		ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_CRNT, LMH_ALGO_MODE_ENABLE, 1,
 					 LMH_NODE_DCVS, node_id, 0);
 		if (ret)
