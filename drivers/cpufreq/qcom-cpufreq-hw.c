@@ -260,6 +260,7 @@ struct qcom_cpufreq_soc_data {
 	u32 reg_perf_state;
 	u8 lut_row_size;
 	u8 clk_hw_div;
+	bool broken_lmh_throttling;
 	bool uses_tz;
 	const struct qcom_cpufreq_soc_setup_data setup_regs;
 	const struct qcom_cpufreq_soc_acd_data acd_data;
@@ -400,26 +401,6 @@ static unsigned long qcom_lmh_get_throttle_freq(struct qcom_cpufreq_data *data)
 	return lval * xo_rate;
 }
 
-/**
- * qcom_cpufreq_hw_get() - Get current Performance State from OSM (after throttling)
- * @cpu:      CPU number
- *
- * Returns: Current CPU/Cluster frequency or zero
- */
-static unsigned int qcom_cpufreq_hw_get(unsigned int cpu)
-{
-	struct qcom_cpufreq_data *data;
-	struct cpufreq_policy *policy;
-
-	policy = cpufreq_cpu_get_raw(cpu);
-	if (!policy)
-		return 0;
-
-	data = policy->driver_data;
-
-	return qcom_lmh_get_throttle_freq(data) / HZ_PER_KHZ;
-}
-
 /* Get the frequency requested by the cpufreq core for the CPU */
 static unsigned int qcom_cpufreq_get_freq(unsigned int cpu)
 {
@@ -439,6 +420,29 @@ static unsigned int qcom_cpufreq_get_freq(unsigned int cpu)
 	index = min(index, LUT_MAX_ENTRIES - 1);
 
 	return policy->freq_table[index].frequency;
+}
+
+/**
+ * qcom_cpufreq_hw_get() - Get current Performance State from OSM (after throttling)
+ * @cpu:      CPU number
+ *
+ * Returns: Current CPU/Cluster frequency or zero
+ */
+static unsigned int qcom_cpufreq_hw_get(unsigned int cpu)
+{
+	struct qcom_cpufreq_data *data;
+	struct cpufreq_policy *policy;
+
+	policy = cpufreq_cpu_get_raw(cpu);
+	if (!policy)
+		return 0;
+
+	data = policy->driver_data;
+
+	if (qcom_cpufreq.soc_data->broken_lmh_throttling)
+		return qcom_cpufreq_get_freq(cpu);
+
+	return qcom_lmh_get_throttle_freq(data) / HZ_PER_KHZ;
 }
 
 static unsigned int qcom_cpufreq_hw_fast_switch(struct cpufreq_policy *policy,
@@ -1274,6 +1278,7 @@ static const struct qcom_cpufreq_soc_data msm8998_soc_data = {
 	.reg_perf_state = 0xf10,
 	.lut_row_size = 32,
 	.clk_hw_div = 1,
+	.broken_lmh_throttling = true,
 	.uses_tz = false,
 	.setup_regs = {
 		/* Physical offset for sequencer scm calls */
