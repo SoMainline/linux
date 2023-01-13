@@ -147,23 +147,23 @@ static int lmh_probe(struct platform_device *pdev)
 		return -EINVAL;
 
 	if (flags & LMH_ENABLE_ALGOS) {
-		ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_CRNT, LMH_ALGO_MODE_ENABLE, 1,
-					 LMH_NODE_DCVS, node_id, 0);
+		ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_CRNT, LMH_ALGO_MODE_ENABLE, 1, 0,
+					 LMH_NODE_DCVS, node_id, 0, false);
 		if (ret)
 			dev_err(dev, "Error %d enabling current subfunction\n", ret);
 
-		ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_REL, LMH_ALGO_MODE_ENABLE, 1,
-					 LMH_NODE_DCVS, node_id, 0);
+		ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_REL, LMH_ALGO_MODE_ENABLE, 1, 0,
+					 LMH_NODE_DCVS, node_id, 0, false);
 		if (ret)
 			dev_err(dev, "Error %d enabling reliability subfunction\n", ret);
 
-		ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_BCL, LMH_ALGO_MODE_ENABLE, 1,
-					 LMH_NODE_DCVS, node_id, 0);
+		ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_BCL, LMH_ALGO_MODE_ENABLE, 1, 0,
+					 LMH_NODE_DCVS, node_id, 0, false);
 		if (ret)
 			dev_err(dev, "Error %d enabling BCL subfunction\n", ret);
 
-		ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_THERMAL, LMH_ALGO_MODE_ENABLE, 1,
-					 LMH_NODE_DCVS, node_id, 0);
+		ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_THERMAL, LMH_ALGO_MODE_ENABLE, 1, 0,
+					 LMH_NODE_DCVS, node_id, 0, false);
 		if (ret) {
 			dev_err(dev, "Error %d enabling thermal subfunction\n", ret);
 			return ret;
@@ -177,22 +177,22 @@ static int lmh_probe(struct platform_device *pdev)
 	}
 
 	/* Set default thermal trips */
-	ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_THERMAL, LMH_TH_ARM_THRESHOLD, temp_arm,
-				 LMH_NODE_DCVS, node_id, 0);
+	ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_THERMAL, LMH_TH_ARM_THRESHOLD, temp_arm, 0,
+				 LMH_NODE_DCVS, node_id, 0, false);
 	if (ret) {
 		dev_err(dev, "Error setting thermal ARM threshold%d\n", ret);
 		return ret;
 	}
 
-	ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_THERMAL, LMH_TH_HI_THRESHOLD, temp_high,
-				 LMH_NODE_DCVS, node_id, 0);
+	ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_THERMAL, LMH_TH_HI_THRESHOLD, temp_high, 0,
+				 LMH_NODE_DCVS, node_id, 0, false);
 	if (ret) {
 		dev_err(dev, "Error setting thermal HI threshold%d\n", ret);
 		return ret;
 	}
 
-	ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_THERMAL, LMH_TH_LOW_THRESHOLD, temp_low,
-				 LMH_NODE_DCVS, node_id, 0);
+	ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_THERMAL, LMH_TH_LOW_THRESHOLD, temp_low, 0,
+				 LMH_NODE_DCVS, node_id, 0, false);
 	if (ret) {
 		dev_err(dev, "Error setting thermal ARM threshold%d\n", ret);
 		return ret;
