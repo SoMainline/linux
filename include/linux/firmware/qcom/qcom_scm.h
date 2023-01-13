@@ -110,8 +110,9 @@ int qcom_scm_hdcp_req(struct qcom_scm_hdcp_req *req, u32 req_cnt, u32 *resp);
 int qcom_scm_iommu_set_pt_format(u32 sec_id, u32 ctx_num, u32 pt_fmt);
 int qcom_scm_qsmmu500_wait_safe_toggle(bool en);
 
-int qcom_scm_lmh_dcvsh(u32 payload_fn, u32 payload_reg, u32 payload_val,
-		       u64 limit_node, u32 node_id, u64 version);
+int qcom_scm_lmh_dcvsh(u32 payload_fn, u32 payload_reg, u32 payload_val0,
+		       u32 payload_val1, u64 limit_node, u32 node_id,
+		       u64 version, bool has_val1);
 int qcom_scm_lmh_profile_change(u32 profile_id);
 bool qcom_scm_lmh_dcvsh_available(void);
 
