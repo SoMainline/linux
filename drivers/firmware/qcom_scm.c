@@ -1261,12 +1261,13 @@ int qcom_scm_lmh_profile_change(u32 profile_id)
 }
 EXPORT_SYMBOL(qcom_scm_lmh_profile_change);
 
-int qcom_scm_lmh_dcvsh(u32 payload_fn, u32 payload_reg, u32 payload_val,
-		       u64 limit_node, u32 node_id, u64 version)
+int qcom_scm_lmh_dcvsh(u32 payload_fn, u32 payload_reg, u32 payload_val0,
+		       u32 payload_val1, u64 limit_node, u32 node_id,
+		       u64 version, bool has_val1)
 {
 	dma_addr_t payload_phys;
 	u32 *payload_buf;
-	int ret, payload_size = 5 * sizeof(u32);
+	int ret, payload_size = (5 + has_val1) * sizeof(u32);
 
 	struct qcom_scm_desc desc = {
 		.svc = QCOM_SCM_SVC_LMH,
@@ -1287,8 +1288,10 @@ int qcom_scm_lmh_dcvsh(u32 payload_fn, u32 payload_reg, u32 payload_val,
 	payload_buf[0] = payload_fn;
 	payload_buf[1] = 0;
 	payload_buf[2] = payload_reg;
-	payload_buf[3] = 1;
-	payload_buf[4] = payload_val;
+	payload_buf[3] = has_val1 ? 2 : 1;
+	payload_buf[4] = payload_val0;
+	if (has_val1)
+		payload_buf[5] = payload_val1;
 
 	desc.args[0] = payload_phys;
 
