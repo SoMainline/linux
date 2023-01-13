@@ -26,9 +26,12 @@
 #define LMH_TH_LOW_THRESHOLD		0x4C4F5700
 #define LMH_TH_ARM_THRESHOLD		0x41524D00
 
+#define LMH_FREQ_CAP			0x46434150
+
 #define LMH_REG_DCVS_INTR_CLR		0x8
 
 #define LMH_ENABLE_ALGOS		BIT(0)
+#define LMH_LEGACY_ALGOS		BIT(1)
 
 struct lmh_hw_data {
 	void __iomem *base;
@@ -174,6 +177,11 @@ static int lmh_probe(struct platform_device *pdev)
 			dev_err(dev, "Error %d changing profile\n", ret);
 			return ret;
 		}
+	} else if (flags & LMH_LEGACY_ALGOS) {
+		ret = qcom_scm_lmh_dcvsh(LMH_SUB_FN_THERMAL, LMH_ALGO_MODE_ENABLE, 1, 0,
+					 LMH_NODE_DCVS, node_id, 0, false);
+		if (ret)
+			dev_err_probe(dev, ret, "Error enabling thermal subfunction\n");
 	}
 
 	/* Set default thermal trips */
@@ -220,6 +228,7 @@ static int lmh_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id lmh_table[] = {
+	{ .compatible = "qcom,msm8998-lmh", .data = (void *)LMH_LEGACY_ALGOS},
 	{ .compatible = "qcom,sc8180x-lmh", },
 	{ .compatible = "qcom,sdm845-lmh", .data = (void *)LMH_ENABLE_ALGOS},
 	{ .compatible = "qcom,sm8150-lmh", },
