@@ -21,6 +21,11 @@
 	(VIG_BASE_MASK | \
 	BIT(DPU_SSPP_CSC_10BIT))
 
+#define VIG_MSM8996_MASK \
+	(BIT(DPU_SSPP_QOS) | BIT(DPU_SSPP_CDP) |\
+	 BIT(DPU_SSPP_TS_PREFILL) | BIT(DPU_SSPP_SCALER_QSEED2) |\
+	 BIT(DPU_SSPP_CSC))
+
 #define VIG_MSM8998_MASK \
 	(VIG_MASK | BIT(DPU_SSPP_SCALER_QSEED3))
 
@@ -40,6 +45,9 @@
 	(VIG_SC7180_MASK | BIT(DPU_SSPP_SMART_DMA_V2))
 
 #define VIG_QCM2290_MASK (VIG_BASE_MASK | BIT(DPU_SSPP_QOS_8LVL))
+
+#define DMA_MSM8996_MASK \
+	(BIT(DPU_SSPP_QOS) | BIT(DPU_SSPP_TS_PREFILL) | BIT(DPU_SSPP_CDP))
 
 #define DMA_MSM8998_MASK \
 	(BIT(DPU_SSPP_QOS) |\
@@ -66,8 +74,15 @@
 #define DMA_CURSOR_SDM845_MASK_SDMA \
 	(DMA_CURSOR_SDM845_MASK | BIT(DPU_SSPP_SMART_DMA_V2))
 
+#define DMA_CURSOR_MSM8996_MASK \
+	(DMA_MSM8996_MASK | BIT(DPU_SSPP_CURSOR))
+
 #define DMA_CURSOR_MSM8998_MASK \
 	(DMA_MSM8998_MASK | BIT(DPU_SSPP_CURSOR))
+
+#define RGB_MSM8996_MASK \
+	(BIT(DPU_SSPP_QOS) | BIT(DPU_SSPP_CDP) |\
+	 BIT(DPU_SSPP_TS_PREFILL) | BIT(DPU_SSPP_SCALER_RGB))
 
 #define MIXER_MSM8998_MASK \
 	(BIT(DPU_MIXER_SOURCESPLIT))
@@ -77,6 +92,12 @@
 
 #define MIXER_QCM2290_MASK \
 	(BIT(DPU_DIM_LAYER) | BIT(DPU_MIXER_COMBINED_ALPHA))
+
+#define PINGPONG_MSM8996_MASK \
+	(BIT(DPU_PINGPONG_TE) | BIT(DPU_PINGPONG_DSC))
+
+#define PINGPONG_MSM8996_TE2_MASK \
+	(PINGPONG_MSM8996_MASK | BIT(DPU_PINGPONG_TE2))
 
 #define PINGPONG_SDM845_MASK \
 	(BIT(DPU_PINGPONG_DITHER) | BIT(DPU_PINGPONG_TE) | BIT(DPU_PINGPONG_DSC))
@@ -269,6 +290,24 @@ static const uint32_t wb2_formats[] = {
 	.rotation_cfg = NULL, \
 	}
 
+#define _VIG_SBLK_8996(sdma_pri, qseed_ver) \
+	{ \
+	.maxdwnscale = MAX_DOWNSCALE_RATIO, \
+	.maxupscale = MAX_UPSCALE_RATIO, \
+	.smart_dma_priority = sdma_pri, \
+	.scaler_blk = {.name = "scaler", \
+		.id = qseed_ver, \
+		.base = 0x200, .len = 0xa0,}, \
+	.csc_blk = {.name = "csc", \
+		.id = DPU_SSPP_CSC, \
+		.base = 0x320, .len = 0x100,}, \
+	.format_list = plane_formats_yuv, \
+	.num_formats = ARRAY_SIZE(plane_formats_yuv), \
+	.virt_format_list = plane_formats, \
+	.virt_num_formats = ARRAY_SIZE(plane_formats), \
+	.rotation_cfg = NULL, \
+	}
+
 #define _VIG_SBLK_ROT(sdma_pri, qseed_ver, rot_cfg) \
 	{ \
 	.maxdwnscale = MAX_DOWNSCALE_RATIO, \
@@ -297,6 +336,15 @@ static const uint32_t wb2_formats[] = {
 	.virt_format_list = plane_formats, \
 	.virt_num_formats = ARRAY_SIZE(plane_formats), \
 	}
+
+static const struct dpu_sspp_sub_blks msm8996_vig_sblk_0 =
+				_VIG_SBLK_8996(0, DPU_SSPP_SCALER_QSEED2);
+static const struct dpu_sspp_sub_blks msm8996_vig_sblk_1 =
+				_VIG_SBLK_8996(0, DPU_SSPP_SCALER_QSEED2);
+static const struct dpu_sspp_sub_blks msm8996_vig_sblk_2 =
+				_VIG_SBLK_8996(0, DPU_SSPP_SCALER_QSEED2);
+static const struct dpu_sspp_sub_blks msm8996_vig_sblk_3 =
+				_VIG_SBLK_8996(0, DPU_SSPP_SCALER_QSEED2);
 
 static const struct dpu_sspp_sub_blks msm8998_vig_sblk_0 =
 				_VIG_SBLK(0, DPU_SSPP_SCALER_QSEED3);
@@ -435,6 +483,15 @@ static const struct dpu_dspp_sub_blks sdm845_dspp_sblk = {
 /*************************************************************
  * PINGPONG sub blocks config
  *************************************************************/
+static const struct dpu_pingpong_sub_blks msm8996_pp_sblk_te = {
+	.te2 = {.id = DPU_PINGPONG_TE2, .base = 0x2000, .len = 0x0,
+		.version = 0x1},
+};
+
+static const struct dpu_pingpong_sub_blks msm8996_pp_sblk = {
+	/* No dither block */
+};
+
 static const struct dpu_pingpong_sub_blks sdm845_pp_sblk_te = {
 	.te2 = {.name = "te2", .id = DPU_PINGPONG_TE2, .base = 0x2000, .len = 0x0,
 		.version = 0x1},
@@ -487,6 +544,35 @@ static const struct dpu_vbif_dynamic_ot_cfg msm8998_ot_rdwr_cfg[] = {
 		.pps = 3840 * 2160 * 30,
 		.ot_limit = 16,
 	},
+};
+
+static const struct dpu_vbif_cfg msm8996_vbif[] = {
+	{
+	.name = "vbif_0", .id = VBIF_RT,
+	.base = 0, .len = 0x1040,
+	.default_ot_rd_limit = 32,
+	.default_ot_wr_limit = 16,
+	.features = BIT(DPU_VBIF_QOS_REMAP) | BIT(DPU_VBIF_QOS_OTLIM),
+	.xin_halt_timeout = 0x4000,
+	.qos_rp_remap_size = 0x20,
+	.dynamic_ot_rd_tbl = {
+		.count = ARRAY_SIZE(msm8998_ot_rdwr_cfg),
+		.cfg = msm8998_ot_rdwr_cfg,
+		},
+	.dynamic_ot_wr_tbl = {
+		.count = ARRAY_SIZE(msm8998_ot_rdwr_cfg),
+		.cfg = msm8998_ot_rdwr_cfg,
+		},
+	.qos_rt_tbl = {
+		.npriority_lvl = ARRAY_SIZE(msm8998_rt_pri_lvl),
+		.priority_lvl = msm8998_rt_pri_lvl,
+		},
+	.qos_nrt_tbl = {
+		.npriority_lvl = ARRAY_SIZE(msm8998_nrt_pri_lvl),
+		.priority_lvl = msm8998_nrt_pri_lvl,
+		},
+	},
+	/* TODO: VBIF_NRT */
 };
 
 static const struct dpu_vbif_cfg msm8998_vbif[] = {
@@ -651,6 +737,8 @@ static const struct dpu_qos_lut_entry sc7180_qos_nrt[] = {
 /*************************************************************
  * Hardware catalog
  *************************************************************/
+
+#include "catalog/dpu_1_7_msm8996.h"
 
 #include "catalog/dpu_3_0_msm8998.h"
 
