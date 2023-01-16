@@ -875,6 +875,7 @@ struct dpu_mdss_cfg {
 	unsigned long mdss_irqs;
 };
 
+extern const struct dpu_mdss_cfg dpu_msm8996_cfg;
 extern const struct dpu_mdss_cfg dpu_msm8998_cfg;
 extern const struct dpu_mdss_cfg dpu_sdm845_cfg;
 extern const struct dpu_mdss_cfg dpu_sm8150_cfg;
