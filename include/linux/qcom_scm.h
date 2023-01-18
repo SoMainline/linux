@@ -122,5 +122,6 @@ extern int qcom_scm_lmh_dcvsh(u32 payload_fn, u32 payload_reg, u32 payload_val0,
 			      u64 version, bool has_val1);
 extern int qcom_scm_lmh_profile_change(u32 profile_id);
 extern bool qcom_scm_lmh_dcvsh_available(void);
+extern int qcom_scm_smmu_set_aperture_id(u32 cb_idx);
 
 #endif
