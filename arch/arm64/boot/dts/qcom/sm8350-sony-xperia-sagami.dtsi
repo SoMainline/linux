@@ -24,6 +24,7 @@
 	chassis-type = "handset";
 
 	chosen {
+// bootargs = "fw_devlink=off";
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
@@ -473,6 +474,10 @@
 	firmware-name = "qcom/sm8350/Sony/sagami/cdsp.mbn";
 };
 
+&dispcc {
+	status = "okay";
+};
+
 &i2c1 {
 	status = "okay";
 	clock-frequency = <1000000>;
@@ -556,6 +561,59 @@
 	qcom,gsi-loader = "self";
 	memory-region = <&pil_ipa_fw_mem>;
 	firmware-name = "qcom/sm8350/Sony/sagami/ipa_fws.mbn";
+	status = "okay";
+};
+
+&mdss {
+	status = "okay";
+};
+
+&mdss_dsi0 {
+	vdda-supply = <&pm8350_l6>;
+	status = "okay";
+
+	panel: panel@0 {
+		compatible = "sony,ana6707-amb650yl01";
+		reg = <0>;
+
+		disp-te-gpios = <&tlmm 82 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&tlmm 24 GPIO_ACTIVE_LOW>;
+
+		vci-supply = <&pm8350c_l13>;
+		// tsvddh-supply = <&pm8350c_l3>;
+		tsio-supply = <&pm8350c_l2>;
+		vddio-supply = <&pm8350c_l12>;
+		// ab-supply = <&ab>;
+		// ibb-supply = <&ibb>;
+
+		pinctrl-0 = <&disp_reset_n &disp_vsync_active &disp_vddr_en>;
+		pinctrl-names = "default";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		panel_ports: ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				panel_in_0: endpoint {
+					remote-endpoint = <&mdss_dsi0_out>;
+				};
+			};
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	remote-endpoint = <&panel_in_0>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi0_phy {
+	vdds-supply = <&pm8350_l5>;
 	status = "okay";
 };
 
@@ -880,6 +938,21 @@
 		input-enable;
 	};
 
+	disp_reset_n: disp-reset-n-state {
+		pins = "gpio24";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-high;
+	};
+
+	disp_vsync_active: disp-vsync-active-state {
+		pins = "gpio82";
+		function = "mdp_vsync";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
 	sdc2_card_det_active: sd-card-det-active-state {
 		pins = "gpio92";
 		function = "gpio";
@@ -892,6 +965,14 @@
 		function = "gpio";
 		drive-strength = <2>;
 		bias-disable;
+	};
+
+	disp_vddr_en: disp-vddr-en-state {
+		pins = "gpio154";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-high;
 	};
 };
 
