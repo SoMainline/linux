@@ -105,6 +105,20 @@
 		};
 	};
 
+	vreg_vddr: vddr-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vddr";
+		/* Unknown voltage ranges.. :( */
+		/* Bootloader splash mandates it's on at boot */
+		regulator-boot-on;
+
+		gpio = <&tlmm 154 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+
+		pinctrl-0 = <&disp_vddr_en>;
+		pinctrl-names = "default";
+	};
+
 	vph_pwr: vph-pwr-regulator {
 		compatible = "regulator-fixed";
 		regulator-name = "vph_pwr";
@@ -583,10 +597,11 @@
 		// tsvddh-supply = <&pm8350c_l3>;
 		tsio-supply = <&pm8350c_l2>;
 		vddio-supply = <&pm8350c_l12>;
+		vddr-supply = <&vreg_vddr>;
 		// ab-supply = <&ab>;
 		// ibb-supply = <&ibb>;
 
-		pinctrl-0 = <&disp_reset_n &disp_vsync_active &disp_vddr_en>;
+		pinctrl-0 = <&disp_reset_n &disp_vsync_active>;
 		pinctrl-names = "default";
 
 		#address-cells = <1>;
