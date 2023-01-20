@@ -23,7 +23,7 @@
 struct ana6707_amb650yl01 {
 	struct drm_panel panel;
 	struct mipi_dsi_device *dsi[2];
-	struct regulator_bulk_data supplies[6];
+	struct regulator_bulk_data supplies[7];
 	const struct mipi_dsi_device_info dsi_info;
 	struct gpio_desc *reset_gpio;
 	bool prepared;
@@ -299,18 +299,12 @@ ana6707_amb650yl01_create_backlight(struct mipi_dsi_device *dsi)
 					      &ana6707_amb650yl01_bl_ops, &props);
 }
 
-static const struct mipi_dsi_device_info info = {
-	.type = "AMB650YL01",
-	.channel = 0,
-	.node = NULL,
-};
-
 static int ana6707_amb650yl01_probe(struct mipi_dsi_device *dsi)
 {
-	struct mipi_dsi_host *dsi_r_host;
+	struct mipi_dsi_host *dsi_sec_host;
 	struct ana6707_amb650yl01 *ctx;
 	struct device *dev = &dsi->dev;
-	struct device_node *dsi_r;
+	struct device_node *dsi_sec;
 	bool dual_dsi;
 	int ret, i;
 
@@ -318,12 +312,22 @@ static int ana6707_amb650yl01_probe(struct mipi_dsi_device *dsi)
 	if (!ctx)
 		return -ENOMEM;
 
-	ctx->supplies[0].supply = "vci";
-	ctx->supplies[1].supply = "tsvddh";
-	ctx->supplies[2].supply = "tsio";
-	ctx->supplies[3].supply = "vddio";
-	ctx->supplies[4].supply = "ab";
-	ctx->supplies[5].supply = "ibb";
+	/*
+	 * Downstream order:
+	 * vddio
+	 * vddr
+	 * vci
+	 * tsio
+	 * tsvddh
+	 * no idea when ab/ibb.. maybe before since pmic probes way ahead
+	 */
+	ctx->supplies[0].supply = "ab";
+	ctx->supplies[1].supply = "ibb";
+	ctx->supplies[2].supply = "vddio";
+	ctx->supplies[3].supply = "vddr";
+	ctx->supplies[4].supply = "vci";
+	ctx->supplies[5].supply = "tsio";
+	ctx->supplies[6].supply = "tsvddh";
 	ret = devm_regulator_bulk_get(dev, ARRAY_SIZE(ctx->supplies),
 				      ctx->supplies);
 	if (ret < 0)
@@ -335,22 +339,23 @@ static int ana6707_amb650yl01_probe(struct mipi_dsi_device *dsi)
 
 	dual_dsi = (u64)of_device_get_match_data(dev) & HAS_DUAL_DSI;
 
-	/* If the panel is connected on two DSIs then DSI0 left, DSI1 right */
 	if (dual_dsi) {
-		dsi_r = of_graph_get_remote_node(dsi->dev.of_node, 1, -1);
-		if (!dsi_r) {
+		dsi_sec = of_graph_get_remote_node(dsi->dev.of_node, 1, -1);
+		if (!dsi_sec) {
 			dev_err(dev, "Cannot get secondary DSI node.\n");
 			return -ENODEV;
 		}
 
-		dsi_r_host = of_find_mipi_dsi_host_by_node(dsi_r);
-		of_node_put(dsi_r);
-		if (!dsi_r_host) {
+		const struct mipi_dsi_device_info info = { "AMB650YL01", 0, dsi_sec };
+
+		dsi_sec_host = of_find_mipi_dsi_host_by_node(dsi_sec);
+		of_node_put(dsi_sec);
+		if (!dsi_sec_host) {
 			dev_err(dev, "Cannot get secondary DSI host\n");
 			return -EPROBE_DEFER;
 		}
 
-		ctx->dsi[1] = mipi_dsi_device_register_full(dsi_r_host, &info);
+		ctx->dsi[1] = mipi_dsi_device_register_full(dsi_sec_host, &info);
 		if (!ctx->dsi[1]) {
 			dev_err(dev, "Cannot get secondary DSI node\n");
 			return -ENODEV;
