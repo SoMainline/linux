@@ -67,6 +67,40 @@
 	};
 };
 
+&mdss_dsi0 {
+	qcom,dual-dsi-mode;
+	qcom,master-dsi;
+};
+
+&mdss_dsi1 {
+	/* DSI1 is slave, so use DSI0 clocks */
+	assigned-clock-parents = <&mdss_dsi0_phy 0>,
+				 <&mdss_dsi0_phy 1>;
+	vdda-supply = <&pm8350_l6>;
+	qcom,dual-dsi-mode;
+	status = "okay";
+};
+
+&mdss_dsi1_out {
+	remote-endpoint = <&panel_in_1>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi1_phy  {
+	vdds-supply = <&pm8350_l5>;
+	status = "okay";
+};
+
+&panel_ports {
+	port@1 {
+		reg = <1>;
+
+		panel_in_1: endpoint {
+			remote-endpoint = <&mdss_dsi1_out>;
+		};
+	};
+};
+
 &pm8350b_gpios {
 	gpio-line-names = "CAM_PWR_A_CS", /* GPIO_1 */
 			  "NC",
