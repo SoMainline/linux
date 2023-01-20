@@ -84,4 +84,4 @@ obj-$(CONFIG_DRM_PANEL_VISIONOX_RM69299) += panel-visionox-rm69299.o
 obj-$(CONFIG_DRM_PANEL_VISIONOX_VTDR6130) += panel-visionox-vtdr6130.o
 obj-$(CONFIG_DRM_PANEL_WIDECHIPS_WS2401) += panel-widechips-ws2401.o
 obj-$(CONFIG_DRM_PANEL_XINPENG_XPP055C272) += panel-xinpeng-xpp055c272.o
-obj-y += panel-samsung-sofef03.o panel-samsung-amoled.o
+obj-y += panel-samsung-sofef03.o panel-samsung-amoled.o panel-ana6707-amb650yl01-uhd.o
