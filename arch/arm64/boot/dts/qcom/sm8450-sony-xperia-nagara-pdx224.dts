@@ -23,6 +23,10 @@
 	};
 };
 
+&panel {
+	compatible = "samsung,s6e3fac-amb609bn01";
+};
+
 &pm8350b_gpios {
 	gpio-line-names = "CAM_PWR_A_CS", /* GPIO_1 */
 			  "NC",
