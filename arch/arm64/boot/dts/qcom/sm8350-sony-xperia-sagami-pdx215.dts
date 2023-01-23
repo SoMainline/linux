@@ -69,6 +69,7 @@
 
 &mdss_dsi0 {
 	qcom,dual-dsi-mode;
+	// qcom,sync-dual-dsi;
 	qcom,master-dsi;
 };
 
@@ -78,6 +79,7 @@
 				 <&mdss_dsi0_phy 1>;
 	vdda-supply = <&pm8350_l6>;
 	qcom,dual-dsi-mode;
+	// qcom,sync-dual-dsi;
 	status = "okay";
 };
 
