@@ -41,11 +41,117 @@ static void ana6707_amb650yl01_reset(struct ana6707_amb650yl01 *ctx)
 	usleep_range(10000, 11000);
 }
 
+static int ana6707_amb650yl01_timing_switch(struct ana6707_amb650yl01 *ctx)
+{
+	struct mipi_dsi_device *dsi = ctx->dsi[0];
+	struct device *dev = &ctx->dsi[0]->dev;
+	bool is_4k = false, is_120fps = false;
+	u16 resX, resY, scanline;
+	int ret;
+
+	if (is_4k) {
+		scanline = 0;
+		resX = 1644 - 1;
+		resY = 3840 - 1;
+	} else {
+		scanline = 0xf00;
+		resX = 1080 - 1;
+		resY = 2560 - 1;
+	}
+
+	ctx->dsi[0]->mode_flags &= ~MIPI_DSI_MODE_LPM;
+	ctx->dsi[1]->mode_flags &= ~MIPI_DSI_MODE_LPM;
+
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
+	if (is_4k)
+		mipi_dsi_dcs_write_seq(dsi, 0x60, 0x00, 0xc0);
+	else
+		mipi_dsi_dcs_write_seq(dsi, 0x60, 0x04, 0xc0);
+
+	mipi_dsi_dcs_write_seq(dsi, 0xbd, 0x03, 0x03, 0x03);
+	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x3a);
+	mipi_dsi_dcs_write_seq(dsi, 0xbd, 0x00, 0x04);
+	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x1a);
+	mipi_dsi_dcs_write_seq(dsi, 0xbd, 0x00, 0x00);
+	mipi_dsi_dcs_write_seq(dsi, 0xc9, 0x02, 0x22);
+	mipi_dsi_dcs_write_seq(dsi, 0xf7, 0x07);
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
+	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x1f);
+	mipi_dsi_dcs_write_seq(dsi, 0xcb, 0xa7);
+	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x3b);
+	mipi_dsi_dcs_write_seq(dsi, 0xcb, 0x25, 0xa5);
+	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x47);
+	mipi_dsi_dcs_write_seq(dsi, 0xcb, 0xa7);
+	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x57);
+	mipi_dsi_dcs_write_seq(dsi, 0xcb, 0x12);
+	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x59);
+	mipi_dsi_dcs_write_seq(dsi, 0xcb, 0x0c);
+	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x44);
+	mipi_dsi_dcs_write_seq(dsi, 0xb7, 0x00);
+	mipi_dsi_dcs_write_seq(dsi, 0xf7, 0x07);
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
+	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x9f);
+	mipi_dsi_dcs_write_seq(dsi, 0xc8,
+			       0x00, 0x90, 0x00, 0x90, 0x00, 0x90, 0x00, 0x90, 0x00,
+			       0x90);
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
+	if (is_4k)
+		mipi_dsi_dcs_write_seq(dsi, 0x60, 0x00, 0xc0);
+	else
+		mipi_dsi_dcs_write_seq(dsi, 0x60, 0x04, 0xc0);
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
+
+	ret = mipi_dsi_dcs_set_column_address(dsi, 0, resX);
+	if (ret < 0) {
+		dev_err(dev, "Failed to set column address: %d\n", ret);
+		return ret;
+	}
+
+	ret = mipi_dsi_dcs_set_page_address(dsi, 0, resY);
+	if (ret < 0) {
+		dev_err(dev, "Failed to set page address: %d\n", ret);
+		return ret;
+	}
+
+	ret = mipi_dsi_dcs_set_tear_scanline(dsi, scanline);
+	if (ret < 0) {
+		dev_err(dev, "Failed to set tear scanline: %d\n", ret);
+		return ret;
+	}
+
+	ret = mipi_dsi_dcs_set_display_on(dsi);
+	if (ret < 0) {
+		dev_err(dev, "Failed to set display on: %d\n", ret);
+		return ret;
+	}
+	usleep_range(10000, 11000);
+
+	ctx->dsi[0]->mode_flags |= MIPI_DSI_MODE_LPM;
+	ctx->dsi[1]->mode_flags |= MIPI_DSI_MODE_LPM;
+
+	return 0;
+}
+
 static int ana6707_amb650yl01_on(struct ana6707_amb650yl01 *ctx)
 {
 	struct mipi_dsi_device *dsi = ctx->dsi[0];
 	struct device *dev = &ctx->dsi[0]->dev;
+	bool is_4k = false, is_120fps = false;
+	u16 resX, resY, scanline;
 	int ret;
+
+	if (is_4k) {
+		scanline = 0;
+		resX = 1644 - 1;
+		resY = 3840 - 1;
+	} else {
+		scanline = 0xf00;
+		resX = 1096 - 1;
+		resY = 2560 - 1;
+	}
 
 	ctx->dsi[0]->mode_flags |= MIPI_DSI_MODE_LPM;
 	ctx->dsi[1]->mode_flags |= MIPI_DSI_MODE_LPM;
@@ -75,16 +181,16 @@ static int ana6707_amb650yl01_on(struct ana6707_amb650yl01 *ctx)
 	mipi_dsi_dcs_write_seq(dsi, 0xed, 0x46, 0x00, 0x0e, 0x90);
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
-	mipi_dsi_dcs_write_seq(dsi, 0x60, 0x00, 0xc0);
+	mipi_dsi_dcs_write_seq(dsi, 0x60, 0x04, 0xc0);
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
 
-	ret = mipi_dsi_dcs_set_column_address(dsi, 0x0000, 0x066b);
+	ret = mipi_dsi_dcs_set_column_address(dsi, 0, resX);
 	if (ret < 0) {
 		dev_err(dev, "Failed to set column address: %d\n", ret);
 		return ret;
 	}
 
-	ret = mipi_dsi_dcs_set_page_address(dsi, 0x0000, 0x0eff);
+	ret = mipi_dsi_dcs_set_page_address(dsi, 0, resY);
 	if (ret < 0) {
 		dev_err(dev, "Failed to set page address: %d\n", ret);
 		return ret;
@@ -96,7 +202,7 @@ static int ana6707_amb650yl01_on(struct ana6707_amb650yl01 *ctx)
 		return ret;
 	}
 
-	ret = mipi_dsi_dcs_set_tear_scanline(dsi, 0x0000);
+	ret = mipi_dsi_dcs_set_tear_scanline(dsi, scanline);
 	if (ret < 0) {
 		dev_err(dev, "Failed to set tear scanline: %d\n", ret);
 		return ret;
@@ -170,6 +276,14 @@ static int ana6707_amb650yl01_prepare(struct drm_panel *panel)
 		return ret;
 	}
 
+	ret = ana6707_amb650yl01_timing_switch(ctx);
+	if (ret < 0) {
+		dev_err(dev, "Failed to execute switch timing cmd: %d\n", ret);
+		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+		regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
+		return ret;
+	}
+
 	ctx->prepared = true;
 	return 0;
 }
@@ -199,7 +313,7 @@ static int ana6707_amb650yl01_unprepare(struct drm_panel *panel)
  * as the information there is essentially divided by the number of DSI hosts
  */
 /* HACK! the framerate is cut to accomodate for non-DSC bw limits */
-static const struct drm_display_mode ana6707_amb650yl01_mode = {
+static const struct drm_display_mode ana6707_amb650yl01_mode_4k = {
 	.clock = (1644 + 72 + 16 + 16) * (3840 + 360 + 16 + 16) * 30 / 1000,
 	.hdisplay = 1644,
 	.hsync_start = 1644 + 72,
@@ -209,6 +323,20 @@ static const struct drm_display_mode ana6707_amb650yl01_mode = {
 	.vsync_start = 3840 + 360,
 	.vsync_end = 3840 + 360 + 16,
 	.vtotal = 3840 + 360 + 16 + 16,
+	.width_mm = 65,
+	.height_mm = 152,
+};
+
+static const struct drm_display_mode ana6707_amb650yl01_mode = {
+	.clock = (1096 + 224 + 16 + 16) * (2560 + 180 + 8 + 8) * 60 / 1000,
+	.hdisplay = 1096,
+	.hsync_start = 1096 + 224,
+	.hsync_end = 1096 + 224 + 16,
+	.htotal = 1096 + 224 + 16 + 16,
+	.vdisplay = 2560,
+	.vsync_start = 2560 + 180,
+	.vsync_end = 2560 + 180 + 8,
+	.vtotal = 2560 + 180 + 8 + 8,
 	.width_mm = 65,
 	.height_mm = 152,
 };
