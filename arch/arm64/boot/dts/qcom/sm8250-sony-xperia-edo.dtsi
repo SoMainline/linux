@@ -47,6 +47,7 @@
 	};
 
 	chosen {
+bootargs = "clk_ignore_unused pd_ignore_unused";
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
@@ -455,7 +456,7 @@
 	vdda-supply = <&vreg_l9a_1p2>;
 
 	panel@0 {
-		compatible = "mdss,sofef03-m";
+//		compatible = "mdss,sofef03-m";
 		reg = <0>;
 
 		#address-cells = <1>;
@@ -589,7 +590,7 @@
 };
 
 &mdss {
-	status = "okay";
+//	status = "okay";
 };
 
 &pcie0 {
@@ -604,7 +605,7 @@
 };
 
 &pcie2 {
-	status = "okay";
+//	status = "okay";
 
 	pinctrl-0 = <&pcie2_default_state &mdm2ap_default &ap2mdm_default>;
 };
