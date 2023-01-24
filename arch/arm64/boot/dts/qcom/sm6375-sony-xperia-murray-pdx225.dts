@@ -140,6 +140,7 @@
 
 		vdd-supply = <&pm6125_l13>;
 		avdd-supply = <&touch_avdd>;
+		incell-supply = <&panel>;
 
 		pinctrl-0 = <&ts_int_default>;
 		pinctrl-names = "default";
