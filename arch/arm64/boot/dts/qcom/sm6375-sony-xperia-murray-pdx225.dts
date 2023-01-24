@@ -108,9 +108,10 @@
 		interrupts = <22 0x2008>;
 
 		vdd-supply = <&pm6125_l13>;
+		incell-supply = <&panel>;
 
-		// pinctrl-names = "default";
-		// pinctrl-0 = <&ts_int_default &ts_avdd_default>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&ts_int_default>;// &ts_avdd_default>;
 	};
 };
 
