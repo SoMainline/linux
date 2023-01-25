@@ -68,7 +68,6 @@ struct rpmpd_desc {
 
 static DEFINE_MUTEX(rpmpd_lock);
 
-/* mdm9607 RPM Power Domains */
 static struct rpmpd cx_s3a_lvl_ao;
 static struct rpmpd cx_s3a_lvl = {
 	.pd = { .name = "vddcx", },
@@ -134,7 +133,6 @@ static const struct rpmpd_desc mdm9607_desc = {
 	.max_state = RPM_SMD_LEVEL_TURBO,
 };
 
-/* msm8226 RPM Power Domains */
 static struct rpmpd cx_s1a_corner_ao;
 static struct rpmpd cx_s1a_corner = {
 	.pd = { .name = "vddcx", },
@@ -172,7 +170,6 @@ static const struct rpmpd_desc msm8226_desc = {
 	.max_state = MAX_CORNER_RPMPD_STATE,
 };
 
-/* msm8939 RPM Power Domains */
 static struct rpmpd md_s1a_corner_ao;
 static struct rpmpd md_s1a_corner = {
 	.pd = { .name = "vddmd", },
@@ -258,7 +255,6 @@ static const struct rpmpd_desc msm8939_desc = {
 	.max_state = MAX_CORNER_RPMPD_STATE,
 };
 
-/* msm8916 RPM Power Domains */
 static struct rpmpd *msm8916_rpmpds[] = {
 	[MSM8916_VDDCX] =	&cx_s1a_corner,
 	[MSM8916_VDDCX_AO] =	&cx_s1a_corner_ao,
@@ -273,7 +269,6 @@ static const struct rpmpd_desc msm8916_desc = {
 	.max_state = MAX_CORNER_RPMPD_STATE,
 };
 
-/* msm8953 RPM Power Domains */
 static struct rpmpd md_s1a_lvl_ao;
 static struct rpmpd md_s1a_lvl = {
 	.pd = { .name = "vddmd", },
@@ -351,7 +346,6 @@ static const struct rpmpd_desc msm8953_desc = {
 	.max_state = RPM_SMD_LEVEL_TURBO,
 };
 
-/* msm8976 RPM Power Domains */
 static struct rpmpd mx_s6a_lvl_ao;
 static struct rpmpd mx_s6a_lvl = {
 	.pd = { .name = "vddmx", },
@@ -392,7 +386,6 @@ static const struct rpmpd_desc msm8976_desc = {
 	.max_state = RPM_SMD_LEVEL_TURBO_HIGH,
 };
 
-/* msm8994 RPM Power domains */
 static struct rpmpd mx_s2a_corner_ao;
 static struct rpmpd mx_s2a_corner = {
 	.pd = { .name = "vddmx", },
@@ -442,7 +435,6 @@ static const struct rpmpd_desc msm8994_desc = {
 	.max_state = MAX_CORNER_RPMPD_STATE,
 };
 
-/* msm8996 RPM Power domains */
 static struct rpmpd sscx_l26a_corner = {
 	.pd = { .name = "vddsscx", },
 	.res_type = RPMPD_LDOA,
@@ -473,7 +465,6 @@ static const struct rpmpd_desc msm8996_desc = {
 	.max_state = MAX_CORNER_RPMPD_STATE,
 };
 
-/* msm8998 RPM Power domains */
 static struct rpmpd rwcx0_lvl_ao;
 static struct rpmpd rwcx0_lvl = {
 	.pd = { .name = "vddcx", },
@@ -571,7 +562,6 @@ static const struct rpmpd_desc msm8998_desc = {
 	.max_state = RPM_SMD_LEVEL_BINNING,
 };
 
-/* qcs404 RPM Power domains */
 static struct rpmpd rwlc0_lvl = {
 	.pd = { .name = "vdd_lpi_cx", },
 	.res_type = RPMPD_RWLC,
@@ -616,7 +606,6 @@ static const struct rpmpd_desc qcs404_desc = {
 	.max_state = RPM_SMD_LEVEL_BINNING,
 };
 
-/* sdm660 RPM Power domains */
 static struct rpmpd *sdm660_rpmpds[] = {
 	[SDM660_VDDCX] =		&rwcx0_lvl,
 	[SDM660_VDDCX_AO] =		&rwcx0_lvl_ao,
@@ -636,7 +625,6 @@ static const struct rpmpd_desc sdm660_desc = {
 	.max_state = RPM_SMD_LEVEL_TURBO,
 };
 
-/* sm4250/6115 RPM Power domains */
 static struct rpmpd *sm6115_rpmpds[] = {
 	[SM6115_VDDCX] =		&rwcx0_lvl,
 	[SM6115_VDDCX_AO] =		&rwcx0_lvl_ao,
@@ -654,7 +642,6 @@ static const struct rpmpd_desc sm6115_desc = {
 	.max_state = RPM_SMD_LEVEL_TURBO_NO_CPR,
 };
 
-/* sm6125 RPM Power domains */
 static struct rpmpd *sm6125_rpmpds[] = {
 	[SM6125_VDDCX] =		&rwcx0_lvl,
 	[SM6125_VDDCX_AO] =		&rwcx0_lvl_ao,
