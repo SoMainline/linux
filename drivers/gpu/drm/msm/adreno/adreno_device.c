@@ -545,7 +545,6 @@ static int adreno_bind(struct device *dev, struct device *master, void *data)
 		config.rev.minor, config.rev.patchid);
 
 	priv->is_a2xx = config.rev.core == 2;
-	priv->has_cached_coherent = config.rev.core >= 6;
 
 	gpu = info->init(drm);
 	if (IS_ERR(gpu)) {
@@ -556,6 +555,10 @@ static int adreno_bind(struct device *dev, struct device *master, void *data)
 	ret = dev_pm_opp_of_find_icc_paths(dev, NULL);
 	if (ret)
 		return ret;
+
+	if (config.rev.core >= 6)
+		if (!adreno_has_gmu_wrapper(to_adreno_gpu(gpu)))
+			priv->has_cached_coherent = true;
 
 	return 0;
 }
