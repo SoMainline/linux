@@ -32,6 +32,7 @@ enum {
 #define ADRENO_QUIRK_TWO_PASS_USE_WFI		BIT(0)
 #define ADRENO_QUIRK_FAULT_DETECT_MASK		BIT(1)
 #define ADRENO_QUIRK_LMLOADKILL_DISABLE		BIT(2)
+#define ADRENO_QUIRK_GMU_WRAPPER		BIT(3)
 
 struct adreno_rev {
 	uint8_t  core;
@@ -144,6 +145,11 @@ struct adreno_platform_config {
 })
 
 bool adreno_cmp_rev(struct adreno_rev rev1, struct adreno_rev rev2);
+
+static inline bool adreno_has_gmu_wrapper(struct adreno_gpu *gpu)
+{
+	return !!(gpu->info->quirks & ADRENO_QUIRK_GMU_WRAPPER);
+}
 
 static inline bool adreno_is_a2xx(struct adreno_gpu *gpu)
 {
