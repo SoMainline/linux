@@ -55,7 +55,8 @@ struct adreno_reglist {
 	u32 value;
 };
 
-extern const struct adreno_reglist a615_hwcg[], a630_hwcg[], a640_hwcg[], a650_hwcg[], a660_hwcg[];
+extern const struct adreno_reglist a612_hwcg[], a615_hwcg[], a630_hwcg[], a640_hwcg[], a650_hwcg[];
+extern const struct adreno_reglist a660_hwcg[];
 
 struct adreno_info {
 	struct adreno_rev rev;
@@ -240,6 +241,11 @@ static inline int adreno_is_a530(struct adreno_gpu *gpu)
 static inline int adreno_is_a540(struct adreno_gpu *gpu)
 {
 	return gpu->revn == 540;
+}
+
+static inline int adreno_is_a610(struct adreno_gpu *gpu)
+{
+	return gpu->revn == 610;
 }
 
 static inline int adreno_is_a618(struct adreno_gpu *gpu)
