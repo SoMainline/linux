@@ -1027,6 +1027,7 @@ static struct rpmpd sm6375_vddgx_ao;
 static struct rpmpd sm6375_vddgx = {
 	.pd = {	.name = "vddgx", },
 	.peer = &sm6375_vddgx_ao,
+	.parent = &sm6125_vddmx.pd,
 	.res_type = RPMPD_RWGX,
 	.res_id = 0,
 	.key = KEY_LEVEL,
@@ -1035,6 +1036,7 @@ static struct rpmpd sm6375_vddgx = {
 static struct rpmpd sm6375_vddgx_ao = {
 	.pd = {	.name = "vddgx_ao", },
 	.peer = &sm6375_vddgx,
+	.parent = &sm6125_vddmx_ao.pd,
 	.active_only = true,
 	.res_type = RPMPD_RWGX,
 	.res_id = 0,
