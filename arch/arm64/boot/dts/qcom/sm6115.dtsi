@@ -271,6 +271,7 @@
 		};
 
 		pil_gpu_mem: memory@56115000 {
+			compatible = "shared-dma-pool";
 			reg = <0x0 0x56115000 0x0 0x2000>;
 			no-map;
 		};
