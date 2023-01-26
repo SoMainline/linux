@@ -1528,7 +1528,7 @@
 			nvmem-cells = <&gpu_speed_bin>;
 			nvmem-cell-names = "speed_bin";
 
-			status = "disabled";
+			// status = "disabled";
 
 			zap-shader {
 				memory-region = <&pil_gpu_micro_code_mem>;
@@ -1618,7 +1618,6 @@
 			power-domains = <&gpucc GPU_CX_GDSC>,
 					<&gpucc GPU_GX_GDSC>;
 			power-domain-names = "cx", "gx";
-			status = "disabled";
 		};
 
 		gpucc: clock-controller@5990000 {

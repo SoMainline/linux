@@ -1236,7 +1236,7 @@
 			power-domains = <&rpmpd SM6125_VDDCX>;
 			qcom,gmu = <&gmu_wrapper>;
 
-			status = "disabled";
+			// status = "disabled";
 
 			zap-shader {
 				memory-region = <&gpu_mem>;
@@ -1289,7 +1289,6 @@
 			power-domains = <&gpucc GPU_CX_GDSC>,
 					<&gpucc GPU_GX_GDSC>;
 			power-domain-names = "cx", "gx";
-			status = "disabled";
 		};
 
 		gpucc: clock-controller@5990000 {
