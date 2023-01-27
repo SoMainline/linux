@@ -1268,37 +1268,45 @@
 			gpu_opp_table: opp-table {
 				compatible = "operating-points-v2";
 
-				/*
-				 * 624Mhz is only available on speed bins 0 and 3.
-				 * 560Mhz is only available on speed bins 0, 2 and 3.
-				 * All the rest are available on all bins of the hardware.
-				 */
 				opp-624000000 {
 					opp-hz = /bits/ 64 <624000000>;
+					required-opps = <&rpmpd_opp_turbo>;
 					opp-supported-hw = <0x09>;
 				};
+
 				opp-560000000 {
 					opp-hz = /bits/ 64 <560000000>;
+					required-opps = <&rpmpd_opp_turbo>;
 					opp-supported-hw = <0x0d>;
 				};
+
 				opp-510000000 {
 					opp-hz = /bits/ 64 <510000000>;
+					required-opps = <&rpmpd_opp_nom>;
 					opp-supported-hw = <0xff>;
 				};
+
 				opp-401800000 {
 					opp-hz = /bits/ 64 <401800000>;
+					required-opps = <&rpmpd_opp_nom>;
 					opp-supported-hw = <0xff>;
 				};
+
 				opp-315000000 {
 					opp-hz = /bits/ 64 <315000000>;
+					required-opps = <&rpmpd_opp_svs>;
 					opp-supported-hw = <0xff>;
 				};
+
 				opp-214000000 {
 					opp-hz = /bits/ 64 <214000000>;
+					required-opps = <&rpmpd_opp_svs>;
 					opp-supported-hw = <0xff>;
 				};
+
 				opp-133000000 {
 					opp-hz = /bits/ 64 <133000000>;
+					required-opps = <&rpmpd_opp_svs>;
 					opp-supported-hw = <0xff>;
 				};
 			};
