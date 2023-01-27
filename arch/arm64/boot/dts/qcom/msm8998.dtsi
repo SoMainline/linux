@@ -2436,51 +2436,46 @@
 			interrupts = <0 300 IRQ_TYPE_LEVEL_HIGH>;
 			iommus = <&adreno_smmu 0>;
 			operating-points-v2 = <&gpu_opp_table>;
+			/* TODO: also scale VDDGFX with CPR4 */
 			power-domains = <&rpmpd MSM8998_VDDMX>;
 			status = "disabled";
 
 			gpu_opp_table: opp-table {
 				compatible = "operating-points-v2";
-				opp-710000097 {
-					opp-hz = /bits/ 64 <710000097>;
-					opp-level = <RPM_SMD_LEVEL_TURBO>;
-					opp-supported-hw = <0xff>;
+
+				opp-710000000 {
+					opp-hz = /bits/ 64 <710000000>;
+					required-opps = <&rpmpd_opp_turbo>;
 				};
 
-				opp-670000048 {
-					opp-hz = /bits/ 64 <670000048>;
-					opp-level = <RPM_SMD_LEVEL_NOM_PLUS>;
-					opp-supported-hw = <0xff>;
+				opp-670000000 {
+					opp-hz = /bits/ 64 <670000000>;
+					required-opps = <&rpmpd_opp_turbo>;
 				};
 
-				opp-596000097 {
-					opp-hz = /bits/ 64 <596000097>;
-					opp-level = <RPM_SMD_LEVEL_NOM>;
-					opp-supported-hw = <0xff>;
+				opp-596000000 {
+					opp-hz = /bits/ 64 <596000000>;
+					required-opps = <&rpmpd_opp_nom>;
 				};
 
-				opp-515000097 {
-					opp-hz = /bits/ 64 <515000097>;
-					opp-level = <RPM_SMD_LEVEL_SVS_PLUS>;
-					opp-supported-hw = <0xff>;
+				opp-515000000 {
+					opp-hz = /bits/ 64 <515000000>;
+					required-opps = <&rpmpd_opp_nom>;
 				};
 
 				opp-414000000 {
 					opp-hz = /bits/ 64 <414000000>;
-					opp-level = <RPM_SMD_LEVEL_SVS>;
-					opp-supported-hw = <0xff>;
+					required-opps = <&rpmpd_opp_svs>;
 				};
 
 				opp-342000000 {
 					opp-hz = /bits/ 64 <342000000>;
-					opp-level = <RPM_SMD_LEVEL_LOW_SVS>;
-					opp-supported-hw = <0xff>;
+					required-opps = <&rpmpd_opp_svs>;
 				};
 
 				opp-257000000 {
 					opp-hz = /bits/ 64 <257000000>;
-					opp-level = <RPM_SMD_LEVEL_MIN_SVS>;
-					opp-supported-hw = <0xff>;
+					required-opps = <&rpmpd_opp_svs>;
 				};
 			};
 		};
