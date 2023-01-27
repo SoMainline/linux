@@ -1252,7 +1252,8 @@
 			interconnects = <&bimc MASTER_GRAPHICS_3D &bimc SLAVE_EBI_CH0>;
 			interconnect-names = "gfx-mem";
 
-			power-domains = <&mmcc GPU_GX_GDSC>;
+			/* TODO: also scale VDDGFX with CPR3 */
+			power-domains = <&rpmpd MSM8996_VDDMX>;
 			iommus = <&adreno_smmu 0>;
 
 			nvmem-cells = <&speedbin_efuse>;
@@ -2289,7 +2290,13 @@
 				 <&mmcc GPU_AHB_CLK>;
 			clock-names = "bus", "iface";
 
-			power-domains = <&mmcc GPU_GDSC>;
+			/*
+			 * We need both GPU_GDSC and GPU_GX_GDSC to be on, but the
+			 * power-domains entry under gpu is occupied by the scaled
+			 * voltage domain. Since GPU_GDSC is a parent of GX_GDSC,
+			 * we can simply pass GX here to turn them both on!
+			 */
+			power-domains = <&mmcc GPU_GX_GDSC>;
 		};
 
 		venus: video-codec@c00000 {
