@@ -1287,18 +1287,31 @@
 			    <&gcc GCC_BIMC_GFX_CLK>,
 			    <&gcc GCC_BIMC_GPU_CLK>,
 			    <&gcc GFX3D_CLK_SRC>;
-			power-domains = <&gcc OXILI_GDSC>;
+			power-domains = <&rpmpd MSM8916_VDDCX>;
 			operating-points-v2 = <&gpu_opp_table>;
 			iommus = <&gpu_iommu 1>, <&gpu_iommu 2>;
 
 			gpu_opp_table: opp-table {
 				compatible = "operating-points-v2";
 
+				opp-27000000 {
+					opp-hz = /bits/ 64 <27000000>;
+					required-opps = <&rpmpd_opp_svs_krait>;
+				};
+
+				opp-200000000 {
+					opp-hz = /bits/ 64 <200000000>;
+					required-opps = <&rpmpd_opp_svs_soc>;
+				};
+
+				opp-310000000 {
+					opp-hz = /bits/ 64 <310000000>;
+					required-opps = <&rpmpd_opp_nom>;
+				};
+
 				opp-400000000 {
 					opp-hz = /bits/ 64 <400000000>;
-				};
-				opp-19200000 {
-					opp-hz = /bits/ 64 <19200000>;
+					required-opps = <&rpmpd_opp_super_turbo>;
 				};
 			};
 		};
@@ -1368,6 +1381,7 @@
 			clocks = <&gcc GCC_SMMU_CFG_CLK>,
 				 <&gcc GCC_GFX_TCU_CLK>;
 			clock-names = "iface", "bus";
+			power-domains = <&gcc OXILI_GDSC>;
 			qcom,iommu-secure-id = <18>;
 
 			/* GFX3D_USER */
