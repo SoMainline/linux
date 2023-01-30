@@ -51,6 +51,10 @@ properties:
     description: use pin-default pull state. Takes as optional argument on
       hardware supporting it the pull strength in Ohm.
 
+  bias-type:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Use the specified bias type.
+
   drive-push-pull:
     oneOf:
       - type: boolean
