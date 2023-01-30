@@ -117,6 +117,7 @@ struct pinctrl_map;
  *	presented using the packed format.
  */
 enum pin_config_param {
+	/* Keep in sync with dt-bindings/pinctrl/pinconf-generic.h! */
 	PIN_CONFIG_BIAS_BUS_HOLD,
 	PIN_CONFIG_BIAS_DISABLE,
 	PIN_CONFIG_BIAS_HIGH_IMPEDANCE,

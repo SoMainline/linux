@@ -206,11 +206,38 @@ static void parse_dt_cfg(struct device_node *np,
 			 unsigned int count, unsigned long *cfg,
 			 unsigned int *ncfg)
 {
-	int i;
+	int i, ret;
+	u32 val;
 
-	for (i = 0; i < count; i++) {
-		u32 val;
-		int ret;
+	/* Let's assume only one type of bias is used.. as it should be.. */
+	ret = of_property_read_u32(np, "bias-type", &val);
+	if (!ret) {
+		/* Bias properties end at idx PIN_CONFIG_BIAS_PULL_UP */
+		if (ret > PIN_CONFIG_BIAS_PULL_UP) {
+			pr_err("invalid type: %u\n", val);
+			goto generic_parse;
+		}
+
+		pr_debug("found bias type %u\n", val);
+		/*
+		 * Properties between PIN_CONFIG_BIAS_PULL_DOWN and PIN_CONFIG_BIAS_PULL_UP
+		 * have a default value of one, others default to zero.
+		 */
+		cfg[*ncfg] = pinconf_to_config_packed(val, val >= PIN_CONFIG_BIAS_PULL_DOWN);
+		(*ncfg)++;
+
+		/* Start the generic property read loop where bias properties end. */
+		i = PIN_CONFIG_DRIVE_OPEN_DRAIN;
+	} else {
+		/*
+		 * If we don't set bias through bias-type, search for all DT
+		 * properties like nothing ever happened.
+		 */
+generic_parse:
+		i = 0;
+	}
+
+	for (; i < count; i++) {
 		const struct pinconf_generic_params *par = &params[i];
 
 		ret = of_property_read_u32(np, par->property, &val);
