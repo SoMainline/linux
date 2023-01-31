@@ -1265,6 +1265,10 @@ static int sun4i_tcon_bind(struct device *dev, struct device *master,
 			goto err_free_dclk;
 	}
 
+	regmap_update_bits(tcon->regs, SUN4I_TCON_GCTL_REG,
+			   SUN4I_TCON_GCTL_PAD_SEL,
+			   SUN4I_TCON_GCTL_PAD_SEL);
+
 	if (tcon->quirks->needs_de_be_mux) {
 		/*
 		 * We assume there is no dynamic muxing of backends
