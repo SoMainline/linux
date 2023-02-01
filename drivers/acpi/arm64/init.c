@@ -4,6 +4,8 @@
 
 void __init acpi_arm_init(void)
 {
+	if (IS_ENABLED(CONFIG_ACPI_AEST))
+		acpi_aest_init();
 	if (IS_ENABLED(CONFIG_ACPI_AGDI))
 		acpi_agdi_init();
 	if (IS_ENABLED(CONFIG_ACPI_APMT))
