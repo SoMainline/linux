@@ -19,5 +19,14 @@ config ACPI_AGDI
 
 	  If set, the kernel parses AGDI table and listens for the command.
 
+config ACPI_AEST
+	bool "Arm Error Source Table"
+	help
+	  Arm Error Source Table provides information about the RAS extension
+	  based EDAC capabilities of the system.
+
+	  If set, the kernel parses the AEST and provides the necessary data
+	  to the EDAC driver.
+
 config ACPI_APMT
 	bool
