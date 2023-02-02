@@ -788,6 +788,41 @@ static const struct venus_resources sc7180_res = {
 	.fwname = "qcom/venus-5.4/venus.mdt",
 };
 
+/* TODO: validate */
+static const struct freq_tbl sm6115_freq_table[] = {
+	{ 0, 384000000 }, /* (1920x1080)/256 @60 */
+	{ 0, 300000000 }, /* (720x1280)/256 @90 */
+	{ 0, 240000000 }, /* (720x1280)/256 @60 */
+	{ 0, 133333333 }, /* (720x1280)/256 @30 */
+};
+
+static const struct venus_resources sm6115_res = {
+	.freq_tbl = sm6115_freq_table,
+	.freq_tbl_size = ARRAY_SIZE(sm6115_freq_table),
+	/* TODO: BW tables */
+	.clks = { "core", "iface", "bus", "throttle" },
+	.clks_num = 4,
+	.vcodec0_clks = { "vcodec0_core", "vcodec0_bus" },
+	.vcodec_clks_num = 2,
+	.vcodec_pmdomains = { "venus", "vcodec0" },
+	.vcodec_pmdomains_num = 2,
+	.opp_pmdomain = (const char *[]) { "cx", NULL },
+	.vcodec_num = 1,
+	.max_load = 489600, /* (1088x1920)/256 @60fps */
+	.hfi_version = HFI_VERSION_6XX,
+	.vpu_version = VPU_VERSION_AR50_LITE,
+	.num_vpp_pipes = 1,
+	.vmem_id = VIDC_RESOURCE_NONE,
+	.vmem_size = 0,
+	.vmem_addr = 0,
+	.dma_mask = 0xe0000000 - 1,
+	.cp_start = 0,
+	.cp_size = 0x70800000,
+	.cp_nonpixel_start = 0x1000000,
+	.cp_nonpixel_size = 0x24800000,
+	.fwname = "qcom/venus-6.0/venus.mdt", // 4.44
+};
+
 static const struct freq_tbl sm8150_freq_table[] = {
 	{ 0, 533000000 },
 	{ 0, 444000000 },
@@ -996,6 +1031,7 @@ static const struct of_device_id venus_dt_match[] = {
 	{ .compatible = "qcom,sdm845-venus-v2", .data = &sdm845_res_v2 },
 	{ .compatible = "qcom,sc7180-venus", .data = &sc7180_res },
 	{ .compatible = "qcom,sc7280-venus", .data = &sc7280_res },
+	{ .compatible = "qcom,sm6115-venus", .data = &sm6115_res },
 	{ .compatible = "qcom,sm8150-venus", .data = &sm8150_res },
 	{ .compatible = "qcom,sm8250-venus", .data = &sm8250_res },
 	{ .compatible = "qcom,sm8350-venus", .data = &sm8350_res },
