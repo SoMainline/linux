@@ -511,7 +511,7 @@ static u32 venus_hwversion(struct venus_hfi_device *hdev)
 	minor = minor >> WRAPPER_HW_VERSION_MINOR_VERSION_SHIFT;
 	step = ver & WRAPPER_HW_VERSION_STEP_VERSION_MASK;
 
-	dev_dbg(dev, VDBGL "venus hw version %x.%x.%x\n", major, minor, step);
+	dev_err(dev, VDBGL "venus hw version %x.%x.%x\n", major, minor, step);
 
 	return major;
 }
