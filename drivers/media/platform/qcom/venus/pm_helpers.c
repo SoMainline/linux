@@ -415,6 +415,7 @@ static int vcodec_control_v4(struct venus_core *core, u32 coreid, bool enable)
 	u32 val;
 	int ret;
 
+	// sus, 0 info
 	if (IS_V6(core)) {
 		ctrl = core->wrapper_base + WRAPPER_CORE_POWER_CONTROL_V6;
 		stat = core->wrapper_base + WRAPPER_CORE_POWER_STATUS_V6;
