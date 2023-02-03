@@ -121,6 +121,23 @@
 						remote-endpoint = <&usb_1_dwc3_ss>;
 					};
 				};
+
+				port@2 {
+					reg = <2>;
+
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					pmic_glink_dp_in: endpoint@0 {
+						reg = <0>;
+						remote-endpoint = <&mdss_dp_altmode>;
+					};
+
+					pmic_glink_sbu_mux_out: endpoint@1 {
+						reg = <1>;
+						remote-endpoint = <&sbu_mux_in>;
+					};
+				};
 			};
 		};
 	};
@@ -138,6 +155,26 @@
 			console-size = <0x40000>;
 			record-size = <0x1000>;
 			no-map;
+		};
+	};
+
+	sbu-mux {
+		/* TODO: switch to a proper driver when one gets upstreamed */
+		compatible = "onnn,nb7vpq904m-mux", "gpio-sbu-mux";
+
+		enable-gpios = <&tlmm 54 GPIO_ACTIVE_HIGH>;
+		select-gpios = <&tlmm 55 GPIO_ACTIVE_HIGH>;
+		svid = /bits/ 16 <0xff01>;
+
+		mode-switch;
+		orientation-switch;
+
+		pinctrl-0 = <&sbu_sw_oe &sbu_sw_sel>;
+
+		port {
+			sbu_mux_in: endpoint {
+				remote-endpoint = <&pmic_glink_sbu_mux_out>;
+			};
 		};
 	};
 
@@ -668,6 +705,21 @@
 	status = "okay";
 };
 
+&mdss_dp {
+	data-lanes = <0 1 2 3>;
+	status = "okay";
+
+	ports {
+		port@1 {
+			reg = <1>;
+
+			mdss_dp_altmode: endpoint {
+				remote-endpoint = <&pmic_glink_dp_in>;
+			};
+		};
+	};
+};
+
 &mpss {
 	status = "okay";
 	firmware-name = "qcom/sm8350/Sony/sagami/modem.mbn";
@@ -995,6 +1047,22 @@
 		drive-strength = <2>;
 		bias-disable;
 		output-high;
+	};
+
+	sbu_sw_oe: sbu-sw-oe-state {
+		pins = "gpio54";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
+	};
+
+	sbu_sw_sel: sbu-sw-sel-state {
+		pins = "gpio55";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
 	};
 
 	disp_vsync_active: disp-vsync-active-state {
