@@ -134,6 +134,38 @@
 						remote-endpoint = <&usb_1_dwc3_ss>;
 					};
 				};
+
+				port@2 {
+					reg = <2>;
+
+					pmic_glink_dp_in: endpoint@0 {
+						remote-endpoint = <&mdss_dp_altmode>;
+					};
+
+					pmic_glink_sbu_mux_out: endpoint@1 {
+						remote-endpoint = <&sbu_mux_in>;
+					};
+				};
+			};
+		};
+	};
+
+	sbu-mux {
+		/* TODO: switch to a proper driver when one gets upstreamed */
+		compatible = "onnn,nb7vpq904m-mux", "gpio-sbu-mux";
+
+		enable-gpios = <&tlmm 50 GPIO_ACTIVE_HIGH>;
+		select-gpios = <&tlmm 51 GPIO_ACTIVE_HIGH>;
+		svid = /bits/ 16 <0xff01>;
+
+		mode-switch;
+		orientation-switch;
+
+		pinctrl-0 = <&sbu_sw_oe &sbu_sw_sel>;
+
+		port {
+			sbu_mux_in: endpoint {
+				remote-endpoint = <&pmic_glink_sbu_mux_out>;
 			};
 		};
 	};
@@ -759,6 +791,21 @@
 	status = "okay";
 };
 
+&mdss_dp0 {
+	data-lanes = <0 1 2 3>;
+	status = "okay";
+
+	ports {
+		port@1 {
+			reg = <1>;
+
+			mdss_dp_altmode: endpoint {
+				remote-endpoint = <&pmic_glink_dp_in>;
+			};
+		};
+	};
+};
+
 &pcie0 {
 	max-link-speed = <2>;
 
@@ -926,6 +973,22 @@
 
 	telec_pwr_en: telec-pwr-en-state {
 		pins = "gpio23";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
+	};
+
+	sbu_sw_oe: sbu-sw-oe-state {
+		pins = "gpio50";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
+	};
+
+	sbu_sw_sel: sbu-sw-sel-state {
+		pins = "gpio51";
 		function = "gpio";
 		drive-strength = <2>;
 		bias-disable;
