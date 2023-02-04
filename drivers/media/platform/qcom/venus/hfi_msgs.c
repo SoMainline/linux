@@ -150,7 +150,7 @@ static void event_sys_error(struct venus_core *core, u32 event,
 			    struct hfi_msg_event_notify_pkt *pkt)
 {
 	if (pkt)
-		dev_dbg(core->dev, VDBGH
+		dev_err(core->dev, VDBGH
 			"sys error (session id:%x, data1:%x, data2:%x)\n",
 			pkt->shdr.session_id, pkt->event_data1,
 			pkt->event_data2);
@@ -164,7 +164,7 @@ event_session_error(struct venus_core *core, struct venus_inst *inst,
 {
 	struct device *dev = core->dev;
 
-	dev_dbg(dev, VDBGH "session error: event id:%x, session id:%x\n",
+	dev_err(dev, VDBGH "session error: event id:%x, session id:%x\n",
 		pkt->event_data1, pkt->shdr.session_id);
 
 	if (!inst)
@@ -362,20 +362,26 @@ session_get_prop_buf_req(struct hfi_msg_session_property_info_pkt *pkt,
 
 	req_bytes = pkt->shdr.hdr.size - sizeof(*pkt);
 
-	if (!req_bytes || req_bytes % sizeof(*buf_req) || !pkt->data[0])
+	if (!req_bytes || req_bytes % sizeof(*buf_req) || !pkt->data[0]) {
 		/* bad packet */
+		pr_err("BAD PACKET\n");
 		return HFI_ERR_SESSION_INVALID_PARAMETER;
+	}
 
 	buf_req = (struct hfi_buffer_requirements *)&pkt->data[0];
-	if (!buf_req)
+	if (!buf_req) {
+		pr_err("INVALID PARAMETER\n");
 		return HFI_ERR_SESSION_INVALID_PARAMETER;
+	}
 
 	while (req_bytes) {
 		memcpy(&bufreq[idx], buf_req, sizeof(*bufreq));
 		idx++;
 
-		if (idx > HFI_BUFFER_TYPE_MAX)
+		if (idx > HFI_BUFFER_TYPE_MAX) {
+			pr_err("INVALID PARAMETER MAX\n");
 			return HFI_ERR_SESSION_INVALID_PARAMETER;
+		}
 
 		req_bytes -= sizeof(struct hfi_buffer_requirements);
 		buf_req++;
@@ -402,16 +408,19 @@ static void hfi_session_prop_info(struct venus_core *core,
 	case HFI_PROPERTY_CONFIG_BUFFER_REQUIREMENTS:
 		memset(hprop->bufreq, 0, sizeof(hprop->bufreq));
 		error = session_get_prop_buf_req(pkt, hprop->bufreq);
+		pr_err("GOT HFI_PROPERTY_CONFIG_BUFFER_REQUIREMENTS\n");
 		break;
 	case HFI_PROPERTY_PARAM_PROFILE_LEVEL_CURRENT:
 		memset(&hprop->profile_level, 0, sizeof(hprop->profile_level));
 		error = session_get_prop_profile_level(pkt,
 						       &hprop->profile_level);
+		pr_err("GOT HFI_PROPERTY_PARAM_PROFILE_LEVEL_CURRENT\n");
 		break;
 	case HFI_PROPERTY_CONFIG_VDEC_ENTROPY:
+		pr_err("GOT HFI_PROPERTY_CONFIG_VDEC_ENTROPY\n");
 		break;
 	default:
-		dev_dbg(dev, VDBGM "unknown property id:%x\n", pkt->property);
+		dev_err(dev, VDBGM "unknown property id:%x\n", pkt->property);
 		return;
 	}
 
@@ -745,6 +754,8 @@ u32 hfi_process_msg_packet(struct venus_core *core, struct hfi_pkt_hdr *hdr)
 	struct venus_inst *inst;
 	bool found = false;
 	unsigned int i;
+
+	pr_err("venus RECEIVED PACKET TYPE 0x%x (%d)\n", hdr->pkt_type, hdr->pkt_type);
 
 	for (i = 0; i < ARRAY_SIZE(handlers); i++) {
 		handler = &handlers[i];
