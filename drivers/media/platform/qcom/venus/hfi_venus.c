@@ -1601,7 +1601,7 @@ static int venus_suspend_3xx(struct venus_core *core)
 	u32 ctrl_status;
 	bool val;
 	int ret;
-
+return 0;
 	if (!hdev->power_enabled || hdev->suspended)
 		return 0;
 
