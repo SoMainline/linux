@@ -284,7 +284,8 @@ static u32 size_h264d_hw_bin_buffer(u32 width, u32 height)
 	return size;
 }
 
-static u32 h264d_scratch_size(u32 width, u32 height, bool is_interlaced)
+static u32 h264d_scratch_size(struct hfi_plat_buffers_params *params,
+			      u32 width, u32 height, bool is_interlaced)
 {
 	u32 aligned_width = ALIGN(width, 16);
 	u32 aligned_height = ALIGN(height, 16);
@@ -314,7 +315,8 @@ static u32 size_h265d_hw_bin_buffer(u32 width, u32 height)
 	return size;
 }
 
-static u32 h265d_scratch_size(u32 width, u32 height, bool is_interlaced)
+static u32 h265d_scratch_size(struct hfi_plat_buffers_params *params,
+			      u32 width, u32 height, bool is_interlaced)
 {
 	u32 aligned_width = ALIGN(width, 16);
 	u32 aligned_height = ALIGN(height, 16);
@@ -326,7 +328,8 @@ static u32 h265d_scratch_size(u32 width, u32 height, bool is_interlaced)
 	return size;
 }
 
-static u32 vpxd_scratch_size(u32 width, u32 height, bool is_interlaced)
+static u32 vpxd_scratch_size(struct hfi_plat_buffers_params *params,
+			     u32 width, u32 height, bool is_interlaced)
 {
 	u32 aligned_width = ALIGN(width, 16);
 	u32 aligned_height = ALIGN(height, 16);
@@ -353,12 +356,14 @@ static u32 vpxd_scratch_size(u32 width, u32 height, bool is_interlaced)
 	return size;
 }
 
-static u32 mpeg2d_scratch_size(u32 width, u32 height, bool is_interlaced)
+static u32 mpeg2d_scratch_size(struct hfi_plat_buffers_params *params,
+			       u32 width, u32 height, bool is_interlaced)
 {
 	return 0;
 }
 
-static u32 calculate_enc_output_frame_size(u32 width, u32 height, u32 rc_type)
+static u32 calculate_enc_output_frame_size(struct hfi_plat_buffers_params *params,
+					   u32 width, u32 height, u32 rc_type)
 {
 	u32 aligned_width, aligned_height;
 	u32 mbs_per_frame;
@@ -400,7 +405,8 @@ static u32 calculate_enc_output_frame_size(u32 width, u32 height, u32 rc_type)
 	return ALIGN(frame_size, SZ_4K);
 }
 
-static u32 calculate_enc_scratch_size(u32 width, u32 height, u32 work_mode,
+static u32 calculate_enc_scratch_size(struct hfi_plat_buffers_params *params,
+				      u32 width, u32 height, u32 work_mode,
 				      u32 lcu_size, u32 num_vpp_pipes,
 				      u32 rc_type)
 {
@@ -411,7 +417,7 @@ static u32 calculate_enc_scratch_size(u32 width, u32 height, u32 work_mode,
 	aligned_width = ALIGN(width, lcu_size);
 	aligned_height = ALIGN(height, lcu_size);
 	bitstream_size =
-		calculate_enc_output_frame_size(width, height, rc_type);
+		calculate_enc_output_frame_size(params, width, height, rc_type);
 
 	bitstream_size = ALIGN(bitstream_size, HFI_DMA_ALIGNMENT);
 
@@ -443,25 +449,28 @@ static u32 calculate_enc_scratch_size(u32 width, u32 height, u32 work_mode,
 	return size;
 }
 
-static u32 h264e_scratch_size(u32 width, u32 height, u32 work_mode,
+static u32 h264e_scratch_size(struct hfi_plat_buffers_params *params,
+			      u32 width, u32 height, u32 work_mode,
 			      u32 num_vpp_pipes, u32 rc_type)
 {
-	return calculate_enc_scratch_size(width, height, work_mode, 16,
-					  num_vpp_pipes, rc_type);
+	return calculate_enc_scratch_size(params, width, height, work_mode,
+					  16, num_vpp_pipes, rc_type);
 }
 
-static u32 h265e_scratch_size(u32 width, u32 height, u32 work_mode,
+static u32 h265e_scratch_size(struct hfi_plat_buffers_params *params,
+			      u32 width, u32 height, u32 work_mode,
 			      u32 num_vpp_pipes, u32 rc_type)
 {
-	return calculate_enc_scratch_size(width, height, work_mode, 32,
-					  num_vpp_pipes, rc_type);
+	return calculate_enc_scratch_size(params, width, height, work_mode,
+					  32, num_vpp_pipes, rc_type);
 }
 
-static u32 vp8e_scratch_size(u32 width, u32 height, u32 work_mode,
+static u32 vp8e_scratch_size(struct hfi_plat_buffers_params *params,
+			     u32 width, u32 height, u32 work_mode,
 			     u32 num_vpp_pipes, u32 rc_type)
 {
-	return calculate_enc_scratch_size(width, height, work_mode, 16,
-					  num_vpp_pipes, rc_type);
+	return calculate_enc_scratch_size(params, width, height, work_mode,
+					  16, num_vpp_pipes, rc_type);
 }
 
 static u32 hfi_iris2_h264d_comv_size(u32 width, u32 height,
@@ -1048,14 +1057,16 @@ static u32 mpeg2d_persist1_size(void)
 }
 
 struct dec_bufsize_ops {
-	u32 (*scratch)(u32 width, u32 height, bool is_interlaced);
+	u32 (*scratch)(struct hfi_plat_buffers_params *params, u32 width,
+		       u32 height, bool is_interlaced);
 	u32 (*scratch1)(u32 width, u32 height, u32 min_buf_count,
 			bool split_mode_enabled, u32 num_vpp_pipes);
 	u32 (*persist1)(void);
 };
 
 struct enc_bufsize_ops {
-	u32 (*scratch)(u32 width, u32 height, u32 work_mode, u32 num_vpp_pipes,
+	u32 (*scratch)(struct hfi_plat_buffers_params *params, u32 width,
+		       u32 height, u32 work_mode, u32 num_vpp_pipes,
 		       u32 rc_type);
 	u32 (*scratch1)(u32 width, u32 height, u32 num_ref, bool ten_bit,
 			u32 num_vpp_pipes);
@@ -1244,7 +1255,7 @@ static int bufreq_dec(struct hfi_plat_buffers_params *params, u32 buftype,
 			venus_helper_get_framesz_raw(params->hfi_color_fmt,
 						     width, height);
 	} else if (buftype == HFI_BUFFER_INTERNAL_SCRATCH(version)) {
-		bufreq->size = dec_ops->scratch(width, height, is_interlaced);
+		bufreq->size = dec_ops->scratch(params, width, height, is_interlaced);
 	} else if (buftype == HFI_BUFFER_INTERNAL_SCRATCH_1(version)) {
 		bufreq->size = dec_ops->scratch1(width, height, VB2_MAX_FRAME,
 						 is_secondary_output,
@@ -1306,10 +1317,10 @@ static int bufreq_enc(struct hfi_plat_buffers_params *params, u32 buftype,
 		   buftype == HFI_BUFFER_OUTPUT2) {
 		bufreq->count_min =
 			output_buffer_count(VIDC_SESSION_TYPE_ENC, codec);
-		bufreq->size = calculate_enc_output_frame_size(width, height,
-							       rc_type);
+		bufreq->size = calculate_enc_output_frame_size(params, width,
+							       height, rc_type);
 	} else if (buftype == HFI_BUFFER_INTERNAL_SCRATCH(version)) {
-		bufreq->size = enc_ops->scratch(width, height, work_mode,
+		bufreq->size = enc_ops->scratch(params, width, height, work_mode,
 						num_vpp_pipes, rc_type);
 	} else if (buftype == HFI_BUFFER_INTERNAL_SCRATCH_1(version)) {
 		bufreq->size = enc_ops->scratch1(width, height, num_ref,

@@ -15,6 +15,7 @@ struct hfi_plat_buffers_params {
 	u32 codec;
 	u32 hfi_color_fmt;
 	enum hfi_version version;
+	enum vpu_version vpu_version;
 	u32 num_vpp_pipes;
 	union {
 		struct {
