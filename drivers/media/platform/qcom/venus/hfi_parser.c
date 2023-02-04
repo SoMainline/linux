@@ -183,6 +183,15 @@ static void parse_codecs(struct venus_core *core, void *data)
 		core->dec_codecs &= ~HFI_VIDEO_CODEC_SPARK;
 		core->enc_codecs &= ~HFI_VIDEO_CODEC_HEVC;
 	}
+
+	/* AR50L only supports H264/HEVC enc/dec + VP9 dec */
+	if (IS_AR50_LITE(core)) {
+		core->dec_codecs = HFI_VIDEO_CODEC_H264 |
+				   HFI_VIDEO_CODEC_HEVC |
+				   HFI_VIDEO_CODEC_VP9;
+		core->enc_codecs = HFI_VIDEO_CODEC_H264 |
+				   HFI_VIDEO_CODEC_HEVC;
+	}
 }
 
 static void parse_max_sessions(struct venus_core *core, const void *data)
