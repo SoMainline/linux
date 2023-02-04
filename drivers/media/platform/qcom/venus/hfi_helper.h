@@ -556,6 +556,14 @@ enum hfi_version {
 	HFI_VERSION_6XX,
 };
 
+enum vpu_version {
+	VPU_VERSION_AR50, /* VPU4 */
+	VPU_VERSION_AR50_LITE, /* VPU4.4 */
+	VPU_VERSION_IRIS1, /* VPU5 */
+	VPU_VERSION_IRIS2,
+	VPU_VERSION_IRIS2_1,
+};
+
 struct hfi_buffer_info {
 	u32 buffer_addr;
 	u32 extradata_addr;

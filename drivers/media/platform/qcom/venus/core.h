@@ -49,14 +49,6 @@ struct bw_tbl {
 	u32 peak_10bit;
 };
 
-enum vpu_version {
-	VPU_VERSION_AR50, /* VPU4 */
-	VPU_VERSION_AR50_LITE, /* VPU4.4 */
-	VPU_VERSION_IRIS1, /* VPU5 */
-	VPU_VERSION_IRIS2,
-	VPU_VERSION_IRIS2_1,
-};
-
 struct venus_resources {
 	u64 dma_mask;
 	const struct freq_tbl *freq_tbl;
