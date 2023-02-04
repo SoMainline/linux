@@ -1115,7 +1115,8 @@ static struct enc_bufsize_ops enc_vp8_ops = {
 };
 
 static u32
-calculate_dec_input_frame_size(u32 width, u32 height, u32 codec,
+calculate_dec_input_frame_size(struct hfi_plat_buffers_params *params,
+			       u32 width, u32 height, u32 codec,
 			       u32 max_mbs_per_frame, u32 buffer_size_limit)
 {
 	u32 frame_size, num_mbs;
@@ -1139,6 +1140,12 @@ calculate_dec_input_frame_size(u32 width, u32 height, u32 codec,
 			div_factor = 1;
 		else
 			div_factor = 2;
+	}
+
+	/* AR50L doesn't support 4k, settle on the max hw-supported value */
+	if (params->version == VPU_VERSION_AR50_LITE) {
+		base_res_mbs = 8160;
+		div_factor = 1;
 	}
 
 	frame_size = base_res_mbs * MB_SIZE_IN_PIXEL * 3 / 2 / div_factor;
@@ -1227,8 +1234,8 @@ static int bufreq_dec(struct hfi_plat_buffers_params *params, u32 buftype,
 	if (buftype == HFI_BUFFER_INPUT) {
 		bufreq->count_min = MIN_INPUT_BUFFERS;
 		bufreq->size =
-			calculate_dec_input_frame_size(width, height, codec,
-						       max_mbs_per_frame,
+			calculate_dec_input_frame_size(params, width, height,
+						       codec, max_mbs_per_frame,
 						       buffer_size_limit);
 	} else if (buftype == HFI_BUFFER_OUTPUT ||
 		   buftype == HFI_BUFFER_OUTPUT2) {
