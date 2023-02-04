@@ -1109,25 +1109,25 @@
 			venus_opp_table: opp-table {
 				compatible = "operating-points-v2";
 
-				opp-133333333 {
-					opp-hz = /bits/ 64 <133333333>;
-					required-opps = <&rpmpd_opp_low_svs>;
-				};
+				// opp-133333333 {
+				// 	opp-hz = /bits/ 64 <133333333>;
+				// 	required-opps = <&rpmpd_opp_low_svs>;
+				// };
 
 				opp-240000000 {
 					opp-hz = /bits/ 64 <240000000>;
-					required-opps = <&rpmpd_opp_svs>;
-				};
-
-				opp-300000000 {
-					opp-hz = /bits/ 64 <300000000>;
-					required-opps = <&rpmpd_opp_svs_plus>;
-				};
-
-				opp-384000000 {
-					opp-hz = /bits/ 64 <384000000>;
 					required-opps = <&rpmpd_opp_nom>;
 				};
+
+				// opp-300000000 {
+				// 	opp-hz = /bits/ 64 <300000000>;
+				// 	required-opps = <&rpmpd_opp_svs_plus>;
+				// };
+
+				// opp-384000000 {
+				// 	opp-hz = /bits/ 64 <384000000>;
+				// 	required-opps = <&rpmpd_opp_nom>;
+				// };
 			};
 		};
 
