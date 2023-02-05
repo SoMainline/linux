@@ -27,6 +27,7 @@ properties:
           - const: allwinner,sun50i-a64-sid
       - const: allwinner,sun50i-h5-sid
       - const: allwinner,sun50i-h6-sid
+      - const: allwinner,sun50i-h616-sid
 
   reg:
     maxItems: 1
