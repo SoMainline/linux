@@ -14,7 +14,7 @@
 #include "msm_gpu_trace.h"
 #include "msm_mmu.h"
 
-static void a7xx_gmu_fault(struct a7xx_gmu *gmu)
+static void a7xx_gmu_fault(struct a6xx_gmu *gmu)
 {
 	struct a7xx_gpu *a7xx_gpu = container_of(gmu, struct a7xx_gpu, gmu);
 	struct adreno_gpu *adreno_gpu = &a7xx_gpu->base;
@@ -32,7 +32,7 @@ static void a7xx_gmu_fault(struct a7xx_gmu *gmu)
 
 static irqreturn_t a7xx_gmu_irq(int irq, void *data)
 {
-	struct a7xx_gmu *gmu = data;
+	struct a6xx_gmu *gmu = data;
 	u32 status;
 
 	/* Clear the IRQ on the GMU side */
@@ -57,7 +57,7 @@ static irqreturn_t a7xx_gmu_irq(int irq, void *data)
 
 static irqreturn_t a7xx_hfi_irq(int irq, void *data)
 {
-	struct a7xx_gmu *gmu = data;
+	struct a6xx_gmu *gmu = data;
 	u32 status;
 
 	status = gmu_read(gmu, REG_A7XX_GMU_GMU2HOST_INTR_INFO);
@@ -73,7 +73,7 @@ static irqreturn_t a7xx_hfi_irq(int irq, void *data)
 }
 
 /* Check to see if the GX rail is still powered */
-bool a7xx_gmu_gx_is_on(struct a7xx_gmu *gmu)
+bool a7xx_gmu_gx_is_on(struct a6xx_gmu *gmu)
 {
 	u32 val;
 
@@ -93,7 +93,7 @@ void a7xx_gmu_set_freq(struct msm_gpu *gpu, struct dev_pm_opp *opp,
 {
 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
 	struct a7xx_gpu *a7xx_gpu = to_a7xx_gpu(adreno_gpu);
-	struct a7xx_gmu *gmu = &a7xx_gpu->gmu;
+	struct a6xx_gmu *gmu = &a7xx_gpu->gmu;
 	u32 perf_index;
 	unsigned long gpu_freq;
 
@@ -128,12 +128,12 @@ unsigned long a7xx_gmu_get_freq(struct msm_gpu *gpu)
 {
 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
 	struct a7xx_gpu *a7xx_gpu = to_a7xx_gpu(adreno_gpu);
-	struct a7xx_gmu *gmu = &a7xx_gpu->gmu;
+	struct a6xx_gmu *gmu = &a7xx_gpu->gmu;
 
 	return gmu->freq;
 }
 
-static bool a7xx_gmu_check_idle_level(struct a7xx_gmu *gmu)
+static bool a7xx_gmu_check_idle_level(struct a6xx_gmu *gmu)
 {
 	u32 val;
 	int local = gmu->idle_level;
@@ -154,12 +154,12 @@ static bool a7xx_gmu_check_idle_level(struct a7xx_gmu *gmu)
 }
 
 /* Wait for the GMU to get to its most idle state */
-int a7xx_gmu_wait_for_idle(struct a7xx_gmu *gmu)
+int a7xx_gmu_wait_for_idle(struct a6xx_gmu *gmu)
 {
 	return spin_until(a7xx_gmu_check_idle_level(gmu));
 }
 
-static int a7xx_gmu_start(struct a7xx_gmu *gmu)
+static int a7xx_gmu_start(struct a6xx_gmu *gmu)
 {
 	int ret;
 	u32 val;
@@ -182,7 +182,7 @@ static int a7xx_gmu_start(struct a7xx_gmu *gmu)
 	return ret;
 }
 
-static int a7xx_gmu_hfi_start(struct a7xx_gmu *gmu)
+static int a7xx_gmu_hfi_start(struct a6xx_gmu *gmu)
 {
 	u32 val;
 	int ret;
@@ -237,7 +237,7 @@ static const struct a7xx_gmu_oob_bits a7xx_gmu_oob_bits[] = {
 };
 
 /* Trigger a OOB (out of band) request to the GMU */
-int a7xx_gmu_set_oob(struct a7xx_gmu *gmu, enum a7xx_gmu_oob_state state)
+int a7xx_gmu_set_oob(struct a6xx_gmu *gmu, enum a6xx_gmu_oob_state state)
 {
 	int ret;
 	u32 val;
@@ -277,7 +277,7 @@ int a7xx_gmu_set_oob(struct a7xx_gmu *gmu, enum a7xx_gmu_oob_state state)
 }
 
 /* Clear a pending OOB state in the GMU */
-void a7xx_gmu_clear_oob(struct a7xx_gmu *gmu, enum a7xx_gmu_oob_state state)
+void a7xx_gmu_clear_oob(struct a6xx_gmu *gmu, enum a6xx_gmu_oob_state state)
 {
 	int bit;
 
@@ -292,7 +292,7 @@ void a7xx_gmu_clear_oob(struct a7xx_gmu *gmu, enum a7xx_gmu_oob_state state)
 }
 
 /* Let the GMU know that we are about to go into slumber */
-static int a7xx_gmu_notify_slumber(struct a7xx_gmu *gmu)
+static int a7xx_gmu_notify_slumber(struct a6xx_gmu *gmu)
 {
 	int ret;
 
@@ -306,7 +306,7 @@ static int a7xx_gmu_notify_slumber(struct a7xx_gmu *gmu)
 	return ret;
 }
 
-static int a7xx_rpmh_start(struct a7xx_gmu *gmu)
+static int a7xx_rpmh_start(struct a6xx_gmu *gmu)
 {
 	int ret;
 	u32 val;
@@ -341,7 +341,7 @@ static int a7xx_rpmh_start(struct a7xx_gmu *gmu)
 	return 0;
 }
 
-static void a7xx_rpmh_stop(struct a7xx_gmu *gmu)
+static void a7xx_rpmh_stop(struct a6xx_gmu *gmu)
 {
 	int ret;
 	u32 val;
@@ -364,7 +364,7 @@ static inline void pdc_write(void __iomem *ptr, u32 offset, u32 value)
 static void __iomem *a7xx_gmu_get_mmio(struct platform_device *pdev,
 		const char *name);
 
-static void a7xx_gmu_rpmh_init(struct a7xx_gmu *gmu)
+static void a7xx_gmu_rpmh_init(struct a6xx_gmu *gmu)
 {
 	struct platform_device *pdev = to_platform_device(gmu->dev);
 	void __iomem *pdcptr = a7xx_gmu_get_mmio(pdev, "gmu_pdc");
@@ -409,7 +409,7 @@ err:
 }
 
 /* Set up the idle state for the GMU */
-static void a7xx_gmu_power_config(struct a7xx_gmu *gmu)
+static void a7xx_gmu_power_config(struct a6xx_gmu *gmu)
 {
 	/* Disable GMU WB/RB buffer and caches at boot */
 	gmu_write(gmu, REG_A7XX_GMU_SYS_BUS_CONFIG, 0x1);
@@ -431,7 +431,7 @@ static int in_range(u32 addr, u32 start, u32 size)
 	return addr >= start && addr < start + size;
 }
 
-static bool fw_block_mem(struct a7xx_gmu_bo *bo, const struct block_header *blk)
+static bool fw_block_mem(struct a6xx_gmu_bo *bo, const struct block_header *blk)
 {
 	if (!in_range(blk->addr, bo->iova, bo->size))
 		return false;
@@ -440,7 +440,7 @@ static bool fw_block_mem(struct a7xx_gmu_bo *bo, const struct block_header *blk)
 	return true;
 }
 
-static int a7xx_gmu_fw_load(struct a7xx_gmu *gmu)
+static int a7xx_gmu_fw_load(struct a6xx_gmu *gmu)
 {
 	struct a7xx_gpu *a7xx_gpu = container_of(gmu, struct a7xx_gpu, gmu);
 	struct adreno_gpu *adreno_gpu = &a7xx_gpu->base;
@@ -501,7 +501,7 @@ static void a7xx_llc_write(struct a7xx_gpu *a7xx_gpu, u32 reg, u32 value)
 	msm_writel(value, a7xx_gpu->llc_mmio + (reg << 2));
 }
 
-static int a7xx_gmu_fw_start(struct a7xx_gmu *gmu, unsigned int state)
+static int a7xx_gmu_fw_start(struct a6xx_gmu *gmu, unsigned int state)
 {
 	static bool rpmh_init;
 	struct a7xx_gpu *a7xx_gpu = container_of(gmu, struct a7xx_gpu, gmu);
@@ -606,7 +606,7 @@ static int a7xx_gmu_fw_start(struct a7xx_gmu *gmu, unsigned int state)
 	 A7XX_GMU_AO_HOST_INTERRUPT_STATUS_HOST_AHB_BUS_ERROR | \
 	 A7XX_GMU_AO_HOST_INTERRUPT_STATUS_FENCE_ERR)
 
-static void a7xx_gmu_irq_disable(struct a7xx_gmu *gmu)
+static void a7xx_gmu_irq_disable(struct a6xx_gmu *gmu)
 {
 	disable_irq(gmu->gmu_irq);
 	disable_irq(gmu->hfi_irq);
@@ -615,7 +615,7 @@ static void a7xx_gmu_irq_disable(struct a7xx_gmu *gmu)
 	gmu_write(gmu, REG_A7XX_GMU_GMU2HOST_INTR_MASK, ~0);
 }
 
-static void a7xx_gmu_rpmh_off(struct a7xx_gmu *gmu)
+static void a7xx_gmu_rpmh_off(struct a6xx_gmu *gmu)
 {
 	u32 val;
 
@@ -659,7 +659,7 @@ static void a7xx_bus_clear_pending_transactions(struct adreno_gpu *adreno_gpu,
 }
 
 /* Force the GMU off in case it isn't responsive */
-static void a7xx_gmu_force_off(struct a7xx_gmu *gmu)
+static void a7xx_gmu_force_off(struct a6xx_gmu *gmu)
 {
 	struct a7xx_gpu *a7xx_gpu = container_of(gmu, struct a7xx_gpu, gmu);
 	struct adreno_gpu *adreno_gpu = &a7xx_gpu->base;
@@ -686,7 +686,7 @@ static void a7xx_gmu_force_off(struct a7xx_gmu *gmu)
 	udelay(100);
 }
 
-static void a7xx_gmu_set_initial_freq(struct msm_gpu *gpu, struct a7xx_gmu *gmu)
+static void a7xx_gmu_set_initial_freq(struct msm_gpu *gpu, struct a6xx_gmu *gmu)
 {
 	struct dev_pm_opp *gpu_opp;
 	unsigned long gpu_freq = gmu->gpu_freqs[gmu->current_perf_index];
@@ -700,7 +700,7 @@ static void a7xx_gmu_set_initial_freq(struct msm_gpu *gpu, struct a7xx_gmu *gmu)
 	dev_pm_opp_put(gpu_opp);
 }
 
-static void a7xx_gmu_set_initial_bw(struct msm_gpu *gpu, struct a7xx_gmu *gmu)
+static void a7xx_gmu_set_initial_bw(struct msm_gpu *gpu, struct a6xx_gmu *gmu)
 {
 	struct dev_pm_opp *gpu_opp;
 	unsigned long gpu_freq = gmu->gpu_freqs[gmu->current_perf_index];
@@ -717,7 +717,7 @@ int a7xx_gmu_resume(struct a7xx_gpu *a7xx_gpu)
 {
 	struct adreno_gpu *adreno_gpu = &a7xx_gpu->base;
 	struct msm_gpu *gpu = &adreno_gpu->base;
-	struct a7xx_gmu *gmu = &a7xx_gpu->gmu;
+	struct a6xx_gmu *gmu = &a7xx_gpu->gmu;
 	int status, ret;
 
 	if (WARN(!gmu->initialized, "The GMU is not set up yet\n"))
@@ -791,7 +791,7 @@ out:
 	return ret;
 }
 
-bool a7xx_gmu_isidle(struct a7xx_gmu *gmu)
+bool a7xx_gmu_isidle(struct a6xx_gmu *gmu)
 {
 	u32 reg;
 
@@ -807,7 +807,7 @@ bool a7xx_gmu_isidle(struct a7xx_gmu *gmu)
 }
 
 /* Gracefully try to shut down the GMU and by extension the GPU */
-static void a7xx_gmu_shutdown(struct a7xx_gmu *gmu)
+static void a7xx_gmu_shutdown(struct a6xx_gmu *gmu)
 {
 	struct a7xx_gpu *a7xx_gpu = container_of(gmu, struct a7xx_gpu, gmu);
 	struct adreno_gpu *adreno_gpu = &a7xx_gpu->base;
@@ -869,7 +869,7 @@ static void a7xx_gmu_shutdown(struct a7xx_gmu *gmu)
 
 int a7xx_gmu_stop(struct a7xx_gpu *a7xx_gpu)
 {
-	struct a7xx_gmu *gmu = &a7xx_gpu->gmu;
+	struct a6xx_gmu *gmu = &a7xx_gpu->gmu;
 	struct msm_gpu *gpu = &a7xx_gpu->base.base;
 
 	if (!pm_runtime_active(gmu->dev))
@@ -902,7 +902,7 @@ int a7xx_gmu_stop(struct a7xx_gpu *a7xx_gpu)
 	return 0;
 }
 
-static void a7xx_gmu_memory_free(struct a7xx_gmu *gmu)
+static void a7xx_gmu_memory_free(struct a6xx_gmu *gmu)
 {
 	msm_gem_kernel_put(gmu->hfi.obj, gmu->aspace);
 	msm_gem_kernel_put(gmu->debug.obj, gmu->aspace);
@@ -915,7 +915,7 @@ static void a7xx_gmu_memory_free(struct a7xx_gmu *gmu)
 	msm_gem_address_space_put(gmu->aspace);
 }
 
-static int a7xx_gmu_memory_alloc(struct a7xx_gmu *gmu, struct a7xx_gmu_bo *bo,
+static int a7xx_gmu_memory_alloc(struct a6xx_gmu *gmu, struct a6xx_gmu_bo *bo,
 		size_t size, u64 iova, const char *name)
 {
 	struct a7xx_gpu *a7xx_gpu = container_of(gmu, struct a7xx_gpu, gmu);
@@ -956,7 +956,7 @@ static int a7xx_gmu_memory_alloc(struct a7xx_gmu *gmu, struct a7xx_gmu_bo *bo,
 	return 0;
 }
 
-static int a7xx_gmu_memory_probe(struct a7xx_gmu *gmu)
+static int a7xx_gmu_memory_probe(struct a6xx_gmu *gmu)
 {
 	struct msm_mmu *mmu;
 
@@ -1072,7 +1072,7 @@ static int a7xx_gmu_rpmh_arc_votes_init(struct device *dev, u32 *votes,
  * voltage levels and build the votes
  */
 
-static int a7xx_gmu_rpmh_votes_init(struct a7xx_gmu *gmu)
+static int a7xx_gmu_rpmh_votes_init(struct a6xx_gmu *gmu)
 {
 	struct a7xx_gpu *a7xx_gpu = container_of(gmu, struct a7xx_gpu, gmu);
 	struct adreno_gpu *adreno_gpu = &a7xx_gpu->base;
@@ -1122,7 +1122,7 @@ static int a7xx_gmu_build_freq_table(struct device *dev, unsigned long *freqs,
 	return index;
 }
 
-static int a7xx_gmu_pwrlevels_probe(struct a7xx_gmu *gmu)
+static int a7xx_gmu_pwrlevels_probe(struct a6xx_gmu *gmu)
 {
 	struct a7xx_gpu *a7xx_gpu = container_of(gmu, struct a7xx_gpu, gmu);
 	struct adreno_gpu *adreno_gpu = &a7xx_gpu->base;
@@ -1156,7 +1156,7 @@ static int a7xx_gmu_pwrlevels_probe(struct a7xx_gmu *gmu)
 	return a7xx_gmu_rpmh_votes_init(gmu);
 }
 
-static int a7xx_gmu_clocks_probe(struct a7xx_gmu *gmu)
+static int a7xx_gmu_clocks_probe(struct a6xx_gmu *gmu)
 {
 	int ret = devm_clk_bulk_get_all(gmu->dev, &gmu->clocks);
 
@@ -1195,7 +1195,7 @@ static void __iomem *a7xx_gmu_get_mmio(struct platform_device *pdev,
 	return ret;
 }
 
-static int a7xx_gmu_get_irq(struct a7xx_gmu *gmu, struct platform_device *pdev,
+static int a7xx_gmu_get_irq(struct a6xx_gmu *gmu, struct platform_device *pdev,
 		const char *name, irq_handler_t handler)
 {
 	int irq, ret;
@@ -1217,7 +1217,7 @@ static int a7xx_gmu_get_irq(struct a7xx_gmu *gmu, struct platform_device *pdev,
 void a7xx_gmu_remove(struct a7xx_gpu *a7xx_gpu)
 {
 	struct adreno_gpu *adreno_gpu = &a7xx_gpu->base;
-	struct a7xx_gmu *gmu = &a7xx_gpu->gmu;
+	struct a6xx_gmu *gmu = &a7xx_gpu->gmu;
 	struct platform_device *pdev = to_platform_device(gmu->dev);
 
 	if (!gmu->initialized)
@@ -1252,7 +1252,7 @@ void a7xx_gmu_remove(struct a7xx_gpu *a7xx_gpu)
 int a7xx_gmu_wrapper_init(struct a7xx_gpu *a7xx_gpu, struct device_node *node)
 {
 	struct platform_device *pdev = of_find_device_by_node(node);
-	struct a7xx_gmu *gmu = &a7xx_gpu->gmu;
+	struct a6xx_gmu *gmu = &a7xx_gpu->gmu;
 	int ret;
 
 	if (!pdev)
@@ -1291,7 +1291,7 @@ err_mmio:
 int a7xx_gmu_init(struct a7xx_gpu *a7xx_gpu, struct device_node *node)
 {
 	struct platform_device *pdev = of_find_device_by_node(node);
-	struct a7xx_gmu *gmu = &a7xx_gpu->gmu;
+	struct a6xx_gmu *gmu = &a7xx_gpu->gmu;
 	int ret;
 
 	if (!pdev)
@@ -1375,7 +1375,6 @@ int a7xx_gmu_init(struct a7xx_gpu *a7xx_gpu, struct device_node *node)
 
 	/* Set up the HFI queues */
 	a6xx_hfi_init(gmu);
-return -EINVAL;
 	gmu->initialized = true;
 
 	return 0;

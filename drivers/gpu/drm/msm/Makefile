@@ -18,7 +18,6 @@ msm-y := \
 	adreno/a6xx_hfi.o \
 	adreno/a7xx_gpu.o \
 	adreno/a7xx_gmu.o \
-	adreno/a7xx_hfi.o \
 
 msm-$(CONFIG_DRM_MSM_HDMI) += \
 	hdmi/hdmi.o \
