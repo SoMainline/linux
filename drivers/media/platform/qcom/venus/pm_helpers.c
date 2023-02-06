@@ -631,6 +631,11 @@ static int decide_core(struct venus_inst *inst)
 	unsigned long max_freq;
 	int ret = 0;
 
+	if (IS_AR50_LITE(inst->core)) {
+		cu.video_core_enable_mask = VIDC_CORE_ID_1;
+		return 0;
+	}
+
 	if (legacy_binding) {
 		if (inst->session_type == VIDC_SESSION_TYPE_DEC)
 			cu.video_core_enable_mask = VIDC_CORE_ID_1;
@@ -840,7 +845,7 @@ static int venc_power_v4(struct device *dev, int on)
 	struct venus_core *core = dev_get_drvdata(dev);
 	int ret;
 
-	if (!legacy_binding)
+	if (!legacy_binding || core->res->vcodec_num == 1)
 		return 0;
 
 	ret = vcodec_control_v4(core, VIDC_CORE_ID_2, true);
