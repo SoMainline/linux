@@ -399,7 +399,7 @@ static int venus_probe(struct platform_device *pdev)
 	if (ret)
 		goto err_venus_shutdown;
 
-	ret = pm_runtime_put_sync(dev);
+	// ret = pm_runtime_put_sync(dev);
 	// if (ret) {
 	// 	pm_runtime_get_noresume(dev);
 	// 	goto err_dev_unregister;
