@@ -57,7 +57,7 @@ struct adreno_reglist {
 };
 
 extern const struct adreno_reglist a612_hwcg[], a615_hwcg[], a630_hwcg[], a640_hwcg[], a650_hwcg[];
-extern const struct adreno_reglist a660_hwcg[];
+extern const struct adreno_reglist a660_hwcg[], a730_hwcg[];
 
 struct adreno_info {
 	struct adreno_rev rev;
@@ -425,6 +425,7 @@ struct msm_gpu *a3xx_gpu_init(struct drm_device *dev);
 struct msm_gpu *a4xx_gpu_init(struct drm_device *dev);
 struct msm_gpu *a5xx_gpu_init(struct drm_device *dev);
 struct msm_gpu *a6xx_gpu_init(struct drm_device *dev);
+struct msm_gpu *a7xx_gpu_init(struct drm_device *dev);
 
 static inline uint32_t get_wptr(struct msm_ringbuffer *ring)
 {

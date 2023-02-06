@@ -207,15 +207,15 @@ adreno_iommu_create_address_space(struct msm_gpu *gpu,
 	struct msm_mmu *mmu;
 	struct msm_gem_address_space *aspace;
 	u64 start, size;
-
+pr_err("B 1 \n");
 	mmu = msm_iommu_new(&pdev->dev, quirks);
 	if (IS_ERR_OR_NULL(mmu))
 		return ERR_CAST(mmu);
-
+pr_err("B 2 \n");
 	geometry = msm_iommu_get_geometry(mmu);
 	if (IS_ERR(geometry))
 		return ERR_CAST(geometry);
-
+pr_err("B 3 \n");
 	/*
 	 * Use the aperture start or SZ_16M, whichever is greater. This will
 	 * ensure that we align with the allocated pagetable range while still
@@ -229,7 +229,7 @@ adreno_iommu_create_address_space(struct msm_gpu *gpu,
 
 	if (IS_ERR(aspace) && !IS_ERR(mmu))
 		mmu->funcs->destroy(mmu);
-
+pr_err("B 4 \n");
 	return aspace;
 }
 
@@ -1046,39 +1046,41 @@ int adreno_gpu_init(struct drm_device *drm, struct platform_device *pdev,
 	struct adreno_rev *rev = &config->rev;
 	const char *gpu_name;
 	u32 speedbin;
-
+pr_err("enter");
 	/* This can only be done here, or devm_pm_opp_set_supported_hw will WARN_ON() */
-	devm_pm_opp_set_clkname(dev, "core");
+//	devm_pm_opp_set_clkname(dev, "core");
 
 	adreno_gpu->funcs = funcs;
 	adreno_gpu->info = adreno_info(config->rev);
 	adreno_gpu->gmem = adreno_gpu->info->gmem;
 	adreno_gpu->revn = adreno_gpu->info->revn;
 	adreno_gpu->rev = *rev;
-
+pr_err("enter 1");
 	if (adreno_read_speedbin(dev, &speedbin) || !speedbin)
 		speedbin = 0xffff;
 	adreno_gpu->speedbin = (uint16_t) (0xffff & speedbin);
-
+pr_err("enter 2");
 	gpu_name = adreno_gpu->info->name;
 	if (!gpu_name) {
 		gpu_name = devm_kasprintf(dev, GFP_KERNEL, "%d.%d.%d.%d",
 				rev->core, rev->major, rev->minor,
 				rev->patchid);
-		if (!gpu_name)
+		if (!gpu_name) {
+			pr_err("SIKE!\n");
 			return -ENOMEM;
+		}
 	}
-
+pr_err("enter3 ");
 	adreno_gpu_config.ioname = "kgsl_3d0_reg_memory";
 
 	adreno_gpu_config.nr_rings = nr_rings;
 
 	adreno_get_pwrlevels(dev, gpu);
-
+pr_err("enter 4");
 	pm_runtime_set_autosuspend_delay(dev,
 		adreno_gpu->info->inactive_period);
 	pm_runtime_use_autosuspend(dev);
-
+pr_err("enter 5");
 	return msm_gpu_init(drm, pdev, &adreno_gpu->base, &funcs->base,
 			gpu_name, &adreno_gpu_config);
 }
