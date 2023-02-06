@@ -415,7 +415,11 @@ static int vcodec_control_v4(struct venus_core *core, u32 coreid, bool enable)
 	u32 val;
 	int ret;
 
-	if (IS_V6(core)) {
+	/* CORE_ID_n == n */
+	if (WARN_ON(coreid > core->res->vcodec_num))
+		return -EINVAL;
+
+	if (1 || IS_V6(core)) {
 		ctrl = core->wrapper_base + WRAPPER_CORE_POWER_CONTROL_V6;
 		stat = core->wrapper_base + WRAPPER_CORE_POWER_STATUS_V6;
 	} else if (coreid == VIDC_CORE_ID_1) {
@@ -630,6 +634,12 @@ static int decide_core(struct venus_inst *inst)
 	struct hfi_videocores_usage_type cu;
 	unsigned long max_freq;
 	int ret = 0;
+
+	if (IS_AR50_LITE(inst->core)) {
+		inst->clk_data.core_id = VIDC_CORE_ID_1;
+		cu.video_core_enable_mask = VIDC_CORE_ID_1;
+		goto done;
+	}
 
 	if (legacy_binding) {
 		if (inst->session_type == VIDC_SESSION_TYPE_DEC)
