@@ -27,12 +27,11 @@ static inline bool _a7xx_check_idle(struct msm_gpu *gpu)
 		return false;
 
 	/* Check tha the CX master is idle */
-	if (gpu_read(gpu, REG_A7XX_RBBM_STATUS) &
-			~A6XX_RBBM_STATUS_CP_AHB_BUSY_CX_MASTER)
+	if (gpu_read(gpu, REG_A7XX_RBBM_STATUS) & ~A7XX_RBBM_STATUS_CPAHBBUSYCXMASTER)
 		return false;
 
 	return !(gpu_read(gpu, REG_A7XX_RBBM_INT_0_STATUS) &
-		A6XX_RBBM_INT_0_MASK_RBBM_HANG_DETECT);
+		A7XX_RBBM_INT_0_MASK_HANGDETECTINTERRUPT);
 }
 
 static bool a7xx_idle(struct msm_gpu *gpu, struct msm_ringbuffer *ring)
@@ -318,55 +317,55 @@ static void a7xx_set_hwcg(struct msm_gpu *gpu, bool state)
 }
 
 static const u32 a7xx_protect[] = {
-	A6XX_PROTECT_RDONLY(0x00000, 0x004ff),
-	A6XX_PROTECT_RDONLY(0x0050b, 0x00563),
-	A6XX_PROTECT_NORDWR(0x0050e, 0x0050e),
-	A6XX_PROTECT_NORDWR(0x00510, 0x00510),
-	A6XX_PROTECT_NORDWR(0x00534, 0x00534),
-	A6XX_PROTECT_RDONLY(0x005fb, 0x00698),
-	A6XX_PROTECT_NORDWR(0x00699, 0x00882),
-	A6XX_PROTECT_NORDWR(0x008a0, 0x008a8),
-	A6XX_PROTECT_NORDWR(0x008ab, 0x008cf),
-	A6XX_PROTECT_RDONLY(0x008d0, 0x00a40),
-	A6XX_PROTECT_NORDWR(0x00900, 0x0094d),
-	A6XX_PROTECT_NORDWR(0x0098d, 0x00a3f),
-	A6XX_PROTECT_NORDWR(0x00a41, 0x00bff),
-	A6XX_PROTECT_NORDWR(0x00df0, 0x00df1),
-	A6XX_PROTECT_NORDWR(0x00e01, 0x00e01),
-	A6XX_PROTECT_NORDWR(0x00e07, 0x00e0f),
-	A6XX_PROTECT_NORDWR(0x03c00, 0x03cc3),
-	A6XX_PROTECT_RDONLY(0x03cc4, 0x05cc3),
-	A6XX_PROTECT_NORDWR(0x08630, 0x087ff),
-	A6XX_PROTECT_NORDWR(0x08e00, 0x08e00),
-	A6XX_PROTECT_NORDWR(0x08e08, 0x08e08),
-	A6XX_PROTECT_NORDWR(0x08e50, 0x08e6f),
-	A6XX_PROTECT_NORDWR(0x08e80, 0x09100),
-	A6XX_PROTECT_NORDWR(0x09624, 0x097ff),
-	A6XX_PROTECT_NORDWR(0x09e40, 0x09e40),
-	A6XX_PROTECT_NORDWR(0x09e64, 0x09e71),
-	A6XX_PROTECT_NORDWR(0x09e78, 0x09fff),
-	A6XX_PROTECT_NORDWR(0x0a630, 0x0a7ff),
-	A6XX_PROTECT_NORDWR(0x0ae02, 0x0ae02),
-	A6XX_PROTECT_NORDWR(0x0ae50, 0x0ae5f),
-	A6XX_PROTECT_NORDWR(0x0ae66, 0x0ae69),
-	A6XX_PROTECT_NORDWR(0x0ae6f, 0x0ae72),
-	A6XX_PROTECT_NORDWR(0x0b604, 0x0b607),
-	A6XX_PROTECT_NORDWR(0x0ec00, 0x0fbff),
-	A6XX_PROTECT_RDONLY(0x0fc00, 0x11bff),
-	A6XX_PROTECT_NORDWR(0x18400, 0x18453),
-	A6XX_PROTECT_RDONLY(0x18454, 0x18458),
-	A6XX_PROTECT_NORDWR(0x18459, 0x1a458),
-	A6XX_PROTECT_NORDWR(0x1a459, 0x1c458),
-	A6XX_PROTECT_NORDWR(0x1c459, 0x1e458),
-	A6XX_PROTECT_NORDWR(0x1f400, 0x1f843),
-	A6XX_PROTECT_RDONLY(0x1f844, 0x1f8bf),
-	A6XX_PROTECT_NORDWR(0x1f860, 0x1f860),
-	A6XX_PROTECT_NORDWR(0x1f878, 0x1f8a2),
+	A7XX_PROTECT_RDONLY(0x00000, 0x004ff),
+	A7XX_PROTECT_RDONLY(0x0050b, 0x00563),
+	A7XX_PROTECT_NORDWR(0x0050e, 0x0050e),
+	A7XX_PROTECT_NORDWR(0x00510, 0x00510),
+	A7XX_PROTECT_NORDWR(0x00534, 0x00534),
+	A7XX_PROTECT_RDONLY(0x005fb, 0x00698),
+	A7XX_PROTECT_NORDWR(0x00699, 0x00882),
+	A7XX_PROTECT_NORDWR(0x008a0, 0x008a8),
+	A7XX_PROTECT_NORDWR(0x008ab, 0x008cf),
+	A7XX_PROTECT_RDONLY(0x008d0, 0x00a40),
+	A7XX_PROTECT_NORDWR(0x00900, 0x0094d),
+	A7XX_PROTECT_NORDWR(0x0098d, 0x00a3f),
+	A7XX_PROTECT_NORDWR(0x00a41, 0x00bff),
+	A7XX_PROTECT_NORDWR(0x00df0, 0x00df1),
+	A7XX_PROTECT_NORDWR(0x00e01, 0x00e01),
+	A7XX_PROTECT_NORDWR(0x00e07, 0x00e0f),
+	A7XX_PROTECT_NORDWR(0x03c00, 0x03cc3),
+	A7XX_PROTECT_RDONLY(0x03cc4, 0x05cc3),
+	A7XX_PROTECT_NORDWR(0x08630, 0x087ff),
+	A7XX_PROTECT_NORDWR(0x08e00, 0x08e00),
+	A7XX_PROTECT_NORDWR(0x08e08, 0x08e08),
+	A7XX_PROTECT_NORDWR(0x08e50, 0x08e6f),
+	A7XX_PROTECT_NORDWR(0x08e80, 0x09100),
+	A7XX_PROTECT_NORDWR(0x09624, 0x097ff),
+	A7XX_PROTECT_NORDWR(0x09e40, 0x09e40),
+	A7XX_PROTECT_NORDWR(0x09e64, 0x09e71),
+	A7XX_PROTECT_NORDWR(0x09e78, 0x09fff),
+	A7XX_PROTECT_NORDWR(0x0a630, 0x0a7ff),
+	A7XX_PROTECT_NORDWR(0x0ae02, 0x0ae02),
+	A7XX_PROTECT_NORDWR(0x0ae50, 0x0ae5f),
+	A7XX_PROTECT_NORDWR(0x0ae66, 0x0ae69),
+	A7XX_PROTECT_NORDWR(0x0ae6f, 0x0ae72),
+	A7XX_PROTECT_NORDWR(0x0b604, 0x0b607),
+	A7XX_PROTECT_NORDWR(0x0ec00, 0x0fbff),
+	A7XX_PROTECT_RDONLY(0x0fc00, 0x11bff),
+	A7XX_PROTECT_NORDWR(0x18400, 0x18453),
+	A7XX_PROTECT_RDONLY(0x18454, 0x18458),
+	A7XX_PROTECT_NORDWR(0x18459, 0x1a458),
+	A7XX_PROTECT_NORDWR(0x1a459, 0x1c458),
+	A7XX_PROTECT_NORDWR(0x1c459, 0x1e458),
+	A7XX_PROTECT_NORDWR(0x1f400, 0x1f843),
+	A7XX_PROTECT_RDONLY(0x1f844, 0x1f8bf),
+	A7XX_PROTECT_NORDWR(0x1f860, 0x1f860),
+	A7XX_PROTECT_NORDWR(0x1f878, 0x1f8a2),
 	/* CP_PROTECT_REG[44, 46] are not set */
 	0,
 	0,
 	0,
-	A6XX_PROTECT_NORDWR(0x1f8c0, 0x00000),
+	A7XX_PROTECT_NORDWR(0x1f8c0, 0x00000),
 };
 
 static void a7xx_set_cp_protect(struct msm_gpu *gpu)
@@ -519,7 +518,7 @@ static int hw_init(struct msm_gpu *gpu)
 	a7xx_gmu_set_oob(&a7xx_gpu->gmu, GMU_OOB_GPU_SET);
 
 	gpu_write(gpu, REG_A7XX_GBIF_HALT, 0);
-	gpu_write(gpu, REG_A6XX_RBBM_GBIF_HALT, 0);
+	gpu_write(gpu, REG_A7XX_RBBM_GBIF_HALT, 0);
 	/* Make extra sure GBIF is not halted before we power on the GMU */
 	mb();
 
@@ -903,7 +902,7 @@ static void a7xx_cp_hw_err_irq(struct msm_gpu *gpu)
 {
 	u32 status = gpu_read(gpu, REG_A7XX_CP_INTERRUPT_STATUS);
 
-	if (status & A6XX_CP_INT_CP_OPCODE_ERROR) {
+	if (status & A7XX_CP_INTERRUPT_STATUS_OPCODEERROR) {
 		u32 val;
 
 		gpu_write(gpu, REG_A7XX_CP_SQE_STAT_ADDR, 1);
@@ -913,15 +912,15 @@ static void a7xx_cp_hw_err_irq(struct msm_gpu *gpu)
 			val);
 	}
 
-	if (status & A6XX_CP_INT_CP_UCODE_ERROR)
+	if (status & A7XX_CP_INTERRUPT_STATUS_UCODEERROR)
 		dev_err_ratelimited(&gpu->pdev->dev,
 			"CP ucode error interrupt\n");
 
-	if (status & A6XX_CP_INT_CP_HW_FAULT_ERROR)
+	if (status & A7XX_CP_INTERRUPT_STATUS_CPHWFAULT)
 		dev_err_ratelimited(&gpu->pdev->dev, "CP | HW fault | status=0x%8.8X\n",
 			gpu_read(gpu, REG_A7XX_CP_HW_FAULT));
 
-	if (status & A6XX_CP_INT_CP_REGISTER_PROTECTION_ERROR) {
+	if (status & A7XX_CP_INTERRUPT_STATUS_REGISTERPROTECTION) {
 		u32 val = gpu_read(gpu, REG_A7XX_CP_PROTECT_STATUS);
 
 		dev_err_ratelimited(&gpu->pdev->dev,
@@ -930,13 +929,10 @@ static void a7xx_cp_hw_err_irq(struct msm_gpu *gpu)
 			(val & 0x3ffff), val);
 	}
 
-	if (status & A6XX_CP_INT_CP_AHB_ERROR)
-		dev_err_ratelimited(&gpu->pdev->dev, "CP AHB error interrupt\n");
-
-	if (status & A6XX_CP_INT_CP_VSD_PARITY_ERROR)
+	if (status & A7XX_CP_INTERRUPT_STATUS_VSDPARITYERROR)
 		dev_err_ratelimited(&gpu->pdev->dev, "CP VSD decoder parity error\n");
 
-	if (status & A6XX_CP_INT_CP_ILLEGAL_INSTR_ERROR)
+	if (status & A7XX_CP_INTERRUPT_STATUS_ILLEGALINSTRUCTION)
 		dev_err_ratelimited(&gpu->pdev->dev, "CP illegal instruction error\n");
 
 }
@@ -953,7 +949,7 @@ static void a7xx_fault_detect_irq(struct msm_gpu *gpu)
 	 * to otherwise resume normally rather than killing the submit, so
 	 * just bail.
 	 */
-	if (gpu_read(gpu, REG_A7XX_RBBM_STATUS3) & A6XX_RBBM_STATUS3_SMMU_STALLED_ON_FAULT)
+	if (gpu_read(gpu, REG_A7XX_RBBM_STATUS3) & A7XX_RBBM_STATUS3_SMMU_STALLED_ON_FAULT)
 		return;
 
 	/*
@@ -987,27 +983,27 @@ static irqreturn_t a7xx_irq(struct msm_gpu *gpu)
 	gpu_write(gpu, REG_A7XX_RBBM_INT_CLEAR_CMD, status);
 
 	if (priv->disable_err_irq)
-		status &= A6XX_RBBM_INT_0_MASK_CP_CACHE_FLUSH_TS;
+		status &= A7XX_RBBM_INT_0_MASK_CACHE_CLEAN_TS;
 
-	if (status & A6XX_RBBM_INT_0_MASK_RBBM_HANG_DETECT)
+	if (status & A7XX_RBBM_INT_0_MASK_HANGDETECTINTERRUPT)
 		a7xx_fault_detect_irq(gpu);
 
-	if (status & A6XX_RBBM_INT_0_MASK_CP_AHB_ERROR)
+	if (status & A7XX_RBBM_INT_0_MASK_AHBERROR)
 		dev_err_ratelimited(&gpu->pdev->dev, "CP | AHB bus error\n");
 
-	if (status & A6XX_RBBM_INT_0_MASK_CP_HW_ERROR)
+	if (status & A7XX_RBBM_INT_0_MASK_HWERROR)
 		a7xx_cp_hw_err_irq(gpu);
 
-	if (status & A6XX_RBBM_INT_0_MASK_RBBM_ATB_ASYNCFIFO_OVERFLOW)
+	if (status & A7XX_RBBM_INT_0_MASK_ATBASYNCFIFOOVERFLOW)
 		dev_err_ratelimited(&gpu->pdev->dev, "RBBM | ATB ASYNC overflow\n");
 
-	if (status & A6XX_RBBM_INT_0_MASK_RBBM_ATB_BUS_OVERFLOW)
+	if (status & A7XX_RBBM_INT_0_MASK_ATBBUSOVERFLOW)
 		dev_err_ratelimited(&gpu->pdev->dev, "RBBM | ATB bus overflow\n");
 
-	if (status & A6XX_RBBM_INT_0_MASK_UCHE_OOB_ACCESS)
+	if (status & A7XX_RBBM_INT_0_MASK_OUTOFBOUNDACCESS)
 		dev_err_ratelimited(&gpu->pdev->dev, "UCHE | Out of bounds access\n");
 
-	if (status & A6XX_RBBM_INT_0_MASK_CP_CACHE_FLUSH_TS)
+	if (status & A7XX_RBBM_INT_0_MASK_CACHE_CLEAN_TS)
 		msm_gpu_retire(gpu);
 
 	return IRQ_HANDLED;

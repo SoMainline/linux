@@ -7,9 +7,7 @@
 #ifndef __A7XX_GPU_H__
 #define __A7XX_GPU_H__
 
-
 #include "adreno_gpu.h"
-#include "a6xx.xml.h"
 #include "a7xx.xml.h"
 #include "adreno_gmu.h"
 
@@ -45,7 +43,7 @@ struct a7xx_gpu {
  * REG_CP_PROTECT_REG(n) - this will block both reads and writes for _len
  * registers starting at _reg.
  */
-#define A6XX_PROTECT_NORDWR(_reg, _len) \
+#define A7XX_PROTECT_NORDWR(_reg, _len) \
 	((1 << 31) | \
 	(((_len) & 0x3FFF) << 18) | ((_reg) & 0x3FFFF))
 
@@ -54,16 +52,8 @@ struct a7xx_gpu {
  * as performance counters) this allows us to protect a much larger range with a
  * single register
  */
-#define A6XX_PROTECT_RDONLY(_reg, _len) \
+#define A7XX_PROTECT_RDONLY(_reg, _len) \
 	((((_len) & 0x3FFF) << 18) | ((_reg) & 0x3FFFF))
-
-static inline bool a7xx_has_gbif(struct adreno_gpu *gpu)
-{
-	if(adreno_is_a630(gpu))
-		return false;
-
-	return true;
-}
 
 #define shadowptr_rptr(_a7xx_gpu, _ring) ((_a7xx_gpu)->shadow_iova + \
 		((_ring)->id * sizeof(uint32_t)))
@@ -95,4 +85,4 @@ void a7xx_show(struct msm_gpu *gpu, struct msm_gpu_state *state,
 struct msm_gpu_state *a7xx_gpu_state_get(struct msm_gpu *gpu);
 int a7xx_gpu_state_put(struct msm_gpu_state *state);
 
-#endif /* __A6XX_GPU_H__ */
+#endif /* __A7XX_GPU_H__ */
