@@ -60,8 +60,8 @@ static void update_shadow_rptr(struct msm_gpu *gpu, struct msm_ringbuffer *ring)
 	/* Expanded APRIV doesn't need to issue the WHERE_AM_I opcode */
 	if (a7xx_gpu->has_whereami && !adreno_gpu->base.hw_apriv) {
 		OUT_PKT7(ring, CP_WHERE_AM_I, 2);
-		OUT_RING(ring, lower_32_bits(shadowptr(a7xx_gpu, ring)));
-		OUT_RING(ring, upper_32_bits(shadowptr(a7xx_gpu, ring)));
+		OUT_RING(ring, lower_32_bits(shadowptr_rptr(a7xx_gpu, ring)));
+		OUT_RING(ring, upper_32_bits(shadowptr_rptr(a7xx_gpu, ring)));
 	}
 }
 
@@ -501,20 +501,25 @@ static int a7xx_zap_shader_init(struct msm_gpu *gpu)
 #define A7XX_APRIV_MASK (A7XX_CP_APRIV_CNTL_ICACHE | \
 			A7XX_CP_APRIV_CNTL_RBFETCH | \
 			A7XX_CP_APRIV_CNTL_RBPRIVLEVEL | \
-			A7XX_CP_APRIV_CNTL_RBRPWB | \
-			A7XX_CP_APRIV_CNTL_CDREAD | \
-			A7XX_CP_APRIV_CNTL_CDWRITE)
+			A7XX_CP_APRIV_CNTL_RBRPWB)
+
+#define A7XX_BR_APRIVMASK (A7XX_APRIV_MASK | \
+			   A7XX_CP_APRIV_CNTL_CDREAD | \
+			   A7XX_CP_APRIV_CNTL_CDWRITE)
+			   
 static int hw_init(struct msm_gpu *gpu)
 {
 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
 	struct a7xx_gpu *a7xx_gpu = to_a7xx_gpu(adreno_gpu);
 	int ret;
-return -1;
+
 	/* Make sure the GMU keeps the GPU on while we set it up */
 	a7xx_gmu_set_oob(&a7xx_gpu->gmu, GMU_OOB_GPU_SET);
 
-	/* Make extra sure GBIF is not halted before we power on the GMU */
 	gpu_write(gpu, REG_A7XX_GBIF_HALT, 0);
+	gpu_write(gpu, REG_A6XX_RBBM_GBIF_HALT, 0);
+	/* Make extra sure GBIF is not halted before we power on the GMU */
+	mb();
 
 	/* VBIF/GBIF start*/
 	gpu_write(gpu, REG_A7XX_GBIF_QSB_SIDE0, 0x00071620);
@@ -548,7 +553,7 @@ return -1;
 	gpu_write(gpu, REG_A7XX_RBBM_PERFCTR_CNTL, 0x1);
 
 	/* Turn on the IFPC counter (countable 4 on XOCLK4) */
-	gpu_write(gpu, REG_A7XX_GMU_CX_GMU_POWER_COUNTER_SELECT_1,
+	gmu_write(&a7xx_gpu->gmu, REG_A7XX_GMU_CX_GMU_POWER_COUNTER_SELECT_1,
 		       FIELD_PREP(GENMASK(7, 0), 0x4));
 
 	gpu_write(gpu, REG_A7XX_RB_NC_MODE_CNTL,
@@ -574,16 +579,17 @@ return -1;
 
 	gpu_write(gpu, REG_A7XX_UCHE_CLIENT_PF, BIT(0));
 
+	/* Protect registers from the CP */
+	a7xx_set_cp_protect(gpu);
+
 	/* Enable expanded apriv for targets that support it */
 	if (gpu->hw_apriv) {
-		gpu_write(gpu, REG_A7XX_CP_APRIV_CNTL, A7XX_APRIV_MASK);
+		gpu_write(gpu, REG_A7XX_CP_APRIV_CNTL, A7XX_BR_APRIVMASK);
 		gpu_write(gpu, REG_A7XX_CP_BV_APRIV_CNTL, A7XX_APRIV_MASK);
 		gpu_write(gpu, REG_A7XX_CP_LPAC_APRIV_CNTL, A7XX_APRIV_MASK);
 	}
 
-	/* Protect registers from the CP */
-	a7xx_set_cp_protect(gpu);
-
+	/* Set up SECVID */
 	gpu_write(gpu, REG_A7XX_RBBM_SECVID_TSB_CNTL, 0);
 
 	/*
@@ -606,25 +612,18 @@ return -1;
 	if (ret)
 		goto out;
 
-	ret = a7xx_ucode_init(gpu);
-	if (ret)
-		goto out;
-
-	/* TODO: confirm */
-	gpu_write(gpu, REG_A7XX_CP_RB_CNTL, MSM_GPU_RB_CNTL_DEFAULT);
-
-	/* Set the ringbuffer address */
-	gpu_write64(gpu, REG_A7XX_CP_RB_BASE, gpu->rb[0]->iova);
+	/* Always come up on rb 0 */
+	a7xx_gpu->cur_ring = gpu->rb[0];
+	gpu->cur_ctx_seqno = 0;
 
 	/*
 	 * Expanded APRIV and targets that support WHERE_AM_I both need a
 	 * privileged buffer to store the RPTR shadow
 	 */
-
 	if (adreno_gpu->base.hw_apriv || a7xx_gpu->has_whereami) {
 		if (!a7xx_gpu->shadow_bo) {
 			a7xx_gpu->shadow = msm_gem_kernel_new(gpu->dev,
-				sizeof(u32) * gpu->nr_rings,
+				2 * sizeof(u32) * gpu->nr_rings,
 				MSM_BO_WC | MSM_BO_MAP_PRIV,
 				gpu->aspace, &a7xx_gpu->shadow_bo,
 				&a7xx_gpu->shadow_iova);
@@ -635,13 +634,19 @@ return -1;
 			msm_gem_object_set_name(a7xx_gpu->shadow_bo, "shadow");
 		}
 
-		gpu_write64(gpu, REG_A7XX_CP_RB_RPTR_ADDR, shadowptr(a7xx_gpu, gpu->rb[0]));
+		gpu_write64(gpu, REG_A7XX_CP_RB_RPTR_ADDR, shadowptr_rptr(a7xx_gpu, gpu->rb[0]));
+		gpu_write64(gpu, REG_A7XX_CP_BV_RB_RPTR_ADDR, shadowptr_bv_rptr(a7xx_gpu, gpu->rb[0]));
 	}
 
-	/* Always come up on rb 0 */
-	a7xx_gpu->cur_ring = gpu->rb[0];
+	/* TODO: confirm */
+	gpu_write(gpu, REG_A7XX_CP_RB_CNTL, 0x20c);
 
-	gpu->cur_ctx_seqno = 0;
+	/* Set the ringbuffer address */
+	gpu_write64(gpu, REG_A7XX_CP_RB_BASE, gpu->rb[0]->iova);
+
+	ret = a7xx_ucode_init(gpu);
+	if (ret)
+		goto out;
 
 	/* Enable the SQE_to start the CP engine */
 	gpu_write(gpu, REG_A7XX_CP_SQE_CNTL, 1);
@@ -679,7 +684,7 @@ return -1;
 	} else {
 		return ret;
 	}
-
+// return -1337;
 out:
 	/*
 	 * Tell the GMU that we are done touching the GPU and it can start power
@@ -1016,43 +1021,30 @@ static void a7xx_llc_activate(struct a7xx_gpu *a7xx_gpu)
 {
 	struct adreno_gpu *adreno_gpu = &a7xx_gpu->base;
 	struct msm_gpu *gpu = &adreno_gpu->base;
-	u32 cntl1_regval = 0;
+	u32 gpu_scid;
 
 	if (IS_ERR(a7xx_gpu->llc_mmio))
 		return;
 
 	if (!llcc_slice_activate(a7xx_gpu->llc_slice)) {
-		u32 gpu_scid = llcc_get_slice_id(a7xx_gpu->llc_slice);
+		gpu_scid = llcc_get_slice_id(a7xx_gpu->llc_slice);
 
-		gpu_scid &= 0x1f;
-		cntl1_regval = (gpu_scid << 0) | (gpu_scid << 5) | (gpu_scid << 10) |
-			       (gpu_scid << 15) | (gpu_scid << 20);
-
-		/* On A660, the SCID programming for UCHE traffic is done in
-		 * A6XX_GBIF_SCACHE_CNTL0[14:10]
-		 */
-		if (adreno_is_a660_family(adreno_gpu))
-			gpu_rmw(gpu, REG_A7XX_GBIF_SCACHE_CNTL0, (0x1f << 10) |
-				(1 << 8), (gpu_scid << 10) | (1 << 8));
+		/* 6 blocks at 5 bits per block */
+		gpu_write(gpu, REG_A7XX_GBIF_SCACHE_CNTL1,
+			  FIELD_PREP(GENMASK(29, 25), gpu_scid) |
+			  FIELD_PREP(GENMASK(24, 20), gpu_scid) |
+			  FIELD_PREP(GENMASK(19, 15), gpu_scid) |
+			  FIELD_PREP(GENMASK(14, 10), gpu_scid) |
+			  FIELD_PREP(GENMASK(9, 5), gpu_scid) |
+			  FIELD_PREP(GENMASK(4, 0), gpu_scid));
 	}
 
-	/*
-	 * For targets with a MMU500, activate the slice but don't program the
-	 * register.  The XBL will take care of that.
-	 */
-	if (!llcc_slice_activate(a7xx_gpu->htw_llc_slice)) {
-		if (!a7xx_gpu->have_mmu500) {
-			u32 gpuhtw_scid = llcc_get_slice_id(a7xx_gpu->htw_llc_slice);
-
-			gpuhtw_scid &= 0x1f;
-			cntl1_regval |= FIELD_PREP(GENMASK(29, 25), gpuhtw_scid);
-		}
-	}
-
-	if (!cntl1_regval)
+	if (!llcc_slice_activate(a7xx_gpu->htw_llc_slice))
 		return;
 
-	gpu_rmw(gpu, REG_A7XX_GBIF_SCACHE_CNTL1, GENMASK(24, 0), cntl1_regval);
+	gpu_write(gpu, REG_A7XX_GBIF_SCACHE_CNTL0,
+		  FIELD_PREP(GENMASK(14, 10), gpu_scid) |
+		  BIT(8));
 }
 
 static void a7xx_llc_slices_destroy(struct a7xx_gpu *a7xx_gpu)
@@ -1075,10 +1067,7 @@ static void a7xx_llc_slices_init(struct platform_device *pdev,
 		of_device_is_compatible(phandle, "arm,mmu-500"));
 	of_node_put(phandle);
 
-	if (a7xx_gpu->have_mmu500)
-		a7xx_gpu->llc_mmio = NULL;
-	else
-		a7xx_gpu->llc_mmio = msm_ioremap(pdev, "cx_mem");
+	a7xx_gpu->llc_mmio = msm_ioremap(pdev, "cx_mem");
 
 	a7xx_gpu->llc_slice = llcc_slice_getd(LLCC_GPU);
 	a7xx_gpu->htw_llc_slice = llcc_slice_getd(LLCC_GPUHTW);

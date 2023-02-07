@@ -284,6 +284,11 @@ static inline int adreno_is_7c3(struct adreno_gpu *gpu)
 	return adreno_cmp_rev(ADRENO_REV(6, 3, 5, ANY_ID), gpu->rev);
 }
 
+static inline int adreno_is_a730(struct adreno_gpu *gpu)
+{
+	return adreno_cmp_rev(ADRENO_REV(7, 3, 0, ANY_ID), gpu->rev);
+}
+
 static inline int adreno_is_a660(struct adreno_gpu *gpu)
 {
 	return gpu->revn == 660;

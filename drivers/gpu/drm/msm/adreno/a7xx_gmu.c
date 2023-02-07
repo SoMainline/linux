@@ -334,7 +334,7 @@ static int a7xx_rpmh_start(struct a6xx_gmu *gmu)
 
 	/* Set up CX GMU counter 0 to count busy ticks */
 	gmu_write(gmu, REG_A7XX_GPU_GMU_AO_GPU_CX_BUSY_MASK, 0xff000000);
-	gmu_rmw(gmu, REG_A7XX_GMU_CX_GMU_POWER_COUNTER_SELECT_0, 0xff, 0x20);
+	gmu_rmw(gmu, REG_A7XX_GMU_CX_GMU_POWER_COUNTER_SELECT_0, 0xff, BIT(5));
 
 	/* Enable the power counter */
 	gmu_write(gmu, REG_A7XX_GMU_CX_GMU_POWER_COUNTER_ENABLE, 1);
@@ -449,10 +449,7 @@ static int a7xx_gmu_fw_load(struct a6xx_gmu *gmu)
 	u32 reg_offset;
 
 	u32 itcm_base = 0x00000000;
-	u32 dtcm_base = 0x00040000;
-
-	if (adreno_is_a650_family(adreno_gpu))
-		dtcm_base = 0x10004000;
+	u32 dtcm_base = 0x10004000;
 
 	if (gmu->legacy) {
 		/* Sanity check the size of the firmware that was loaded */
@@ -476,14 +473,12 @@ static int a7xx_gmu_fw_load(struct a6xx_gmu *gmu)
 
 		if (in_range(blk->addr, itcm_base, SZ_16K)) {
 			reg_offset = (blk->addr - itcm_base) >> 2;
-			gmu_write_bulk(gmu,
-				REG_A7XX_GMU_CM3_ITCM_START + reg_offset,
-				blk->data, blk->size);
+			gmu_write_bulk(gmu, REG_A7XX_GMU_CM3_ITCM_START + reg_offset,
+				       blk->data, blk->size);
 		} else if (in_range(blk->addr, dtcm_base, SZ_16K)) {
 			reg_offset = (blk->addr - dtcm_base) >> 2;
-			gmu_write_bulk(gmu,
-				REG_A7XX_GMU_CM3_DTCM_START + reg_offset,
-				blk->data, blk->size);
+			gmu_write_bulk(gmu, REG_A7XX_GMU_CM3_DTCM_START + reg_offset,
+				       blk->data, blk->size);
 		} else if (!fw_block_mem(&gmu->icache, blk) &&
 			   !fw_block_mem(&gmu->dcache, blk) &&
 			   !fw_block_mem(&gmu->dummy, blk)) {
@@ -580,7 +575,8 @@ static int a7xx_gmu_fw_start(struct a6xx_gmu *gmu, unsigned int state)
 	a7xx_gmu_power_config(gmu);
 
 	gmu_rmw(gmu, REG_A7XX_GMU_CX_GMU_POWER_COUNTER_SELECT_0,
-		     0xffffff00, FIELD_PREP(GENMASK(31, 24), 0x19) |
+		     0xffffff00,
+		     FIELD_PREP(GENMASK(31, 24), 0x19) |
 		     FIELD_PREP(GENMASK(23, 16), 0x17) |
 		     FIELD_PREP(GENMASK(15, 8), 0x13));
 

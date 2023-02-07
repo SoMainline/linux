@@ -62,8 +62,11 @@ static inline bool a7xx_has_gbif(struct adreno_gpu *gpu)
 	return true;
 }
 
-#define shadowptr(_a7xx_gpu, _ring) ((_a7xx_gpu)->shadow_iova + \
+#define shadowptr_rptr(_a7xx_gpu, _ring) ((_a7xx_gpu)->shadow_iova + \
 		((_ring)->id * sizeof(uint32_t)))
+
+#define shadowptr_bv_rptr(_a7xx_gpu, _ring) ((_a7xx_gpu)->shadow_iova + \
+		((_ring)->id * sizeof(uint32_t)) + sizeof(uint32_t))
 
 int a7xx_gmu_resume(struct a7xx_gpu *gpu);
 int a7xx_gmu_stop(struct a7xx_gpu *gpu);
