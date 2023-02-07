@@ -680,8 +680,23 @@ static int a6xx_hfi_start_v1(struct adreno_gmu *gmu, int boot_state)
 	return 0;
 }
 
+int a6xx_hfi_send_feature_ctrl(struct adreno_gmu *gmu, u32 feature,
+			       u32 enable, u32 data)
+{
+	struct a6xx_hfi_msg_feature_ctrl msg = {
+		.feature = feature,
+		.enable = enable,
+		.data = data,
+	};
+
+	return a6xx_hfi_send_msg(gmu, HFI_H2F_MSG_FEATURE_CTRL, &msg, sizeof(msg),
+				 NULL, 0);
+}
+
 int a6xx_hfi_start(struct adreno_gmu *gmu, int boot_state)
 {
+	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
+	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
 	int ret;
 
 	if (gmu->legacy)
@@ -695,6 +710,12 @@ int a6xx_hfi_start(struct adreno_gmu *gmu, int boot_state)
 	ret = a6xx_hfi_send_bw_table(gmu);
 	if (ret)
 		return ret;
+
+	if (adreno_is_a730(adreno_gpu)) {
+		//acd
+		a6xx_hfi_send_feature_ctrl(gmu, HFI_FEATURE_BCL, 1, 0);
+		a6xx_hfi_send_feature_ctrl(gmu, HFI_FEATURE_IFPC, 1, 0x1680);
+	}
 
 	ret = a6xx_hfi_send_core_fw_start(gmu);
 	if (ret)

@@ -157,6 +157,38 @@ struct a6xx_hfi_msg_start {
 	u32 header;
 };
 
+#define HFI_H2F_MSG_FEATURE_CTRL 11
+ #define HFI_FEATURE_DCVS		0
+ #define HFI_FEATURE_HWSCHED		1
+ #define HFI_FEATURE_PREEMPTION		2
+ #define HFI_FEATURE_CLOCKS_ON		3
+ #define HFI_FEATURE_BUS_ON		4
+ #define HFI_FEATURE_RAIL_ON		5
+ #define HFI_FEATURE_HWCG		6
+ #define HFI_FEATURE_LM			7
+ #define HFI_FEATURE_THROTTLE		8
+ #define HFI_FEATURE_IFPC		9
+ #define HFI_FEATURE_NAP		10
+ #define HFI_FEATURE_BCL		11
+ #define HFI_FEATURE_ACD		12
+ #define HFI_FEATURE_DIDT		13
+ #define HFI_FEATURE_DEPRECATED		14
+ #define HFI_FEATURE_CB			15
+ #define HFI_FEATURE_KPROF		16
+ #define HFI_FEATURE_BAIL_OUT_TIMER	17
+ #define HFI_FEATURE_GMU_STATS		18
+ #define HFI_FEATURE_DBQ		19
+ #define HFI_FEATURE_MINBW		20
+ #define HFI_FEATURE_CLX		21
+ #define HFI_FEATURE_LSR		23
+
+struct a6xx_hfi_msg_feature_ctrl {
+	u32 hdr;
+	u32 feature;
+	u32 enable;
+	u32 data;
+};
+
 #define HFI_H2F_MSG_CORE_FW_START 14
 
 struct a6xx_hfi_msg_core_fw_start {
