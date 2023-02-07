@@ -2041,6 +2041,8 @@
 			operating-points-v2 = <&gpu_opp_table>;
 
 			qcom,gmu = <&gmu>;
+			interconnects = <&gem_noc MASTER_GFX3D 0 &mc_virt SLAVE_EBI1 0>;
+			interconnect-names = "gfx-mem";
 
 			// status = "disabled";
 
@@ -2054,11 +2056,13 @@
 				opp-317000000 {
 					opp-hz = /bits/ 64 <317000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
+					opp-peak-kBps = <(200000 * 8 * 32 * 2)>;
 				};
 
 				opp-285000000 {
 					opp-hz = /bits/ 64 <285000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS_D1>;
+					opp-peak-kBps = <(451000 * 8 * 32 * 2)>;
 				};
 			};
 		};
