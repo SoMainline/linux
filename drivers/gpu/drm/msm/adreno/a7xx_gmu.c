@@ -214,28 +214,14 @@ static const struct a7xx_gmu_oob_bits a7xx_gmu_oob_bits[] = {
 		.name = "GPU_SET",
 		.set = 30,
 		.ack = 31,
-		.clear = 24,
+		.clear = 31,
 	},
 
 	[GMU_OOB_PERFCOUNTER_SET] = {
 		.name = "PERFCOUNTER",
 		.set = 28,
 		.ack = 30,
-		.clear = 25,
-	},
-
-	[GMU_OOB_BOOT_SLUMBER] = {
-		.name = "BOOT_SLUMBER",
-		.set = 18,
-		.ack = 25,
-		.clear = 19,
-	},
-
-	[GMU_OOB_DCVS_SET] = {
-		.name = "GPU_DCVS",
-		.set = 16,
-		.ack = 24,
-		.clear = 17,
+		.clear = 29,
 	},
 };
 
@@ -319,7 +305,7 @@ static int a7xx_rpmh_start(struct adreno_gmu *gmu)
 	wmb();
 
 	ret = gmu_poll_timeout(gmu, REG_A7XX_GMU_RSCC_CONTROL_ACK, val,
-		val & (1 << 1), 100, 10000);
+		val & BIT(1), 100, 10000);
 	if (ret) {
 		DRM_DEV_ERROR(gmu->dev, "Unable to power on the GPU RSC\n");
 		return ret;
@@ -454,20 +440,6 @@ static int a7xx_gmu_fw_load(struct adreno_gmu *gmu)
 	u32 itcm_base = 0x00000000;
 	u32 dtcm_base = 0x10004000;
 
-	if (gmu->legacy) {
-		/* Sanity check the size of the firmware that was loaded */
-		if (fw_image->size > 0x8000) {
-			DRM_DEV_ERROR(gmu->dev,
-				"GMU firmware is bigger than the available region\n");
-			return -EINVAL;
-		}
-
-		gmu_write_bulk(gmu, REG_A7XX_GMU_CM3_ITCM_START,
-			       (u32*) fw_image->data, fw_image->size);
-		return 0;
-	}
-
-
 	for (blk = (const struct block_header *) fw_image->data;
 	     (const u8*) blk < fw_image->data + fw_image->size;
 	     blk = (const struct block_header *) &blk->data[blk->size >> 2]) {
@@ -515,8 +487,6 @@ static int a7xx_gmu_fw_start(struct adreno_gmu *gmu, unsigned int state)
 		if (WARN(!adreno_gpu->fw[ADRENO_FW_GMU],
 			"GMU firmware is not loaded\n"))
 			return -ENOENT;
-
-		//poke mbox gen7_gmu_aop_send_acd_state
 
 		/* We only need to load the RPMh microcode once */
 		if (!rpmh_init) {
@@ -723,6 +693,8 @@ int a7xx_gmu_resume(struct a7xx_gpu *a7xx_gpu)
 		return 0;
 
 	gmu->hung = false;
+
+	//poke mbox gen7_gmu_aop_send_acd_state
 
 	/* Turn on the resources */
 	pm_runtime_get_sync(gmu->dev);

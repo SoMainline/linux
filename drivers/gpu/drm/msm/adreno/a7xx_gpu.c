@@ -507,7 +507,7 @@ static int a7xx_zap_shader_init(struct msm_gpu *gpu)
 #define A7XX_BR_APRIVMASK (A7XX_APRIV_MASK | \
 			   A7XX_CP_APRIV_CNTL_CDREAD | \
 			   A7XX_CP_APRIV_CNTL_CDWRITE)
-			   
+
 static int hw_init(struct msm_gpu *gpu)
 {
 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
