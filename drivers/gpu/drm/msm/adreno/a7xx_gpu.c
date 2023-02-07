@@ -1093,7 +1093,7 @@ static int a7xx_pm_suspend(struct msm_gpu *gpu)
 	a7xx_llc_deactivate(a7xx_gpu);
 
 	msm_devfreq_suspend(gpu);
-
+return 0;
 	mutex_lock(&a7xx_gpu->gmu.lock);
 	ret = a7xx_gmu_stop(a7xx_gpu);
 	mutex_unlock(&a7xx_gpu->gmu.lock);

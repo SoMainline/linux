@@ -257,7 +257,7 @@ int adreno_get_param(struct msm_gpu *gpu, struct msm_file_private *ctx,
 
 	switch (param) {
 	case MSM_PARAM_GPU_ID:
-		*value = adreno_gpu->info->revn;
+		*value = 660;//adreno_gpu->info->revn;
 		return 0;
 	case MSM_PARAM_GMEM_SIZE:
 		*value = adreno_gpu->gmem;
