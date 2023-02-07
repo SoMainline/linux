@@ -335,10 +335,12 @@ static void a7xx_rpmh_stop(struct adreno_gmu *gmu)
 	int ret;
 	u32 val;
 
-	gmu_write(gmu, REG_A7XX_GMU_RSCC_CONTROL_REQ, 1);
+	gmu_write(gmu, REG_A7XX_GMU_RSCC_CONTROL_REQ, BIT(0));
+	/* Make extra sure this goes through */
+	wmb();
 
 	ret = gmu_poll_timeout_rscc(gmu, REG_A7XX_GPU_RSCC_RSC_STATUS0_DRV0,
-		val, val & (1 << 16), 100, 10000);
+		val, val & BIT(16), 100, 10000);
 	if (ret)
 		DRM_DEV_ERROR(gmu->dev, "Unable to power off the GPU RSC\n");
 
@@ -640,13 +642,19 @@ static void a7xx_gmu_force_off(struct adreno_gmu *gmu)
 	/* Stop the interrupts */
 	a7xx_gmu_irq_disable(gmu);
 
+	/* Make sure there are no outstanding RPMh votes */
+	a7xx_gmu_rpmh_off(gmu);
+
+	/* Clear the WRITEDROPPED fields and set fence to allow mode */
+	gmu_write(gmu, REG_A7XX_GMU_AHB_FENCE_STATUS_CLR, 0x7);
+	gmu_write(gmu, REG_A7XX_GMU_AO_AHB_FENCE_CTRL, 0);
+	/* Make sure the above writes go through */
+	wmb();
+
 	/* Halt the gmu cm3 core */
 	gmu_write(gmu, REG_A7XX_GMU_CM3_SYSRESET, 1);
 	/* Make sure M3 is in reset before going on */
 	wmb();
-
-	/* Make sure there are no outstanding RPMh votes */
-	a7xx_gmu_rpmh_off(gmu);
 
 	a7xx_bus_clear_pending_transactions(adreno_gpu, true);
 
@@ -808,6 +816,7 @@ static void a7xx_gmu_shutdown(struct adreno_gmu *gmu)
 			return;
 		}
 
+		/* Wait for the GMU to idle */
 		ret = gmu_poll_timeout(gmu,
 			REG_A7XX_GPU_GMU_AO_GPU_CX_BUSY_STATUS, val,
 			!(val & A7XX_GPU_GMU_AO_GPU_CX_BUSY_STATUS_GPUBUSYIGNAHB),
@@ -817,7 +826,6 @@ static void a7xx_gmu_shutdown(struct adreno_gmu *gmu)
 		 * Let the user know we failed to slumber but don't worry too
 		 * much because we are powering down anyway
 		 */
-
 		if (ret)
 			DRM_DEV_ERROR(gmu->dev,
 				"Unable to slumber GMU: status = 0%x/0%x\n",
@@ -1288,7 +1296,6 @@ int a7xx_gmu_init(struct a7xx_gpu *a7xx_gpu, struct device_node *node)
 	if (ret)
 		goto err_put_device;
 
-//
 	/*
 	 * A7XX requires handling "prealloc requests" in GMU firmware
 	 * For now just hardcode allocations based on the known firmware.
