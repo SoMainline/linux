@@ -9,7 +9,7 @@
 #include "msm_drv.h"
 #include "a6xx_hfi.h"
 
-struct a6xx_gmu_bo {
+struct adreno_gmu_bo {
 	struct drm_gem_object *obj;
 	void *virt;
 	size_t size;
@@ -41,7 +41,7 @@ struct a6xx_gmu_bo {
 /* The GMU does automatic IFPC (intra-frame power collapse) */
 #define GMU_IDLE_STATE_IFPC 3
 
-struct a6xx_gmu {
+struct adreno_gmu {
 	struct device *dev;
 
 	/* For serializing communication with the GMU: */
@@ -59,12 +59,12 @@ struct a6xx_gmu {
 
 	int idle_level;
 
-	struct a6xx_gmu_bo hfi;
-	struct a6xx_gmu_bo debug;
-	struct a6xx_gmu_bo icache;
-	struct a6xx_gmu_bo dcache;
-	struct a6xx_gmu_bo dummy;
-	struct a6xx_gmu_bo log;
+	struct adreno_gmu_bo hfi;
+	struct adreno_gmu_bo debug;
+	struct adreno_gmu_bo icache;
+	struct adreno_gmu_bo dcache;
+	struct adreno_gmu_bo dummy;
+	struct adreno_gmu_bo log;
 
 	int nr_clocks;
 	struct clk_bulk_data *clocks;
@@ -91,24 +91,24 @@ struct a6xx_gmu {
 	bool legacy; /* a618 or a630 */
 };
 
-static inline u32 gmu_read(struct a6xx_gmu *gmu, u32 offset)
+static inline u32 gmu_read(struct adreno_gmu *gmu, u32 offset)
 {
 	return msm_readl(gmu->mmio + (offset << 2));
 }
 
-static inline void gmu_write(struct a6xx_gmu *gmu, u32 offset, u32 value)
+static inline void gmu_write(struct adreno_gmu *gmu, u32 offset, u32 value)
 {
 	msm_writel(value, gmu->mmio + (offset << 2));
 }
 
 static inline void
-gmu_write_bulk(struct a6xx_gmu *gmu, u32 offset, const u32 *data, u32 size)
+gmu_write_bulk(struct adreno_gmu *gmu, u32 offset, const u32 *data, u32 size)
 {
 	memcpy_toio(gmu->mmio + (offset << 2), data, size);
 	wmb();
 }
 
-static inline void gmu_rmw(struct a6xx_gmu *gmu, u32 reg, u32 mask, u32 or)
+static inline void gmu_rmw(struct adreno_gmu *gmu, u32 reg, u32 mask, u32 or)
 {
 	u32 val = gmu_read(gmu, reg);
 
@@ -117,7 +117,7 @@ static inline void gmu_rmw(struct a6xx_gmu *gmu, u32 reg, u32 mask, u32 or)
 	gmu_write(gmu, reg, val | or);
 }
 
-static inline u64 gmu_read64(struct a6xx_gmu *gmu, u32 lo, u32 hi)
+static inline u64 gmu_read64(struct adreno_gmu *gmu, u32 lo, u32 hi)
 {
 	u64 val;
 
@@ -131,12 +131,12 @@ static inline u64 gmu_read64(struct a6xx_gmu *gmu, u32 lo, u32 hi)
 	readl_poll_timeout((gmu)->mmio + ((addr) << 2), val, cond, \
 		interval, timeout)
 
-static inline u32 gmu_read_rscc(struct a6xx_gmu *gmu, u32 offset)
+static inline u32 gmu_read_rscc(struct adreno_gmu *gmu, u32 offset)
 {
 	return msm_readl(gmu->rscc + (offset << 2));
 }
 
-static inline void gmu_write_rscc(struct a6xx_gmu *gmu, u32 offset, u32 value)
+static inline void gmu_write_rscc(struct adreno_gmu *gmu, u32 offset, u32 value)
 {
 	msm_writel(value, gmu->rscc + (offset << 2));
 }
@@ -178,15 +178,15 @@ enum a6xx_gmu_oob_state {
 	GMU_OOB_PERFCOUNTER_SET,
 };
 
-void a6xx_hfi_init(struct a6xx_gmu *gmu);
-int a6xx_hfi_start(struct a6xx_gmu *gmu, int boot_state);
-void a6xx_hfi_stop(struct a6xx_gmu *gmu);
-int a6xx_hfi_send_prep_slumber(struct a6xx_gmu *gmu);
-int a6xx_hfi_set_freq(struct a6xx_gmu *gmu, int index);
+void a6xx_hfi_init(struct adreno_gmu *gmu);
+int a6xx_hfi_start(struct adreno_gmu *gmu, int boot_state);
+void a6xx_hfi_stop(struct adreno_gmu *gmu);
+int a6xx_hfi_send_prep_slumber(struct adreno_gmu *gmu);
+int a6xx_hfi_set_freq(struct adreno_gmu *gmu, int index);
 
-bool a6xx_gmu_gx_is_on(struct a6xx_gmu *gmu);
-bool a6xx_gmu_sptprac_is_on(struct a6xx_gmu *gmu);
-void a6xx_sptprac_disable(struct a6xx_gmu *gmu);
-int a6xx_sptprac_enable(struct a6xx_gmu *gmu);
+bool a6xx_gmu_gx_is_on(struct adreno_gmu *gmu);
+bool a6xx_gmu_sptprac_is_on(struct adreno_gmu *gmu);
+void a6xx_sptprac_disable(struct adreno_gmu *gmu);
+int a6xx_sptprac_enable(struct adreno_gmu *gmu);
 
 #endif

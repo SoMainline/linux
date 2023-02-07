@@ -5,7 +5,7 @@
 #include <linux/circ_buf.h>
 #include <linux/list.h>
 
-#include "a6xx_gmu.h"
+#include "adreno_gmu.h"
 #include "a6xx_gmu.xml.h"
 #include "a6xx_gpu.h"
 
@@ -23,7 +23,7 @@ static const char * const a6xx_hfi_msg_id[] = {
 	HFI_MSG_ID(HFI_H2F_MSG_PREPARE_SLUMBER),
 };
 
-static int a6xx_hfi_queue_read(struct a6xx_gmu *gmu,
+static int a6xx_hfi_queue_read(struct adreno_gmu *gmu,
 	struct a6xx_hfi_queue *queue, u32 *data, u32 dwords)
 {
 	struct a6xx_hfi_queue_header *header = queue->header;
@@ -61,7 +61,7 @@ static int a6xx_hfi_queue_read(struct a6xx_gmu *gmu,
 	return HFI_HEADER_SIZE(hdr);
 }
 
-static int a6xx_hfi_queue_write(struct a6xx_gmu *gmu,
+static int a6xx_hfi_queue_write(struct adreno_gmu *gmu,
 	struct a6xx_hfi_queue *queue, u32 *data, u32 dwords)
 {
 	struct a6xx_hfi_queue_header *header = queue->header;
@@ -97,7 +97,7 @@ static int a6xx_hfi_queue_write(struct a6xx_gmu *gmu,
 	return 0;
 }
 
-static int a6xx_hfi_wait_for_ack(struct a6xx_gmu *gmu, u32 id, u32 seqnum,
+static int a6xx_hfi_wait_for_ack(struct adreno_gmu *gmu, u32 id, u32 seqnum,
 		u32 *payload, u32 payload_size)
 {
 	struct a6xx_hfi_queue *queue = &gmu->queues[HFI_RESPONSE_QUEUE];
@@ -166,7 +166,7 @@ static int a6xx_hfi_wait_for_ack(struct a6xx_gmu *gmu, u32 id, u32 seqnum,
 	}
 }
 
-static int a6xx_hfi_send_msg(struct a6xx_gmu *gmu, int id,
+static int a6xx_hfi_send_msg(struct adreno_gmu *gmu, int id,
 		void *data, u32 size, u32 *payload, u32 payload_size)
 {
 	struct a6xx_hfi_queue *queue = &gmu->queues[HFI_COMMAND_QUEUE];
@@ -189,7 +189,7 @@ pr_err("a6xx_hfi_send_msg id=%d", id);
 	return a6xx_hfi_wait_for_ack(gmu, id, seqnum, payload, payload_size);
 }
 
-static int a6xx_hfi_send_gmu_init(struct a6xx_gmu *gmu, int boot_state)
+static int a6xx_hfi_send_gmu_init(struct adreno_gmu *gmu, int boot_state)
 {
 	struct a6xx_hfi_msg_gmu_init_cmd msg = { 0 };
 
@@ -201,7 +201,7 @@ static int a6xx_hfi_send_gmu_init(struct a6xx_gmu *gmu, int boot_state)
 		NULL, 0);
 }
 
-static int a6xx_hfi_get_fw_version(struct a6xx_gmu *gmu, u32 *version)
+static int a6xx_hfi_get_fw_version(struct adreno_gmu *gmu, u32 *version)
 {
 	struct a6xx_hfi_msg_fw_version msg = { 0 };
 
@@ -212,7 +212,7 @@ static int a6xx_hfi_get_fw_version(struct a6xx_gmu *gmu, u32 *version)
 		version, sizeof(*version));
 }
 
-static int a6xx_hfi_send_perf_table_v1(struct a6xx_gmu *gmu)
+static int a6xx_hfi_send_perf_table_v1(struct adreno_gmu *gmu)
 {
 	struct a6xx_hfi_msg_perf_table_v1 msg = { 0 };
 	int i;
@@ -234,7 +234,7 @@ static int a6xx_hfi_send_perf_table_v1(struct a6xx_gmu *gmu)
 		NULL, 0);
 }
 
-static int a6xx_hfi_send_perf_table(struct a6xx_gmu *gmu)
+static int a6xx_hfi_send_perf_table(struct adreno_gmu *gmu)
 {
 	struct a6xx_hfi_msg_perf_table msg = { 0 };
 	int i;
@@ -570,7 +570,7 @@ static void a6xx_build_bw_table(struct a6xx_hfi_msg_bw_table *msg)
 }
 
 
-static int a6xx_hfi_send_bw_table(struct a6xx_gmu *gmu)
+static int a6xx_hfi_send_bw_table(struct adreno_gmu *gmu)
 {
 	struct a6xx_hfi_msg_bw_table msg = { 0 };
 	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
@@ -597,7 +597,7 @@ static int a6xx_hfi_send_bw_table(struct a6xx_gmu *gmu)
 		NULL, 0);
 }
 
-static int a6xx_hfi_send_test(struct a6xx_gmu *gmu)
+static int a6xx_hfi_send_test(struct adreno_gmu *gmu)
 {
 	struct a6xx_hfi_msg_test msg = { 0 };
 
@@ -605,7 +605,7 @@ static int a6xx_hfi_send_test(struct a6xx_gmu *gmu)
 		NULL, 0);
 }
 
-static int a6xx_hfi_send_start(struct a6xx_gmu *gmu)
+static int a6xx_hfi_send_start(struct adreno_gmu *gmu)
 {
 	struct a6xx_hfi_msg_start msg = { 0 };
 
@@ -613,7 +613,7 @@ static int a6xx_hfi_send_start(struct a6xx_gmu *gmu)
 		NULL, 0);
 }
 
-static int a6xx_hfi_send_core_fw_start(struct a6xx_gmu *gmu)
+static int a6xx_hfi_send_core_fw_start(struct adreno_gmu *gmu)
 {
 	struct a6xx_hfi_msg_core_fw_start msg = { 0 };
 
@@ -621,7 +621,7 @@ static int a6xx_hfi_send_core_fw_start(struct a6xx_gmu *gmu)
 		sizeof(msg), NULL, 0);
 }
 
-int a6xx_hfi_set_freq(struct a6xx_gmu *gmu, int index)
+int a6xx_hfi_set_freq(struct adreno_gmu *gmu, int index)
 {
 	struct a6xx_hfi_gx_bw_perf_vote_cmd msg = { 0 };
 
@@ -635,7 +635,7 @@ int a6xx_hfi_set_freq(struct a6xx_gmu *gmu, int index)
 		sizeof(msg), NULL, 0);
 }
 
-int a6xx_hfi_send_prep_slumber(struct a6xx_gmu *gmu)
+int a6xx_hfi_send_prep_slumber(struct adreno_gmu *gmu)
 {
 	struct a6xx_hfi_prep_slumber_cmd msg = { 0 };
 
@@ -645,7 +645,7 @@ int a6xx_hfi_send_prep_slumber(struct a6xx_gmu *gmu)
 		sizeof(msg), NULL, 0);
 }
 
-static int a6xx_hfi_start_v1(struct a6xx_gmu *gmu, int boot_state)
+static int a6xx_hfi_start_v1(struct adreno_gmu *gmu, int boot_state)
 {
 	int ret;
 
@@ -680,7 +680,7 @@ static int a6xx_hfi_start_v1(struct a6xx_gmu *gmu, int boot_state)
 	return 0;
 }
 
-int a6xx_hfi_start(struct a6xx_gmu *gmu, int boot_state)
+int a6xx_hfi_start(struct adreno_gmu *gmu, int boot_state)
 {
 	int ret;
 
@@ -711,7 +711,7 @@ int a6xx_hfi_start(struct a6xx_gmu *gmu, int boot_state)
 	return 0;
 }
 
-void a6xx_hfi_stop(struct a6xx_gmu *gmu)
+void a6xx_hfi_stop(struct adreno_gmu *gmu)
 {
 	int i;
 
@@ -759,9 +759,9 @@ static void a6xx_hfi_queue_init(struct a6xx_hfi_queue *queue,
 	header->write_index = 0;
 }
 
-void a6xx_hfi_init(struct a6xx_gmu *gmu)
+void a6xx_hfi_init(struct adreno_gmu *gmu)
 {
-	struct a6xx_gmu_bo *hfi = &gmu->hfi;
+	struct adreno_gmu_bo *hfi = &gmu->hfi;
 	struct a6xx_hfi_queue_table_header *table = hfi->virt;
 	struct a6xx_hfi_queue_header *headers = hfi->virt + sizeof(*table);
 	u64 offset;

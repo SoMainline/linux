@@ -4,7 +4,7 @@
 #include <linux/ascii85.h>
 #include "msm_gem.h"
 #include "a6xx_gpu.h"
-#include "a6xx_gmu.h"
+#include "adreno_gmu.h"
 #include "a6xx_gpu_state.h"
 #include "a6xx_gmu.xml.h"
 
@@ -781,7 +781,7 @@ static void _a6xx_get_gmu_registers(struct msm_gpu *gpu,
 {
 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
 	struct a6xx_gpu *a6xx_gpu = to_a6xx_gpu(adreno_gpu);
-	struct a6xx_gmu *gmu = &a6xx_gpu->gmu;
+	struct adreno_gmu *gmu = &a6xx_gpu->gmu;
 	int i, regcount = 0, index = 0;
 
 	for (i = 0; i < regs->count; i += 2)
@@ -841,7 +841,7 @@ static void a6xx_get_gmu_registers(struct msm_gpu *gpu,
 }
 
 static struct msm_gpu_state_bo *a6xx_snapshot_gmu_bo(
-		struct a6xx_gpu_state *a6xx_state, struct a6xx_gmu_bo *bo)
+		struct a6xx_gpu_state *a6xx_state, struct adreno_gmu_bo *bo)
 {
 	struct msm_gpu_state_bo *snapshot;
 
@@ -868,7 +868,7 @@ static void a6xx_snapshot_gmu_hfi_history(struct msm_gpu *gpu,
 {
 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
 	struct a6xx_gpu *a6xx_gpu = to_a6xx_gpu(adreno_gpu);
-	struct a6xx_gmu *gmu = &a6xx_gpu->gmu;
+	struct adreno_gmu *gmu = &a6xx_gpu->gmu;
 	unsigned i, j;
 
 	BUILD_BUG_ON(ARRAY_SIZE(gmu->queues) != ARRAY_SIZE(a6xx_state->hfi_queue_history));

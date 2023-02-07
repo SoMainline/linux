@@ -8,7 +8,7 @@
 #include "adreno_gpu.h"
 #include "a6xx.xml.h"
 
-#include "a6xx_gmu.h"
+#include "adreno_gmu.h"
 
 extern bool hang_debug;
 
@@ -20,7 +20,7 @@ struct a6xx_gpu {
 
 	struct msm_ringbuffer *cur_ring;
 
-	struct a6xx_gmu gmu;
+	struct adreno_gmu gmu;
 
 	struct drm_gem_object *shadow_bo;
 	uint64_t shadow_iova;
@@ -68,12 +68,12 @@ static inline bool a6xx_has_gbif(struct adreno_gpu *gpu)
 int a6xx_gmu_resume(struct a6xx_gpu *gpu);
 int a6xx_gmu_stop(struct a6xx_gpu *gpu);
 
-int a6xx_gmu_wait_for_idle(struct a6xx_gmu *gmu);
+int a6xx_gmu_wait_for_idle(struct adreno_gmu *gmu);
 
-bool a6xx_gmu_isidle(struct a6xx_gmu *gmu);
+bool a6xx_gmu_isidle(struct adreno_gmu *gmu);
 
-int a6xx_gmu_set_oob(struct a6xx_gmu *gmu, enum a6xx_gmu_oob_state state);
-void a6xx_gmu_clear_oob(struct a6xx_gmu *gmu, enum a6xx_gmu_oob_state state);
+int a6xx_gmu_set_oob(struct adreno_gmu *gmu, enum a6xx_gmu_oob_state state);
+void a6xx_gmu_clear_oob(struct adreno_gmu *gmu, enum a6xx_gmu_oob_state state);
 
 int a6xx_gmu_init(struct a6xx_gpu *a6xx_gpu, struct device_node *node);
 int a6xx_gmu_wrapper_init(struct a6xx_gpu *a6xx_gpu, struct device_node *node);
