@@ -544,26 +544,12 @@ struct msm_gpu_state {
 
 static inline void gpu_write(struct msm_gpu *gpu, u32 reg, u32 data)
 {
-	pr_err("[gpu_write] off=0x%x <- 0x%x", reg, data);
-	msm_writel(data, gpu->mmio + (reg << 2));
-}
-
-static inline void gpu_write_nolog(struct msm_gpu *gpu, u32 reg, u32 data)
-{
 	msm_writel(data, gpu->mmio + (reg << 2));
 }
 
 static inline u32 gpu_read(struct msm_gpu *gpu, u32 reg)
 {
-	u32 val = msm_readl(gpu->mmio + (reg << 2));
-	pr_err("[gpu_read] off=0x%x -> 0x%x", reg, val);
-	return val;
-}
-
-static inline u32 gpu_read_nolog(struct msm_gpu *gpu, u32 reg)
-{
-	u32 val = msm_readl(gpu->mmio + (reg << 2));
-	return val;
+	return msm_readl(gpu->mmio + (reg << 2));
 }
 
 static inline void gpu_rmw(struct msm_gpu *gpu, u32 reg, u32 mask, u32 or)
@@ -598,9 +584,7 @@ static inline u64 gpu_read64(struct msm_gpu *gpu, u32 reg)
 static inline void gpu_write64(struct msm_gpu *gpu, u32 reg, u64 val)
 {
 	/* Why not a writeq here? Read the screed above */
-	pr_err("[gpu_write] off=0x%x <- 0x%x", reg, lower_32_bits(val));
 	msm_writel(lower_32_bits(val), gpu->mmio + (reg << 2));
-	pr_err("[gpu_write] off=0x%x <- 0x%x", reg+1, upper_32_bits(val));
 	msm_writel(upper_32_bits(val), gpu->mmio + ((reg + 1) << 2));
 }
 
