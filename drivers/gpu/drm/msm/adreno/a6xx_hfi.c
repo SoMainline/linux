@@ -713,8 +713,8 @@ int a6xx_hfi_start(struct adreno_gmu *gmu, int boot_state)
 
 	if (adreno_is_a730(adreno_gpu)) {
 		//acd
-		a6xx_hfi_send_feature_ctrl(gmu, HFI_FEATURE_BCL, 1, 0);
-		a6xx_hfi_send_feature_ctrl(gmu, HFI_FEATURE_IFPC, 1, 0x1680);
+		// a6xx_hfi_send_feature_ctrl(gmu, HFI_FEATURE_BCL, 1, 0);
+		// a6xx_hfi_send_feature_ctrl(gmu, HFI_FEATURE_IFPC, 1, 0x1680);
 	}
 
 	ret = a6xx_hfi_send_core_fw_start(gmu);

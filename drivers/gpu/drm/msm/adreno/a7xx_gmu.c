@@ -300,7 +300,7 @@ static int a7xx_rpmh_start(struct adreno_gmu *gmu)
 	int ret;
 	u32 val;
 
-	gmu_write(gmu, REG_A7XX_GMU_RSCC_CONTROL_REQ, 1 << 1);
+	gmu_write(gmu, REG_A7XX_GMU_RSCC_CONTROL_REQ, BIT(1));
 	/* Wait for the register to finish posting */
 	wmb();
 
@@ -334,6 +334,10 @@ static void a7xx_rpmh_stop(struct adreno_gmu *gmu)
 {
 	int ret;
 	u32 val;
+
+	gmu_write(gmu, REG_A7XX_GMU_CM3_SYSRESET, BIT(0));
+	/* Make sure M3 is in reset before going on */
+	wmb();
 
 	gmu_write(gmu, REG_A7XX_GMU_RSCC_CONTROL_REQ, BIT(0));
 	/* Make extra sure this goes through */
@@ -481,29 +485,23 @@ static int a7xx_gmu_fw_start(struct adreno_gmu *gmu, unsigned int state)
 	int ret;
 	u32 chipid;
 
-	if (state == GMU_WARM_BOOT) {
+	if (WARN(!adreno_gpu->fw[ADRENO_FW_GMU],
+		"GMU firmware is not loaded\n"))
+		return -ENOENT;
+
+	/* We only need to load the RPMh microcode once */
+	if (!rpmh_init) {
+		a7xx_gmu_rpmh_init(gmu);
+		rpmh_init = true;
+	} else {
 		ret = a7xx_rpmh_start(gmu);
 		if (ret)
 			return ret;
-	} else {
-		if (WARN(!adreno_gpu->fw[ADRENO_FW_GMU],
-			"GMU firmware is not loaded\n"))
-			return -ENOENT;
-
-		/* We only need to load the RPMh microcode once */
-		if (!rpmh_init) {
-			a7xx_gmu_rpmh_init(gmu);
-			rpmh_init = true;
-		} else {
-			ret = a7xx_rpmh_start(gmu);
-			if (ret)
-				return ret;
-		}
-
-		ret = a7xx_gmu_fw_load(gmu);
-		if (ret)
-			return ret;
 	}
+
+	ret = a7xx_gmu_fw_load(gmu);
+	if (ret)
+		return ret;
 
 	/* Vote veto for FAL10 */
 	gmu_write(gmu, REG_A7XX_GPU_GMU_CX_GMU_CX_FALNEXT_INTF, 1);
@@ -549,11 +547,12 @@ static int a7xx_gmu_fw_start(struct adreno_gmu *gmu, unsigned int state)
 	/* Set up the lowest idle level on the GMU */
 	a7xx_gmu_power_config(gmu);
 
-	gmu_rmw(gmu, REG_A7XX_GMU_CX_GMU_POWER_COUNTER_SELECT_0,
-		     0xffffff00,
-		     FIELD_PREP(GENMASK(31, 24), 0x19) |
-		     FIELD_PREP(GENMASK(23, 16), 0x17) |
-		     FIELD_PREP(GENMASK(15, 8), 0x13));
+	/* Enable BCL throttling */
+	// gmu_rmw(gmu, REG_A7XX_GMU_CX_GMU_POWER_COUNTER_SELECT_0,
+	// 	     0xffffff00,
+	// 	     FIELD_PREP(GENMASK(31, 24), 0x19) |
+	// 	     FIELD_PREP(GENMASK(23, 16), 0x17) |
+	// 	     FIELD_PREP(GENMASK(15, 8), 0x13));
 
 	ret = a7xx_gmu_start(gmu);
 	if (ret)
@@ -733,12 +732,6 @@ int a7xx_gmu_resume(struct a7xx_gpu *a7xx_gpu)
 	gmu_write(gmu, REG_A7XX_GMU_AO_HOST_INTERRUPT_MASK, ~A7XX_GMU_IRQ_MASK);
 	enable_irq(gmu->gmu_irq);
 
-	/*
-	 * Warm boot path does not work
-	 * Presumably this is because icache/dcache regions must be restored
-	 */
-	status = GMU_COLD_BOOT;
-
 	ret = a7xx_gmu_fw_start(gmu, status);
 	if (ret)
 		goto out;
@@ -804,10 +797,9 @@ static void a7xx_gmu_shutdown(struct adreno_gmu *gmu)
 		/* If the GMU isn't responding assume it is hung */
 		if (ret) {
 			a7xx_gmu_force_off(gmu);
+			DRM_DEV_ERROR(gmu->dev, "GMU hung up, force restarting!\n");
 			return;
 		}
-
-		a7xx_bus_clear_pending_transactions(adreno_gpu, a7xx_gpu->hung);
 
 		/* tell the GMU we want to slumber */
 		ret = a7xx_gmu_notify_slumber(gmu);
@@ -835,14 +827,16 @@ static void a7xx_gmu_shutdown(struct adreno_gmu *gmu)
 					REG_A7XX_GPU_GMU_AO_GPU_CX_BUSY_STATUS2));
 	}
 
-	/* Turn off HFI */
-	a6xx_hfi_stop(gmu);
+	/* Tell RPMh to power off the GPU */
+	a7xx_rpmh_stop(gmu);
+
+	a7xx_bus_clear_pending_transactions(adreno_gpu, false);
 
 	/* Stop the interrupts and mask the hardware */
 	a7xx_gmu_irq_disable(gmu);
 
-	/* Tell RPMh to power off the GPU */
-	a7xx_rpmh_stop(gmu);
+	/* Turn off HFI */
+	a6xx_hfi_stop(gmu);
 }
 
 
