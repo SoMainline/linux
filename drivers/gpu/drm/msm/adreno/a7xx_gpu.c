@@ -94,8 +94,8 @@ static void get_stats_counter(struct msm_ringbuffer *ring, u32 counter,
 {
 	OUT_PKT7(ring, CP_REG_TO_MEM, 3);
 	OUT_RING(ring, CP_REG_TO_MEM_0_REG(counter) |
-		CP_REG_TO_MEM_0_CNT(2) |
-		CP_REG_TO_MEM_0_64B);
+		 CP_REG_TO_MEM_0_CNT(2) |
+		 CP_REG_TO_MEM_0_64B);
 	OUT_RING(ring, lower_32_bits(iova));
 	OUT_RING(ring, upper_32_bits(iova));
 }
@@ -118,8 +118,8 @@ static void a7xx_set_pagetable(struct a7xx_gpu *a7xx_gpu,
 	OUT_RING(ring, CP_SMMU_TABLE_UPDATE_0_TTBR0_LO(lower_32_bits(ttbr)));
 
 	OUT_RING(ring,
-		CP_SMMU_TABLE_UPDATE_1_TTBR0_HI(upper_32_bits(ttbr)) |
-		CP_SMMU_TABLE_UPDATE_1_ASID(asid));
+		 CP_SMMU_TABLE_UPDATE_1_TTBR0_HI(upper_32_bits(ttbr)) |
+		 CP_SMMU_TABLE_UPDATE_1_ASID(asid));
 	OUT_RING(ring, CP_SMMU_TABLE_UPDATE_2_CONTEXTIDR(0));
 	OUT_RING(ring, CP_SMMU_TABLE_UPDATE_3_CONTEXTBANK(0));
 
@@ -685,7 +685,7 @@ static int hw_init(struct msm_gpu *gpu)
 	} else {
 		return ret;
 	}
-// return -1337;
+
 out:
 	/*
 	 * Tell the GMU that we are done touching the GPU and it can start power
@@ -711,17 +711,9 @@ static int a7xx_hw_init(struct msm_gpu *gpu)
 
 static void a7xx_dump(struct msm_gpu *gpu)
 {
-	DRM_DEV_INFO(&gpu->pdev->dev, "status:   %08x\n",
-			gpu_read(gpu, REG_A7XX_RBBM_STATUS));
+	DRM_DEV_INFO(&gpu->pdev->dev, "status: %08x\n", gpu_read(gpu, REG_A7XX_RBBM_STATUS));
 	adreno_dump(gpu);
 }
-
-#define GBIF_GX_HALT_MASK	BIT(0)
-#define GBIF_CLIENT_HALT_MASK	BIT(0)
-#define GBIF_ARB_HALT_MASK	BIT(1)
-#define VBIF_RESET_ACK_TIMEOUT	100
-#define VBIF_RESET_ACK_MASK	0xF0
-#define GPR0_GBIF_HALT_REQUEST	0x1E0
 
 static void a7xx_recover(struct msm_gpu *gpu)
 {
@@ -1054,16 +1046,8 @@ static void a7xx_llc_slices_destroy(struct a7xx_gpu *a7xx_gpu)
 static void a7xx_llc_slices_init(struct platform_device *pdev,
 		struct a7xx_gpu *a7xx_gpu)
 {
-	struct device_node *phandle;
-
-	/*
-	 * There is a different programming path for targets with an mmu500
-	 * attached, so detect if that is the case
-	 */
-	phandle = of_parse_phandle(pdev->dev.of_node, "iommus", 0);
-	a7xx_gpu->have_mmu500 = (phandle &&
-		of_device_is_compatible(phandle, "arm,mmu-500"));
-	of_node_put(phandle);
+	/* True as of msm-5.10 */
+	a7xx_gpu->have_mmu500 = true;
 
 	a7xx_gpu->llc_mmio = msm_ioremap(pdev, "cx_mem");
 
@@ -1330,23 +1314,23 @@ struct msm_gpu *a7xx_gpu_init(struct drm_device *dev)
 	gpu = &adreno_gpu->base;
 
 	adreno_gpu->registers = NULL;
-pr_err("pre llcc init\n");
+
 	/* As of msm-5.10, this is assumed true for all A7xx - might change for lower SKUs */
 	adreno_gpu->base.hw_apriv = true;
 	a7xx_llc_slices_init(pdev, a7xx_gpu);
-pr_err("llcc init done\n");
+
 	ret = a7xx_set_supported_hw(&pdev->dev, config->rev);
 	if (ret) {
 		a7xx_destroy(&(a7xx_gpu->base.base));
 		return ERR_PTR(ret);
 	}
-pr_err("sup hw done\n");
+
 	ret = adreno_gpu_init(dev, pdev, adreno_gpu, &funcs, 1);
 	if (ret) {
 		a7xx_destroy(&(a7xx_gpu->base.base));
 		return ERR_PTR(ret);
 	}
-pr_err("adreno init done\n");
+
 	/* Check if there is a GMU phandle and set it up */
 	node = of_parse_phandle(pdev->dev.of_node, "qcom,gmu", 0);
 	/* FIXME: How do we gracefully handle this? Should we allow nogmu operation for testing? */
@@ -1358,7 +1342,7 @@ pr_err("adreno init done\n");
 		a7xx_destroy(&(a7xx_gpu->base.base));
 		return ERR_PTR(ret);
 	}
-pr_err("gmu init done\n");
+
 	if (gpu->aspace)
 		msm_mmu_set_fault_handler(gpu->aspace->mmu, gpu, a7xx_fault_handler);
 
