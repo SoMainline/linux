@@ -4,6 +4,7 @@
  */
 
 #include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/regulator/qcom,amoled-regulator.h>
 #include <dt-bindings/spmi/spmi.h>
 
 / {
@@ -36,6 +37,22 @@
 		reg = <0x3 SPMI_USID>;
 		#address-cells = <1>;
 		#size-cells = <0>;
+
+		regulators {
+			compatible = "qcom,pm8350b-amoled-regulator";
+
+			ab: ab {
+				qcom,aod-pd-control;
+				regulator-allowed-modes = <AMOLED_REGULATOR_MODE_ON>;
+				regulator-allow-set-mode;
+			};
+
+			ibb: ibb {
+				qcom,aod-pd-control;
+				regulator-allowed-modes = <AMOLED_REGULATOR_MODE_ON>;
+				regulator-allow-set-mode;
+			};
+		};
 
 		pm8350b_temp_alarm: temp-alarm@a00 {
 			compatible = "qcom,spmi-temp-alarm";
