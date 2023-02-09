@@ -747,6 +747,13 @@ static int vdec_set_properties(struct venus_inst *inst)
 	venus_helper_set_index_extradata(inst, HFI_INDEX_EXTRADATA_ASPECT_RATIO, 0);
 	venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_FRAME_QP_EXTRADATA, 0);
 
+	ptype = HFI_PROPERTY_CONFIG_REALTIME;
+	/* TODO: add / figure out a V4L2 knob for this */
+	enable = false;
+	ret = hfi_session_set_property(inst, ptype, &enable);
+	if (ret)
+		return ret;
+
 	ptype = HFI_PROPERTY_PARAM_VDEC_CONCEAL_COLOR;
 	conceal = ctr->conceal_color & 0xffff;
 	conceal |= ((ctr->conceal_color >> 16) & 0xffff) << 10;
