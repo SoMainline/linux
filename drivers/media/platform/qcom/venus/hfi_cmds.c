@@ -454,7 +454,7 @@ static int pkt_session_set_property_1x(struct hfi_session_set_property_pkt *pkt,
 	case HFI_PROPERTY_CONFIG_REALTIME: {
 		struct hfi_enable *in = pdata, *en = prop_data;
 
-		en->enable = in->enable;
+		en->enable = !in->enable;
 		pkt->shdr.hdr.size += sizeof(u32) * 2;
 		break;
 	}
