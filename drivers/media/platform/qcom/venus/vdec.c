@@ -793,10 +793,6 @@ static int vdec_output_conf(struct venus_inst *inst)
 	u32 ptype;
 	int ret;
 
-	ret = venus_helper_set_work_mode(inst);
-	if (ret)
-		return ret;
-
 	if (core->res->hfi_version == HFI_VERSION_1XX) {
 		ptype = HFI_PROPERTY_PARAM_VDEC_CONTINUE_DATA_TRANSFER;
 		ret = hfi_session_set_property(inst, ptype, &en);
@@ -863,6 +859,13 @@ static int vdec_output_conf(struct venus_inst *inst)
 		if (ret)
 			return ret;
 	}
+
+	ret = venus_helper_set_work_mode(inst);
+	if (ret)
+		return ret;
+
+	/* Venus sometimes chokes near this moment in the setup.. */
+	mb();
 
 	if (IS_V3(core) || IS_V4(core) || IS_V6(core)) {
 		ret = venus_helper_get_bufreq(inst, HFI_BUFFER_OUTPUT, &bufreq);
