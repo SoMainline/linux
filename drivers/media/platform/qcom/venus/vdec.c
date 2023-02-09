@@ -653,7 +653,7 @@ static int vdec_set_properties(struct venus_inst *inst)
 {
 	struct vdec_controls *ctr = &inst->controls.dec;
 	struct hfi_enable en = { .enable = 1 };
-	u32 ptype, decode_order, conceal, enable;
+	u32 ptype, decode_order, conceal, enable, display_info;
 	u32 profile, level;
 	int ret;
 
@@ -702,6 +702,50 @@ static int vdec_set_properties(struct venus_inst *inst)
 	ret = hfi_session_set_property(inst, ptype, &enable);
 	if (ret)
 		return ret;
+
+	switch (inst->hfi_codec) {
+	case HFI_VIDEO_CODEC_VP8:
+	case HFI_VIDEO_CODEC_VP9:
+		display_info = HFI_PROPERTY_PARAM_VDEC_VPX_COLORSPACE_EXTRADATA;
+		break;
+	case HFI_VIDEO_CODEC_MPEG2:
+		display_info = HFI_PROPERTY_PARAM_VDEC_MPEG2_SEQDISP_EXTRADATA;
+		break;
+	case HFI_VIDEO_CODEC_H264:
+	case HFI_VIDEO_CODEC_HEVC:
+	default:
+		display_info = HFI_PROPERTY_PARAM_VUI_DISPLAY_INFO_EXTRADATA;
+		break;
+	}
+
+	/* Enable default extradata */
+	venus_helper_set_index_extradata(inst, HFI_INDEX_EXTRADATA_OUTPUT_CROP, 1);
+	venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_INTERLACE_VIDEO_EXTRADATA, 1);
+	venus_helper_set_extradata(inst, display_info, 1);
+
+	if (inst->hfi_codec == HFI_VIDEO_CODEC_VP9 || inst->hfi_codec == HFI_VIDEO_CODEC_HEVC)
+		venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_HDR10_HIST_EXTRADATA, 1);
+
+	venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_NUM_CONCEALED_MB, 1);
+
+	if (inst->hfi_codec == HFI_VIDEO_CODEC_HEVC) {
+		venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_MASTER_DISP_COL_SEI_EXTRADATA, 1);
+		venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_CLL_SEI_EXTRADATA, 1);
+		venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_STREAM_USERDATA_EXTRADATA, 1);
+	}
+
+	/*
+	 * Downstream exposes a V4L2 toggle to enable these, presumably requiring
+	 * at least some handling on the userspace side. For now, disable them all.
+	 */
+	venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_STREAM_USERDATA_EXTRADATA, 0);
+	venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_TIMESTAMP_EXTRADATA, 0);
+	venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_S3D_FRAME_PACKING_EXTRADATA, 0);
+	venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_FRAME_RATE_EXTRADATA, 0);
+	venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_PANSCAN_WNDW_EXTRADATA, 0);
+	venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_RECOVERY_POINT_SEI_EXTRADATA, 0);
+	venus_helper_set_index_extradata(inst, HFI_INDEX_EXTRADATA_ASPECT_RATIO, 0);
+	venus_helper_set_extradata(inst, HFI_PROPERTY_PARAM_VDEC_FRAME_QP_EXTRADATA, 0);
 
 	ptype = HFI_PROPERTY_PARAM_VDEC_CONCEAL_COLOR;
 	conceal = ctr->conceal_color & 0xffff;
