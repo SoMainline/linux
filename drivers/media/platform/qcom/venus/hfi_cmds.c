@@ -1217,6 +1217,13 @@ pkt_session_set_property_4xx(struct hfi_session_set_property_pkt *pkt,
 		pkt->shdr.hdr.size += sizeof(u32) + sizeof(*count);
 		break;
 	}
+	case HFI_PROPERTY_PARAM_SECURE_SESSION: {
+		struct hfi_secure_session *in = pdata, *wm = prop_data;
+
+		wm->enable = in->enable;
+		pkt->shdr.hdr.size += sizeof(u32) + sizeof(*wm);
+		break;
+	}
 	case HFI_PROPERTY_PARAM_WORK_MODE: {
 		struct hfi_video_work_mode *in = pdata, *wm = prop_data;
 

@@ -449,6 +449,7 @@
 #define HFI_PROPERTY_PARAM_CODEC_MASK_SUPPORTED			0x100e
 #define HFI_PROPERTY_PARAM_MVC_BUFFER_LAYOUT			0x100f
 #define HFI_PROPERTY_PARAM_MAX_SESSIONS_SUPPORTED		0x1010
+#define HFI_PROPERTY_PARAM_SECURE_SESSION			0x1011
 #define HFI_PROPERTY_PARAM_WORK_MODE				0x1015
 #define HFI_PROPERTY_PARAM_WORK_ROUTE				0x1017
 
@@ -886,6 +887,10 @@ struct hfi_perf_mode {
 
 struct hfi_videocores_usage_type {
 	u32 video_core_enable_mask;
+};
+
+struct hfi_secure_session {
+	u32 enable;
 };
 
 #define VIDC_WORK_MODE_1	1
