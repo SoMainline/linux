@@ -654,6 +654,7 @@ static int vdec_set_properties(struct venus_inst *inst)
 	struct vdec_controls *ctr = &inst->controls.dec;
 	struct hfi_enable en = { .enable = 1 };
 	u32 ptype, decode_order, conceal;
+	u32 profile, level;
 	int ret;
 
 	if (ctr->post_loop_deb_mode) {
@@ -662,6 +663,25 @@ static int vdec_set_properties(struct venus_inst *inst)
 		if (ret)
 			return ret;
 	}
+
+	switch (inst->hfi_codec) {
+	case HFI_VIDEO_CODEC_H264:
+	case HFI_VIDEO_CODEC_HEVC:
+	case HFI_VIDEO_CODEC_VP8:
+	case HFI_VIDEO_CODEC_VP9:
+		profile = ctr->profile;
+		level = ctr->level;
+		break;
+	case HFI_VIDEO_CODEC_MPEG2:
+	default:
+		profile = 0;
+		level = 0;
+		break;
+	}
+
+	ret = venus_helper_set_profile_level(inst, profile, level);
+	if (ret)
+		return ret;
 
 	if (ctr->display_delay_enable && ctr->display_delay == 0) {
 		ptype = HFI_PROPERTY_PARAM_VDEC_OUTPUT_ORDER;
