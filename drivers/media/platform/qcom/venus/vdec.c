@@ -683,13 +683,11 @@ static int vdec_set_properties(struct venus_inst *inst)
 	if (ret)
 		return ret;
 
-	if (ctr->display_delay_enable && ctr->display_delay == 0) {
-		ptype = HFI_PROPERTY_PARAM_VDEC_OUTPUT_ORDER;
-		decode_order = HFI_OUTPUT_ORDER_DECODE;
-		ret = hfi_session_set_property(inst, ptype, &decode_order);
-		if (ret)
-			return ret;
-	}
+	ptype = HFI_PROPERTY_PARAM_VDEC_OUTPUT_ORDER;
+	decode_order = HFI_OUTPUT_ORDER_DECODE;
+	ret = hfi_session_set_property(inst, ptype, &decode_order);
+	if (ret)
+		return ret;
 
 	ptype = HFI_PROPERTY_PARAM_VDEC_CONCEAL_COLOR;
 	conceal = ctr->conceal_color & 0xffff;
