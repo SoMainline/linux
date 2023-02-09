@@ -1837,3 +1837,26 @@ int venus_helper_set_stride(struct venus_inst *inst,
 	return hfi_session_set_property(inst, ptype, &plane_actual_info);
 }
 EXPORT_SYMBOL_GPL(venus_helper_set_stride);
+
+int venus_helper_set_index_extradata(struct venus_inst *inst, u32 extra_data_id, u32 val)
+{
+	const u32 ptype = HFI_PROPERTY_PARAM_INDEX_EXTRADATA;
+	struct hfi_index_extradata_config cfg;
+
+	cfg.enable = val;
+	cfg.index_extra_data_id = extra_data_id;
+
+	return hfi_session_set_property(inst, ptype, &cfg);
+}
+EXPORT_SYMBOL_GPL(venus_helper_set_index_extradata);
+
+int venus_helper_set_extradata(struct venus_inst *inst, u32 extra_data_id, u32 val)
+{
+	struct hfi_index_extradata_config cfg;
+
+	cfg.enable = val;
+	cfg.index_extra_data_id = extra_data_id;
+
+	return hfi_session_set_property(inst, extra_data_id, &cfg);
+}
+EXPORT_SYMBOL_GPL(venus_helper_set_extradata);

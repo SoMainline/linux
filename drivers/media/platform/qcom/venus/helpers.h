@@ -71,4 +71,6 @@ int venus_helper_get_profile_level(struct venus_inst *inst, u32 *profile, u32 *l
 int venus_helper_set_profile_level(struct venus_inst *inst, u32 profile, u32 level);
 int venus_helper_set_stride(struct venus_inst *inst, unsigned int aligned_width,
 			    unsigned int aligned_height);
+int venus_helper_set_index_extradata(struct venus_inst *inst, u32 extra_data_id, u32 val);
+int venus_helper_set_extradata(struct venus_inst *inst, u32 extra_data_id, u32 val);
 #endif
