@@ -653,7 +653,7 @@ static int vdec_set_properties(struct venus_inst *inst)
 {
 	struct vdec_controls *ctr = &inst->controls.dec;
 	struct hfi_enable en = { .enable = 1 };
-	u32 ptype, decode_order, conceal;
+	u32 ptype, decode_order, conceal, enable;
 	u32 profile, level;
 	int ret;
 
@@ -686,6 +686,13 @@ static int vdec_set_properties(struct venus_inst *inst)
 	ptype = HFI_PROPERTY_PARAM_VDEC_OUTPUT_ORDER;
 	decode_order = HFI_OUTPUT_ORDER_DECODE;
 	ret = hfi_session_set_property(inst, ptype, &decode_order);
+	if (ret)
+		return ret;
+
+	ptype = HFI_PROPERTY_PARAM_VDEC_THUMBNAIL_MODE;
+	/* TODO: add / figure out a V4L2 knob for this */
+	enable = false;
+	ret = hfi_session_set_property(inst, ptype, &enable);
 	if (ret)
 		return ret;
 
