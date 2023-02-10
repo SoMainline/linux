@@ -3,9 +3,9 @@
  * Copyright © 2020 Intel Corporation
  */
 
+#include <linux/types.h>
 #include <asm/set_memory.h>
 #include <asm/smp.h>
-#include <linux/types.h>
 #include <linux/stop_machine.h>
 
 #include <drm/drm_managed.h>
@@ -1149,9 +1149,6 @@ static int ggtt_probe_hw(struct i915_ggtt *ggtt, struct intel_gt *gt)
 	drm_dbg(&i915->drm, "GGTT size = %lluM\n", ggtt->vm.total >> 20);
 	drm_dbg(&i915->drm, "GMADR size = %lluM\n",
 		(u64)ggtt->mappable_end >> 20);
-	drm_dbg(&i915->drm, "DSM size = %lluM\n",
-		(u64)resource_size(&intel_graphics_stolen_res) >> 20);
-
 	return 0;
 }
 
@@ -1258,9 +1255,6 @@ void i915_ggtt_resume(struct i915_ggtt *ggtt)
 	flush = i915_ggtt_resume_vm(&ggtt->vm);
 
 	ggtt->invalidate(ggtt);
-
-	if (flush)
-		wbinvd_on_all_cpus();
 
 	intel_ggtt_restore_fences(ggtt);
 }

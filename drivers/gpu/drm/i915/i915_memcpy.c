@@ -23,7 +23,6 @@
  */
 
 #include <linux/kernel.h>
-#include <asm/fpu/api.h>
 
 #include "i915_memcpy.h"
 
@@ -33,6 +32,8 @@
 #define CI_BUG_ON(expr) BUILD_BUG_ON_INVALID(expr)
 #endif
 
+#if IS_ENABLED(CONFIG_X86)
+#include <asm/fpu/api.h>
 static DEFINE_STATIC_KEY_FALSE(has_movntdqa);
 
 static void __memcpy_ntdqa(void *dst, const void *src, unsigned long len)
@@ -166,3 +167,27 @@ void i915_memcpy_init_early(struct drm_i915_private *dev_priv)
 	    !boot_cpu_has(X86_FEATURE_HYPERVISOR))
 		static_branch_enable(&has_movntdqa);
 }
+#else
+#include <linux/string.h>
+
+bool i915_memcpy_from_wc(void *dst, const void *src, unsigned long len)
+{
+	return false;
+}
+
+void i915_unaligned_memcpy_from_wc(void *dst, const void *src, unsigned long len)
+{
+	unsigned long addr;
+
+	addr = (unsigned long)src;
+	if (!IS_ALIGNED(addr, 16)) {
+		unsigned long x = min(ALIGN(addr, 16) - addr, len);
+
+		memcpy(dst, src, x);
+
+		len -= x;
+		dst += x;
+		src += x;
+	}
+}
+#endif /* IS_ENABLED(CONFIG_X86) */

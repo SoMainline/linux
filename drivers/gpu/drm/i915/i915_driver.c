@@ -222,7 +222,6 @@ static int i915_driver_early_probe(struct drm_i915_private *dev_priv)
 	mutex_init(&dev_priv->display.hdcp.comp_mutex);
 	spin_lock_init(&dev_priv->display.dkl.phy_lock);
 
-	i915_memcpy_init_early(dev_priv);
 	intel_runtime_pm_init_early(&dev_priv->runtime_pm);
 
 	ret = i915_workqueues_init(dev_priv);

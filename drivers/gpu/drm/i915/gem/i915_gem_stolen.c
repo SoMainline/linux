@@ -944,15 +944,7 @@ struct intel_memory_region*
 i915_gem_stolen_smem_setup(struct drm_i915_private *i915, u16 type,
 			   u16 instance)
 {
-	struct intel_memory_region *mem;
-
-	mem = intel_memory_region_create(i915,
-					 intel_graphics_stolen_res.start,
-					 resource_size(&intel_graphics_stolen_res),
-					 PAGE_SIZE, 0, 0, type, instance,
-					 &i915_region_stolen_smem_ops);
-	if (IS_ERR(mem))
-		return mem;
+	struct intel_memory_region *mem = {0};
 
 	intel_memory_region_set_name(mem, "stolen-system");
 

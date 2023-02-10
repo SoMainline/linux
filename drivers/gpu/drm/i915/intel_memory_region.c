@@ -333,11 +333,6 @@ int intel_memory_regions_hw_probe(struct drm_i915_private *i915)
 			if (!IS_ERR(mem))
 				i915->mm.stolen_region = mem;
 			break;
-		case INTEL_MEMORY_STOLEN_SYSTEM:
-			mem = i915_gem_stolen_smem_setup(i915, type, instance);
-			if (!IS_ERR(mem))
-				i915->mm.stolen_region = mem;
-			break;
 		default:
 			continue;
 		}

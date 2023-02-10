@@ -3,7 +3,6 @@
  * Copyright © 2019 Intel Corporation
  */
 
-#include <asm/tsc.h>
 #include <linux/cpufreq.h>
 
 #include "i915_drv.h"
@@ -41,7 +40,7 @@ static unsigned int cpu_max_MHz(void)
 		 * Default to measured freq if none found, PCU will ensure we
 		 * don't go over
 		 */
-		max_khz = tsc_khz;
+		return -EINVAL;
 	}
 
 	return max_khz / 1000;

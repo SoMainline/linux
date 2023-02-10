@@ -124,10 +124,10 @@ typedef u64 gen8_pte_t;
  */
 #define GEN8_3LVL_PDPES			4
 
-#define PPAT_UNCACHED			(_PAGE_PWT | _PAGE_PCD)
-#define PPAT_CACHED_PDE			0 /* WB LLC */
-#define PPAT_CACHED			_PAGE_PAT /* WB LLCeLLC */
-#define PPAT_DISPLAY_ELLC		_PAGE_PCD /* WT eLLC */
+#define PPAT_UNCACHED			(_PAGE_IOREMAP)
+#define PPAT_CACHED_PDE			(_PAGE_IOREMAP) /* WB LLC */
+#define PPAT_CACHED			(_PAGE_IOREMAP) /* WB LLCeLLC */
+#define PPAT_DISPLAY_ELLC		(_PAGE_IOREMAP) /* WT eLLC */
 
 #define CHV_PPAT_SNOOP			REG_BIT(6)
 #define GEN8_PPAT_AGE(x)		((x)<<4)
