@@ -4,6 +4,15 @@
 #ifndef _DT_BINDINGS_POWER_QCOM_RPMPD_H
 #define _DT_BINDINGS_POWER_QCOM_RPMPD_H
 
+/* SA8155P Power Domain Indexes */
+#define SA8155P_CX	0
+#define SA8155P_CX_AO	1
+#define SA8155P_EBI	2
+#define SA8155P_GFX	3
+#define SA8155P_MSS	4
+#define SA8155P_MX	5
+#define SA8155P_MX_AO	6
+
 /* SA8775P Power Domain Indexes */
 #define SA8775P_CX	0
 #define SA8775P_CX_AO	1
