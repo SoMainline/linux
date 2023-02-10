@@ -1648,7 +1648,7 @@ static void vdec_inst_init(struct venus_inst *inst)
 	inst->crop.top = 0;
 	inst->crop.width = inst->width;
 	inst->crop.height = inst->height;
-	inst->fw_min_cnt = 8;
+	inst->fw_min_cnt = IS_AR50_LITE(inst->core) ? 6 : 8;
 	inst->out_width = frame_width_min(inst);
 	inst->out_height = frame_height_min(inst);
 	inst->fps = 30;
