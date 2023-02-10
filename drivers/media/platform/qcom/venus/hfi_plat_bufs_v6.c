@@ -1226,6 +1226,8 @@ static int bufreq_dec(struct hfi_plat_buffers_params *params, u32 buftype,
 
 	if (buftype == HFI_BUFFER_INPUT) {
 		hfi_bufreq_set_count_min(bufreq, version, MIN_INPUT_BUFFERS);
+		bufreq->contiguous = 0;
+		bufreq->alignment = 0;
 		bufreq->size =
 			calculate_dec_input_frame_size(width, height, codec,
 						       max_mbs_per_frame,
@@ -1233,6 +1235,8 @@ static int bufreq_dec(struct hfi_plat_buffers_params *params, u32 buftype,
 	} else if (buftype == HFI_BUFFER_OUTPUT ||
 		   buftype == HFI_BUFFER_OUTPUT2) {
 		hfi_bufreq_set_count_min(bufreq, version, out_min_count);
+		bufreq->contiguous = 0;
+		bufreq->alignment = 0;
 		bufreq->size =
 			venus_helper_get_framesz_raw(params->hfi_color_fmt,
 						     width, height);
