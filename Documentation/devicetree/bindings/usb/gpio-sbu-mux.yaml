@@ -20,6 +20,7 @@ properties:
     items:
       - enum:
           - onnn,fsusb43l10x
+          - onnn,nb7vpq904m-mux
           - pericom,pi3usb102
       - const: gpio-sbu-mux
 
