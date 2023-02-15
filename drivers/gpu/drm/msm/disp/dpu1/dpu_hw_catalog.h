@@ -31,7 +31,7 @@
 /**
  * MDP TOP BLOCK features
  * @DPU_MDP_PANIC_PER_PIPE Panic configuration needs to be done per pipe
- * @DPU_MDP_10BIT_SUPPORT, Chipset supports 10 bit pixel formats
+ * @DPU_MDP_10BIT_SUPPORT  Chipset supports 10 bit pixel formats
  * @DPU_MDP_PERIPH_0_REMOVED Indicates that access to periph top0 block results
  *			   in a failure
  * @DPU_MDP_VSYNC_SEL      Enables vsync source selection via MDP_VSYNC_SEL register
@@ -50,17 +50,17 @@ enum {
 
 /**
  * SSPP sub-blocks/features
- * @DPU_SSPP_SCALER_QSEED2,  QSEED2 algorithm support
- * @DPU_SSPP_SCALER_QSEED3_COMPATIBLE,  QSEED3-compatible algorithm support (includes QSEED3, QSEED3LITE and QSEED4)
- * @DPU_SSPP_SCALER_RGB,     RGB Scaler, supported by RGB pipes
- * @DPU_SSPP_CSC,            Support of Color space conversion
- * @DPU_SSPP_CSC_10BIT,      Support of 10-bit Color space conversion
- * @DPU_SSPP_CURSOR,         SSPP can be used as a cursor layer
- * @DPU_SSPP_QOS,            SSPP support QoS control, danger/safe/creq
- * @DPU_SSPP_QOS_8LVL,       SSPP support 8-level QoS control
- * @DPU_SSPP_EXCL_RECT,      SSPP supports exclusion rect
- * @DPU_SSPP_SMART_DMA_V1,   SmartDMA 1.0 support
- * @DPU_SSPP_SMART_DMA_V2,   SmartDMA 2.0 support
+ * @DPU_SSPP_SCALER_QSEED2   QSEED2 algorithm support
+ * @DPU_SSPP_SCALER_QSEED3_COMPATIBLE   QSEED3-compatible algorithm support (includes QSEED3, QSEED3LITE and QSEED4)
+ * @DPU_SSPP_SCALER_RGB      RGB Scaler, supported by RGB pipes
+ * @DPU_SSPP_CSC             Support of Color space conversion
+ * @DPU_SSPP_CSC_10BIT       Support of 10-bit Color space conversion
+ * @DPU_SSPP_CURSOR          SSPP can be used as a cursor layer
+ * @DPU_SSPP_QOS             SSPP support QoS control, danger/safe/creq
+ * @DPU_SSPP_QOS_8LVL        SSPP support 8-level QoS control
+ * @DPU_SSPP_EXCL_RECT       SSPP supports exclusion rect
+ * @DPU_SSPP_SMART_DMA_V1    SmartDMA 1.0 support
+ * @DPU_SSPP_SMART_DMA_V2    SmartDMA 2.0 support
  * @DPU_SSPP_TS_PREFILL      Supports prefill with traffic shaper
  * @DPU_SSPP_TS_PREFILL_REC1 Supports prefill with traffic shaper multirect
  * @DPU_SSPP_CDP             Supports client driven prefetch
@@ -170,8 +170,8 @@ enum {
  * WB sub-blocks and features
  * @DPU_WB_LINE_MODE        Writeback module supports line/linear mode
  * @DPU_WB_BLOCK_MODE       Writeback module supports block mode read
- * @DPU_WB_CHROMA_DOWN      Writeback chroma down block,
- * @DPU_WB_DOWNSCALE        Writeback integer downscaler,
+ * @DPU_WB_CHROMA_DOWN      Writeback chroma down block
+ * @DPU_WB_DOWNSCALE        Writeback integer downscaler
  * @DPU_WB_DITHER           Dither block
  * @DPU_WB_TRAFFIC_SHAPER   Writeback traffic shaper bloc
  * @DPU_WB_UBWC             Writeback Universal bandwidth compression
