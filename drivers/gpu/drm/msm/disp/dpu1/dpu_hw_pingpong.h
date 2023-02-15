@@ -44,8 +44,8 @@ struct dpu_hw_dither_cfg {
  */
 struct dpu_hw_pingpong_ops {
 	/**
-	 * enables vysnc generation and sets up init value of
-	 * read pointer and programs the tear check cofiguration
+	 * enables vsync generation and sets up init value of
+	 * read pointer and programs the tear check configuration
 	 */
 	int (*enable_tearcheck)(struct dpu_hw_pingpong *pp,
 			struct dpu_hw_tear_check *cfg);
@@ -73,7 +73,7 @@ struct dpu_hw_pingpong_ops {
 	void (*disable_autorefresh)(struct dpu_hw_pingpong *pp, uint32_t encoder_id, u16 vdisplay);
 
 	/**
-	 * Setup dither matix for pingpong block
+	 * Setup dither matrix for pingpong block
 	 */
 	void (*setup_dither)(struct dpu_hw_pingpong *pp,
 			struct dpu_hw_dither_cfg *cfg);
