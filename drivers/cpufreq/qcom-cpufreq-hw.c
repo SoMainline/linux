@@ -237,6 +237,7 @@ struct qcom_cpufreq_hw_params {
 /**
  * struct qcom_cpufreq_soc_data - SoC specific register offsets of the OSM
  *
+ * @num_freq_domains:      Number of frequency domains
  * @reg_enable:            OSM enable status
  * @reg_index:             Index of the Virtual Corner
  * @reg_freq_lut:          Frequency Lookup Table
@@ -250,6 +251,7 @@ struct qcom_cpufreq_hw_params {
  */
 
 struct qcom_cpufreq_soc_data {
+	u8 num_freq_domains;
 	u32 reg_enable;
 	u32 reg_index;
 	u32 reg_domain_state;
@@ -1271,6 +1273,7 @@ static const struct qcom_cpufreq_soc_data qcom_soc_data = {
 };
 
 static const struct qcom_cpufreq_soc_data msm8998_soc_data = {
+	.num_freq_domains = 2,
 	.reg_enable = 0x4,
 	.reg_index = 0x150,
 	.reg_freq_lut = 0x154,
@@ -1778,9 +1781,12 @@ static int qcom_cpufreq_hw_driver_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	for (num_domains = 0; num_domains < MAX_FREQ_DOMAINS; num_domains++)
-		if (!platform_get_resource(pdev, IORESOURCE_MEM, num_domains))
-			break;
+	if (soc_data->num_freq_domains)
+		num_domains = soc_data->num_freq_domains;
+	else
+		for (num_domains = 0; num_domains < MAX_FREQ_DOMAINS; num_domains++)
+			if (!platform_get_resource(pdev, IORESOURCE_MEM, num_domains))
+				break;
 
 	qcom_cpufreq.data = devm_kzalloc(dev, sizeof(struct qcom_cpufreq_data) * num_domains,
 					 GFP_KERNEL);
