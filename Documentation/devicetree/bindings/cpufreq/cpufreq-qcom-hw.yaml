@@ -18,7 +18,12 @@ description: |
 properties:
   compatible:
     oneOf:
-      - description: v1 of CPUFREQ HW
+      - description: v0 of CPUFREQ HW (OSM programmed by the OS)
+        items:
+          - enum:
+              - qcom,msm8998-cpufreq-hw
+
+      - description: v1 of CPUFREQ HW (OSM programmed by the firmware)
         items:
           - const: qcom,cpufreq-hw
 
@@ -38,17 +43,11 @@ properties:
 
   reg:
     minItems: 2
-    items:
-      - description: Frequency domain 0 register region
-      - description: Frequency domain 1 register region
-      - description: Frequency domain 2 register region
+    maxItems: 6
 
   reg-names:
     minItems: 2
-    items:
-      - const: freq-domain0
-      - const: freq-domain1
-      - const: freq-domain2
+    maxItems: 6
 
   clocks:
     items:
@@ -85,6 +84,57 @@ required:
   - '#freq-domain-cells'
 
 additionalProperties: false
+
+allOf:
+  - if:
+      properties:
+        compatible:
+          contains:
+            enum:
+              - qcom,msm8998-cpufreq-hw
+    then:
+      properties:
+        assigned-clocks:
+          items:
+            - description: 300MHz LUT[0] entry clock source (CPU SMUX clock)
+
+        assigned-clock-rates:
+          const: 300000000
+
+        reg:
+          items:
+            - description: Frequency domain 0 register region
+            - description: Frequency domain 1 register region
+            - description: OSM domain 0 register region
+            - description: OSM domain 1 register region
+            - description: OSM ACD 0 register region
+            - description: OSM ACD 1 register region
+
+        reg-names:
+          items:
+            - const: freq-domain0
+            - const: freq-domain1
+            - const: osm-domain0
+            - const: osm-domain1
+            - const: osm-acd0
+            - const: osm-acd1
+
+      required:
+        - assigned-clocks
+        - assigned-clock-rates
+    else:
+      properties:
+        reg:
+          items:
+            - description: Frequency domain 0 register region
+            - description: Frequency domain 1 register region
+            - description: Frequency domain 2 register region
+
+        reg-names:
+          items:
+            - const: freq-domain0
+            - const: freq-domain1
+            - const: freq-domain2
 
 examples:
   - |
