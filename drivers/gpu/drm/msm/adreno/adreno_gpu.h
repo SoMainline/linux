@@ -283,10 +283,9 @@ static inline int adreno_is_a630(const struct adreno_gpu *gpu)
 	return adreno_is_revn(gpu, 630);
 }
 
-static inline int adreno_is_a640_family(const struct adreno_gpu *gpu)
+static inline int adreno_is_a640(const struct adreno_gpu *gpu)
 {
-	return adreno_is_revn(gpu, 640) ||
-		adreno_is_revn(gpu, 680);
+	return adreno_is_revn(gpu, 640);
 }
 
 static inline int adreno_is_a650(const struct adreno_gpu *gpu)
@@ -303,6 +302,11 @@ static inline int adreno_is_7c3(const struct adreno_gpu *gpu)
 static inline int adreno_is_a660(const struct adreno_gpu *gpu)
 {
 	return adreno_is_revn(gpu, 660);
+}
+
+static inline int adreno_is_a680(const struct adreno_gpu *gpu)
+{
+	return gpu->revn == 680;
 }
 
 static inline int adreno_is_a690(const struct adreno_gpu *gpu)
@@ -330,6 +334,11 @@ static inline int adreno_is_a650_family(const struct adreno_gpu *gpu)
 	return adreno_is_revn(gpu, 650) ||
 		adreno_is_revn(gpu, 620) ||
 		adreno_is_a660_family(gpu);
+}
+
+static inline int adreno_is_a640_family(const struct adreno_gpu *gpu)
+{
+	return adreno_is_a640(gpu) || adreno_is_a680(gpu);
 }
 
 u64 adreno_private_address_space_size(struct msm_gpu *gpu);
