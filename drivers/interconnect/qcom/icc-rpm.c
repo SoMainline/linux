@@ -386,7 +386,7 @@ static int qcom_icc_set(struct icc_node *src, struct icc_node *dst)
 	ret = __qcom_icc_set(src, src_qn, sum_bw);
 	if (ret)
 		return ret;
-	if (dst_qn) {
+	if (dst_qn && src_qn != dst_qn) {
 		ret = __qcom_icc_set(dst, dst_qn, sum_bw);
 		if (ret)
 			return ret;
