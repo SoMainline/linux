@@ -561,8 +561,12 @@ regmap_done:
 		node->data = qnodes[i];
 		icc_node_add(node, provider);
 
-		for (j = 0; j < qnodes[i]->num_links; j++)
-			icc_link_create(node, qnodes[i]->links[j]);
+		for (j = 0; j < qnodes[i]->num_links; j++) {
+			if (WARN_ON(node->id == qnodes[i]->links[j]))
+				continue;
+			else
+				icc_link_create(node, qnodes[i]->links[j]);
+		}
 
 		data->nodes[i] = node;
 	}
