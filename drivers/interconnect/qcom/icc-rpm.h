@@ -33,6 +33,7 @@ enum qcom_icc_type {
  * @bus_clks: the clk_bulk_data table of bus clocks
  * @intf_clks: a clk_bulk_data array of interface clocks
  * @qos_offset: offset to QoS registers
+ * @always_set_qos: whether to always set QoS registers and send rpm reqs
  * @keep_alive: whether to always keep a minimum vote on the bus clocks
  * @is_on: whether the bus is powered on
  */
@@ -46,6 +47,7 @@ struct qcom_icc_provider {
 	u64 bus_clk_rate[NUM_BUS_CLKS];
 	struct clk_bulk_data bus_clks[NUM_BUS_CLKS];
 	struct clk_bulk_data *intf_clks;
+	bool always_set_qos;
 	bool keep_alive;
 	bool is_on;
 };
@@ -104,6 +106,7 @@ struct qcom_icc_desc {
 	const char * const *bus_clocks;
 	const char * const *intf_clocks;
 	size_t num_intf_clocks;
+	bool always_set_qos;
 	bool keep_alive;
 	bool no_clk_scaling;
 	enum qcom_icc_type type;

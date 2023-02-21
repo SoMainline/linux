@@ -240,18 +240,37 @@ static int qcom_icc_rpm_set(int mas_rpm_id, int slv_rpm_id, u64 sum_bw)
 static int __qcom_icc_set(struct icc_node *n, struct qcom_icc_node *qn,
 			  u64 sum_bw)
 {
+	struct qcom_icc_provider *qp = to_qcom_provider(n->provider);
+	bool ap_vote, rpm_vote;
 	int ret;
 
-	if (!qn->qos.ap_owned) {
-		/* send bandwidth request message to the RPM processor */
+	/*
+	 * New (probably new enough to only use QNoC + BIMC would be a good
+	 * estimate) SoCs send bandwidth requests to RPM *and* program QoS
+	 * registers, while older ones only do one for a given node.
+	 */
+	if (qp->always_set_qos) {
+		ap_vote = true;
+		rpm_vote = true;
+	} else {
+		ap_vote = !!qn->qos.ap_owned;
+		rpm_vote = !ap_vote;
+	}
+
+	if (rpm_vote) {
+		/* Send bandwidth request message to the RPM processor */
 		ret = qcom_icc_rpm_set(qn->mas_rpm_id, qn->slv_rpm_id, sum_bw);
 		if (ret)
 			return ret;
-	} else if (qn->qos.qos_mode != NOC_QOS_MODE_INVALID) {
-		/* set bandwidth directly from the AP */
-		ret = qcom_icc_qos_set(n, sum_bw);
-		if (ret)
-			return ret;
+	}
+
+	if (ap_vote) {
+		if (qn->qos.qos_mode != NOC_QOS_MODE_INVALID) {
+			/* Set bandwidth directly from the AP */
+			ret = qcom_icc_qos_set(n, sum_bw);
+			if (ret)
+				return ret;
+		}
 	}
 
 	return 0;
@@ -497,6 +516,7 @@ int qnoc_probe(struct platform_device *pdev)
 	for (i = 0; i < qp->num_bus_clks; i++)
 		qp->bus_clks[i].id = bus_clocks[i];
 
+	qp->always_set_qos = desc->always_set_qos;
 	qp->keep_alive = desc->keep_alive;
 	qp->type = desc->type;
 	qp->qos_offset = desc->qos_offset;
