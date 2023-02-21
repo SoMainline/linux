@@ -11,6 +11,8 @@
 
 #define RPMSG_ADDR_ANY		0xFFFFFFFF
 
+#define RPMSG_FLOW_CONTROL_ON	0x001
+
 /**
  * struct rpmsg_endpoint_info - endpoint info representation
  * @name: name of service
@@ -42,5 +44,15 @@ struct rpmsg_endpoint_info {
  * Release a local rpmsg device.
  */
 #define RPMSG_RELEASE_DEV_IOCTL	_IOW(0xb5, 0x4, struct rpmsg_endpoint_info)
+
+/**
+ * Get the remote rpmsg char device's flow control signal.
+ */
+#define RPMSG_GET_SIGNAL_IOCTL _IOW(0xb5, 0x5, struct rpmsg_endpoint_info)
+
+/**
+ * Set the flow control for the local rpmsg char device.
+ */
+#define RPMSG_SET_SIGNAL_IOCTL _IOW(0xb5, 0x6, struct rpmsg_endpoint_info)
 
 #endif
