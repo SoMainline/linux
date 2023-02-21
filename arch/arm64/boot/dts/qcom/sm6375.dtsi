@@ -1500,6 +1500,11 @@
 
 			resets = <&gcc GCC_USB30_PRIM_BCR>;
 
+			/* TODO: USB<->IPA path */
+			interconnects = <&system_noc MASTER_USB3_0 0 &bimc SLAVE_EBI 0>,
+					<&bimc MASTER_AMPSS_M0 0 &config_noc SLAVE_USB3 0>;
+			interconnect-names = "usb-ddr", "apps-usb";
+
 			/*
 			 * This property is there to allow USB2 to work, as
 			 * USB3 is not implemented yet - (re)move it when
