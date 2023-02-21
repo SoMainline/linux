@@ -1184,6 +1184,10 @@
 				dmas = <&gpi_dma0 0 0 QCOM_GPI_I2C>,
 				       <&gpi_dma0 1 0 QCOM_GPI_I2C>;
 				dma-names = "tx", "rx";
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
+						<&bimc MASTER_AMPSS_M0 0 &config_noc SLAVE_QUP_0 0>,
+						<&system_noc MASTER_QUP_0 0 &bimc SLAVE_EBI 0>;
+				interconnect-names = "qup-core", "qup-config", "qup-memory";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -1218,6 +1222,10 @@
 				dmas = <&gpi_dma0 0 1 QCOM_GPI_I2C>,
 				       <&gpi_dma0 1 1 QCOM_GPI_I2C>;
 				dma-names = "tx", "rx";
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
+						<&bimc MASTER_AMPSS_M0 0 &config_noc SLAVE_QUP_0 0>,
+						<&system_noc MASTER_QUP_0 0 &bimc SLAVE_EBI 0>;
+				interconnect-names = "qup-core", "qup-config", "qup-memory";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -1250,6 +1258,10 @@
 				dmas = <&gpi_dma0 0 2 QCOM_GPI_I2C>,
 				       <&gpi_dma0 1 2 QCOM_GPI_I2C>;
 				dma-names = "tx", "rx";
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
+						<&bimc MASTER_AMPSS_M0 0 &config_noc SLAVE_QUP_0 0>,
+						<&system_noc MASTER_QUP_0 0 &bimc SLAVE_EBI 0>;
+				interconnect-names = "qup-core", "qup-config", "qup-memory";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -1321,6 +1333,10 @@
 				dmas = <&gpi_dma1 0 0 QCOM_GPI_I2C>,
 				       <&gpi_dma1 1 0 QCOM_GPI_I2C>;
 				dma-names = "tx", "rx";
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
+						<&bimc MASTER_AMPSS_M0 0 &config_noc SLAVE_QUP_1 0>,
+						<&system_noc MASTER_QUP_1 0 &bimc SLAVE_EBI 0>;
+				interconnect-names = "qup-core", "qup-config", "qup-memory";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -1351,6 +1367,10 @@
 				dmas = <&gpi_dma1 0 1 QCOM_GPI_I2C>,
 				       <&gpi_dma1 1 1 QCOM_GPI_I2C>;
 				dma-names = "tx", "rx";
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
+						<&bimc MASTER_AMPSS_M0 0 &config_noc SLAVE_QUP_1 0>,
+						<&system_noc MASTER_QUP_1 0 &bimc SLAVE_EBI 0>;
+				interconnect-names = "qup-core", "qup-config", "qup-memory";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -1383,6 +1403,10 @@
 				dmas = <&gpi_dma1 0 2 QCOM_GPI_I2C>,
 				       <&gpi_dma1 1 2 QCOM_GPI_I2C>;
 				dma-names = "tx", "rx";
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
+						<&bimc MASTER_AMPSS_M0 0 &config_noc SLAVE_QUP_1 0>,
+						<&system_noc MASTER_QUP_1 0 &bimc SLAVE_EBI 0>;
+				interconnect-names = "qup-core", "qup-config", "qup-memory";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -1413,6 +1437,10 @@
 				dmas = <&gpi_dma1 0 3 QCOM_GPI_I2C>,
 				       <&gpi_dma1 1 3 QCOM_GPI_I2C>;
 				dma-names = "tx", "rx";
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
+						<&bimc MASTER_AMPSS_M0 0 &config_noc SLAVE_QUP_1 0>,
+						<&system_noc MASTER_QUP_1 0 &bimc SLAVE_EBI 0>;
+				interconnect-names = "qup-core", "qup-config", "qup-memory";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
@@ -1445,6 +1473,10 @@
 				dmas = <&gpi_dma1 0 4 QCOM_GPI_I2C>,
 				       <&gpi_dma1 1 4 QCOM_GPI_I2C>;
 				dma-names = "tx", "rx";
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
+						<&bimc MASTER_AMPSS_M0 0 &config_noc SLAVE_QUP_1 0>,
+						<&system_noc MASTER_QUP_1 0 &bimc SLAVE_EBI 0>;
+				interconnect-names = "qup-core", "qup-config", "qup-memory";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				status = "disabled";
