@@ -121,7 +121,7 @@ static int samsung_amoled_off(struct samsung_amoled *ctx)
 	struct mipi_dsi_device *dsi = ctx->dsi;
 	struct device *dev = &dsi->dev;
 	int ret;
-
+return 0;
 	ret = mipi_dsi_dcs_set_display_off(dsi);
 	if (ret < 0) {
 		dev_err(dev, "Failed to set display off: %d\n", ret);
