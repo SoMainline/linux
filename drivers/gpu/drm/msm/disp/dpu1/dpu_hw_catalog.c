@@ -2622,8 +2622,8 @@ static const struct dpu_perf_cfg msm8996_perf_data = {
 };
 
 static const struct dpu_perf_cfg msm8998_perf_data = {
-	.max_bw_low = 6700000,
-	.max_bw_high = 6700000,
+	.max_bw_low = 9400000,
+	.max_bw_high = 9400000,
 	.min_core_ib = 2400000,
 	.min_llcc_ib = 800000,
 	.min_dram_ib = 800000,
