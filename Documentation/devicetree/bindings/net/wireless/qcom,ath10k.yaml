@@ -157,6 +157,9 @@ properties:
   vdd-3.3-ch1-supply:
     description: Secondary Wi-Fi antenna supply
 
+  vdd-0.64-smps-supply:
+    description: no one has a clue..
+
 required:
   - compatible
   - reg
