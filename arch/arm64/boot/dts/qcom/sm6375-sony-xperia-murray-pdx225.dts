@@ -353,8 +353,9 @@
 		};
 
 		pm6125_l21: l21 {
+			/* Originally 3.0V-3.4V but Wi-Fi expects 3.0-3.312V */
 			regulator-min-microvolt = <3000000>;
-			regulator-max-microvolt = <3400000>;
+			regulator-max-microvolt = <3312000>;
 		};
 
 		pm6125_l22: l22 {
@@ -364,8 +365,9 @@
 		};
 
 		pm6125_l23: l23 {
+			/* Originally 3.0V-3.4V but Wi-Fi expects 3.0-3.312V */
 			regulator-min-microvolt = <3000000>;
-			regulator-max-microvolt = <3400000>;
+			regulator-max-microvolt = <3312000>;
 		};
 
 		pm6125_l24: l24 {
@@ -388,8 +390,9 @@
 		};
 
 		pmr735a_l2: l2 {
-			regulator-min-microvolt = <352000>;
-			regulator-max-microvolt = <796000>;
+			/* Originally 0.352V-0.796V but Wi-Fi expects 0.64V */
+			regulator-min-microvolt = <640000>;
+			regulator-max-microvolt = <640000>;
 		};
 
 		pmr735a_l3: l3 {
@@ -488,6 +491,16 @@
 };
 
 &usb_1_hsphy {
+	status = "okay";
+};
+
+&wifi {
+	vdd-0.8-cx-mx-supply = <&pmr735a_l2>;
+	vdd-1.8-xo-supply = <&pm6125_l16>;
+	vdd-1.3-rfa-supply = <&pm6125_l2>;
+	vdd-3.3-ch0-supply = <&pm6125_l23>;
+	vdd-3.3-ch1-supply = <&pm6125_l21>;
+	vdd-smps-supply = <&pm6125_s5>;
 	status = "okay";
 };
 
