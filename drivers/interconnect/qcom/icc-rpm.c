@@ -368,6 +368,17 @@ static int qcom_icc_set(struct icc_node *src, struct icc_node *dst)
 
 	qcom_icc_bus_aggregate(provider, agg_avg, agg_peak, &max_agg_avg);
 
+	/* If we're powering on the bus, ensure the necessary clocks are on */
+	if (unlikely(!qp->is_on)) {
+		if (agg_peak[0] || agg_peak[1] || max_agg_avg) {
+			/* If this fails, bus accesses will crash the platform! */
+			ret = clk_bulk_prepare_enable(qp->num_intf_clks, qp->intf_clks);
+			if (ret)
+				return ret;
+			qp->is_on = true;
+		}
+	}
+
 	sum_bw = icc_units_to_bps(max_agg_avg);
 
 	ret = __qcom_icc_set(src, src_qn, sum_bw);
@@ -408,6 +419,14 @@ static int qcom_icc_set(struct icc_node *src, struct icc_node *dst)
 		qp->bus_clk_rate[i] = rate;
 	}
 
+	/* Turn off the interface clocks if the bus was shut down so as not to leak power */
+	if (!qp->bus_clk_rate[0] && !qp->bus_clk_rate[1]) {
+		if (!agg_peak[0] && !agg_peak[1] && !max_agg_avg) {
+			clk_bulk_disable_unprepare(qp->num_intf_clks, qp->intf_clks);
+			qp->is_on = false;
+		}
+	}
+
 	return 0;
 }
 
@@ -440,6 +459,31 @@ int qnoc_probe(struct platform_device *pdev)
 	qnodes = desc->nodes;
 	num_nodes = desc->num_nodes;
 
+	if (desc->num_intf_clocks) {
+		cds = desc->intf_clocks;
+		cd_num = desc->num_intf_clocks;
+	} else {
+		/* 0 intf clocks is perfectly fine */
+		cd_num = 0;
+	}
+
+	qp = devm_kzalloc(dev, sizeof(*qp), GFP_KERNEL);
+	if (!qp)
+		return -ENOMEM;
+
+	qp->intf_clks = devm_kzalloc(dev, sizeof(qp->intf_clks), GFP_KERNEL);
+	if (!qp->intf_clks)
+		return -ENOMEM;
+
+	data = devm_kzalloc(dev, struct_size(data, nodes, num_nodes),
+			    GFP_KERNEL);
+	if (!data)
+		return -ENOMEM;
+
+	qp->num_intf_clks = cd_num;
+	for (i = 0; i < cd_num; i++)
+		qp->intf_clks[i].id = cds[i];
+
 	if (desc->num_bus_clocks) {
 		cds = desc->bus_clocks;
 		cd_num = desc->num_bus_clocks;
@@ -447,20 +491,6 @@ int qnoc_probe(struct platform_device *pdev)
 		cds = bus_clocks;
 		cd_num = ARRAY_SIZE(bus_clocks);
 	}
-
-	qp = devm_kzalloc(dev, struct_size(qp, bus_clks, cd_num), GFP_KERNEL);
-	if (!qp)
-		return -ENOMEM;
-
-	qp->bus_clk_rate = devm_kcalloc(dev, cd_num, sizeof(*qp->bus_clk_rate),
-					GFP_KERNEL);
-	if (!qp->bus_clk_rate)
-		return -ENOMEM;
-
-	data = devm_kzalloc(dev, struct_size(data, nodes, num_nodes),
-			    GFP_KERNEL);
-	if (!data)
-		return -ENOMEM;
 
 	for (i = 0; i < cd_num; i++)
 		qp->bus_clks[i].id = cds[i];
@@ -499,6 +529,10 @@ regmap_done:
 		return ret;
 
 	ret = clk_bulk_prepare_enable(qp->num_bus_clks, qp->bus_clks);
+	if (ret)
+		return ret;
+
+	ret = devm_clk_bulk_get(dev, qp->num_intf_clks, qp->intf_clks);
 	if (ret)
 		return ret;
 
