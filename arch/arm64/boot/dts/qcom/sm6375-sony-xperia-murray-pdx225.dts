@@ -9,6 +9,7 @@
 #define PMK8350_SID 6
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/iio/qcom,spmi-adc7-pmk8350.h>
 #include <dt-bindings/pinctrl/qcom,pmic-gpio.h>
 #include "sm6375.dtsi"
 #include "pm6125.dtsi"
@@ -178,12 +179,152 @@
 	status = "okay";
 };
 
+&pm6125_adc {
+	/* Looks like only PMK8350 shows correct XO temp values */
+	/delete-node/ xo-therm@4c;
+
+	pa1-therm@4d {
+		reg = <ADC5_AMUX_THM1_100K_PU>;
+		label = "pa1_therm";
+		qcom,hw-settle-time-us = <200>;
+		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
+	};
+
+	quiet-therm@4e {
+		reg = <ADC5_AMUX_THM2_100K_PU>;
+		label = "quiet_therm";
+		qcom,hw-settle-time-us = <200>;
+		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
+	};
+
+	msm-therm@52 {
+		reg = <ADC5_GPIO1_100K_PU>;
+		label = "msm_therm";
+		qcom,hw-settle-time-us = <200>;
+		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
+	};
+
+	/* Readouts will be wrong, ODM messed something up again and used a board-specific LUT.. */
+	batt-therm@53 {
+		reg = <ADC5_GPIO2_100K_PU>;
+		label = "batt_therm";
+		qcom,hw-settle-time-us = <200>;
+		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
+	};
+
+	/* Bogus readouts, this should be a voltage and not a thermal channel.. */
+	mb-stageid@54 {
+		reg = <ADC5_GPIO3_100K_PU>;
+		label = "mb_stageid";
+		qcom,hw-settle-time-us = <200>;
+		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
+	};
+
+	pa2-therm@55 {
+		reg = <ADC5_GPIO4_100K_PU>;
+		label = "pa2_therm";
+		qcom,hw-settle-time-us = <200>;
+		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
+	};
+};
+
+&pm6125_adc_tm {
+	status = "okay";
+
+	quiet-therm@0 {
+		reg = <0>;
+		io-channels = <&pm6125_adc ADC5_AMUX_THM2_100K_PU>;
+		qcom,hw-settle-time = <200>;
+		qcom,ratiometric;
+	};
+
+	mb-stageid@1 {
+		reg = <1>;
+		io-channels = <&pm6125_adc ADC5_GPIO3_100K_PU>;
+		qcom,hw-settle-time = <200>;
+		qcom,ratiometric;
+	};
+
+	pa-therm1@2 {
+		reg = <2>;
+		io-channels = <&pm6125_adc ADC5_AMUX_THM1_100K_PU>;
+		qcom,hw-settle-time = <200>;
+		qcom,ratiometric;
+	};
+
+	pa-therm2@3 {
+		reg = <3>;
+		io-channels = <&pm6125_adc ADC5_GPIO4_100K_PU>;
+		qcom,hw-settle-time = <200>;
+		qcom,ratiometric;
+	};
+};
+
 &pmk8350_adc_tm {
 	status = "okay";
+
+	sys-therm@0 {
+		reg = <0>;
+		io-channels = <&pmk8350_vadc PMK8350_ADC7_AMUX_THM1_100K_PU>;
+		qcom,hw-settle-time-us = <200>;
+		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
+	};
+
+	sys-therm@1 {
+		reg = <1>;
+		io-channels = <&pmk8350_vadc PMK8350_ADC7_AMUX_THM4_100K_PU>;
+		qcom,hw-settle-time-us = <200>;
+		qcom,ratiometric;
+	};
 };
 
 &pmk8350_rtc {
 	status = "okay";
+};
+
+&pmk8350_vadc  {
+	status = "okay";
+
+	ref-gnd@600 {
+		reg = <PMK8350_ADC7_REF_GND>;
+		label = "ref_gnd";
+		qcom,pre-scaling = <1 1>;
+	};
+
+	ref-1p25@601 {
+		reg = <PMK8350_ADC7_1P25VREF>;
+		label = "vref_1p25";
+		qcom,pre-scaling = <1 1>;
+	};
+
+	die-temp@603 {
+		reg = <PMK8350_ADC7_DIE_TEMP>;
+		label = "die_temp";
+		qcom,pre-scaling = <1 1>;
+	};
+
+	xo-therm@644 {
+		reg = <PMK8350_ADC7_AMUX_THM1_100K_PU>;
+		label = "xo_therm";
+		qcom,hw-settle-time = <200>;
+		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
+	};
+
+	/* Readouts will be wrong, ODM messed something up again and used a board-specific LUT.. */
+	conn-therm@647 {
+		reg = <PMK8350_ADC7_AMUX_THM4_100K_PU>;
+		label = "conn_therm";
+		qcom,hw-settle-time = <200>;
+		qcom,ratiometric;
+	};
 };
 
 &pmr735a_gpios {
