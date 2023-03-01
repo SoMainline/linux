@@ -23,6 +23,11 @@
 	compatible = "sony,pdx225", "qcom,sm6375";
 	chassis-type = "handset";
 
+	aliases {
+		bluetooth0 = &bluetooth;
+		serial1 = &uart1;
+	};
+
 	chosen {
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -237,8 +242,10 @@
 		compatible = "qcom,rpm-pm6125-regulators";
 
 		pm6125_s5: s5 {
-			regulator-min-microvolt = <382000>;
-			regulator-max-microvolt = <1120000>;
+			/* Originally 0.382V-1.12V but BT expects 0.984V */
+			regulator-min-microvolt = <984000>;
+			regulator-max-microvolt = <984000>;
+			regulator-always-on;//HACK
 		};
 
 		pm6125_s6: s6 {
@@ -257,7 +264,8 @@
 		 */
 
 		pm6125_l2: l2 {
-			regulator-min-microvolt = <1170000>;
+			/* Originally 1.17V-1.304V but BT expects 1.304V */
+			regulator-min-microvolt = <1304000>;
 			regulator-max-microvolt = <1304000>;
 		};
 
@@ -295,8 +303,9 @@
 		};
 
 		pm6125_l9: l9 {
-			regulator-min-microvolt = <1504000>;
-			regulator-max-microvolt = <2000000>;
+			/* Originally 1.504V-2V but BT expects 1.7-1.9V */
+			regulator-min-microvolt = <1700000>;
+			regulator-max-microvolt = <1900000>;
 		};
 
 		pm6125_l10: l10 {
@@ -331,8 +340,9 @@
 		};
 
 		pm6125_l16: l16 {
-			regulator-min-microvolt = <1620000>;
-			regulator-max-microvolt = <1980000>;
+			/* Originally 1.62V-1.98V but BT expects 1.7-1.9V */
+			regulator-min-microvolt = <1700000>;
+			regulator-max-microvolt = <1900000>;
 		};
 
 		/* L17 is VDD_LPI_MX */
@@ -479,6 +489,32 @@
 		function = "gpio";
 		drive-strength = <8>;
 		output-high;
+	};
+
+	sw_ctrl: sw-ctrl-state {
+		pins = "gpio69";
+		function = "gpio";
+	};
+};
+
+&uart1 {
+	/delete-property/ interrupts;
+	interrupts-extended = <&intc GIC_SPI 328 IRQ_TYPE_LEVEL_HIGH>,
+			      <&tlmm 64 IRQ_TYPE_LEVEL_HIGH>;
+	status = "okay";
+
+	bluetooth: bluetooth {
+		compatible = "qcom,wcn3990-bt";
+		swctrl-gpios = <&tlmm 69 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&sw_ctrl>;
+		pinctrl-names = "default";
+
+		vddio-supply = <&pm6125_l9>;
+		vddxo-supply = <&pm6125_l16>;
+		vddrf-supply = <&pm6125_l2>;
+		vddch0-supply = <&pm6125_l23>;
+		vddsmps-supply = <&pm6125_s5>;
+		max-speed = <3200000>;
 	};
 };
 
