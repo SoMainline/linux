@@ -4,6 +4,7 @@
  * Copyright (c) 2014, The Linux Foundation. All rights reserved.
  */
 
+#include <linux/clk.h>
 #include <linux/clk-provider.h>
 #include <linux/err.h>
 #include <linux/export.h>
@@ -45,15 +46,17 @@
 		},							      \
 	};								      \
 	__DEFINE_CLK_SMD_RPM_AO_PREFIX(_prefix, _name, _active, type,	      \
-				       r_id, key, ao_flags)
+				       r_id, key, ao_flags, false)
 
 #define __DEFINE_CLK_SMD_RPM_AO_PREFIX(_prefix, _name, _active,		      \
-				       type, r_id, key, ao_flags)	      \
+				       type, r_id, key, ao_flags,	      \
+				       _keep_alive)			      \
 	static struct clk_smd_rpm clk_smd_rpm_##_prefix##_active = {	      \
 		.rpm_res_type = (type),					      \
 		.rpm_clk_id = (r_id),					      \
 		.active_only = true,					      \
 		.rpm_key = (key),					      \
+		.keep_alive = (_keep_alive),				      \
 		.peer = &clk_smd_rpm_##_prefix##_name,			      \
 		.rate = INT_MAX,					      \
 		.hw.init = &(struct clk_init_data){			      \
@@ -170,6 +173,7 @@ struct clk_smd_rpm {
 	const bool active_only;
 	bool enabled;
 	bool branch;
+	bool keep_alive;
 	struct clk_smd_rpm *peer;
 	struct clk_hw hw;
 	unsigned long rate;
@@ -198,11 +202,16 @@ static int clk_smd_rpm_handoff(struct clk_smd_rpm *r)
 		.value = cpu_to_le32(r->branch ? 1 : INT_MAX),
 	};
 
+	/* Set up keepalive clocks with a minimum bus rate */
+	if (r->keep_alive)
+		req.value = cpu_to_le32(19200); /* 19.2 MHz */
+
 	ret = qcom_rpm_smd_write(r->rpm, QCOM_SMD_RPM_ACTIVE_STATE,
 				 r->rpm_res_type, r->rpm_clk_id, &req,
 				 sizeof(req));
 	if (ret)
 		return ret;
+
 	ret = qcom_rpm_smd_write(r->rpm, QCOM_SMD_RPM_SLEEP_STATE,
 				 r->rpm_res_type, r->rpm_clk_id, &req,
 				 sizeof(req));
