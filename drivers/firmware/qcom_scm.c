@@ -79,39 +79,6 @@ static const char * const qcom_scm_convention_names[] = {
 
 static struct qcom_scm *__scm;
 
-static int qcom_scm_clk_enable(void)
-{
-	int ret;
-
-	ret = clk_prepare_enable(__scm->core_clk);
-	if (ret)
-		goto bail;
-
-	ret = clk_prepare_enable(__scm->iface_clk);
-	if (ret)
-		goto disable_core;
-
-	ret = clk_prepare_enable(__scm->bus_clk);
-	if (ret)
-		goto disable_iface;
-
-	return 0;
-
-disable_iface:
-	clk_disable_unprepare(__scm->iface_clk);
-disable_core:
-	clk_disable_unprepare(__scm->core_clk);
-bail:
-	return ret;
-}
-
-static void qcom_scm_clk_disable(void)
-{
-	clk_disable_unprepare(__scm->core_clk);
-	clk_disable_unprepare(__scm->iface_clk);
-	clk_disable_unprepare(__scm->bus_clk);
-}
-
 static int qcom_scm_bw_enable(void)
 {
 	int ret = 0;
@@ -489,10 +456,6 @@ int qcom_scm_pas_init_image(u32 peripheral, const void *metadata, size_t size,
 	}
 	memcpy(mdata_buf, metadata, size);
 
-	ret = qcom_scm_clk_enable();
-	if (ret)
-		goto out;
-
 	ret = qcom_scm_bw_enable();
 	if (ret)
 		return ret;
@@ -502,9 +465,7 @@ int qcom_scm_pas_init_image(u32 peripheral, const void *metadata, size_t size,
 	ret = qcom_scm_call(__scm->dev, &desc, &res);
 
 	qcom_scm_bw_disable();
-	qcom_scm_clk_disable();
 
-out:
 	if (ret < 0 || !ctx) {
 		dma_free_coherent(__scm->dev, size, mdata_buf, mdata_phys);
 	} else if (ctx) {
@@ -557,17 +518,12 @@ int qcom_scm_pas_mem_setup(u32 peripheral, phys_addr_t addr, phys_addr_t size)
 	};
 	struct qcom_scm_res res;
 
-	ret = qcom_scm_clk_enable();
-	if (ret)
-		return ret;
-
 	ret = qcom_scm_bw_enable();
 	if (ret)
 		return ret;
 
 	ret = qcom_scm_call(__scm->dev, &desc, &res);
 	qcom_scm_bw_disable();
-	qcom_scm_clk_disable();
 
 	return ret ? : res.result[0];
 }
@@ -592,17 +548,12 @@ int qcom_scm_pas_auth_and_reset(u32 peripheral)
 	};
 	struct qcom_scm_res res;
 
-	ret = qcom_scm_clk_enable();
-	if (ret)
-		return ret;
-
 	ret = qcom_scm_bw_enable();
 	if (ret)
 		return ret;
 
 	ret = qcom_scm_call(__scm->dev, &desc, &res);
 	qcom_scm_bw_disable();
-	qcom_scm_clk_disable();
 
 	return ret ? : res.result[0];
 }
@@ -626,10 +577,6 @@ int qcom_scm_pas_shutdown(u32 peripheral)
 	};
 	struct qcom_scm_res res;
 
-	ret = qcom_scm_clk_enable();
-	if (ret)
-		return ret;
-
 	ret = qcom_scm_bw_enable();
 	if (ret)
 		return ret;
@@ -637,7 +584,6 @@ int qcom_scm_pas_shutdown(u32 peripheral)
 	ret = qcom_scm_call(__scm->dev, &desc, &res);
 
 	qcom_scm_bw_disable();
-	qcom_scm_clk_disable();
 
 	return ret ? : res.result[0];
 }
@@ -1147,18 +1093,8 @@ EXPORT_SYMBOL(qcom_scm_ice_set_key);
  */
 bool qcom_scm_hdcp_available(void)
 {
-	bool avail;
-	int ret = qcom_scm_clk_enable();
-
-	if (ret)
-		return ret;
-
-	avail = __qcom_scm_is_call_available(__scm->dev, QCOM_SCM_SVC_HDCP,
-						QCOM_SCM_HDCP_INVOKE);
-
-	qcom_scm_clk_disable();
-
-	return avail;
+	return __qcom_scm_is_call_available(__scm->dev, QCOM_SCM_SVC_HDCP,
+					    QCOM_SCM_HDCP_INVOKE);
 }
 EXPORT_SYMBOL(qcom_scm_hdcp_available);
 
@@ -1196,14 +1132,8 @@ int qcom_scm_hdcp_req(struct qcom_scm_hdcp_req *req, u32 req_cnt, u32 *resp)
 	if (req_cnt > QCOM_SCM_HDCP_MAX_REQ_CNT)
 		return -ERANGE;
 
-	ret = qcom_scm_clk_enable();
-	if (ret)
-		return ret;
-
 	ret = qcom_scm_call(__scm->dev, &desc, &res);
 	*resp = res.result[0];
-
-	qcom_scm_clk_disable();
 
 	return ret;
 }
@@ -1473,6 +1403,25 @@ static int qcom_scm_probe(struct platform_device *pdev)
 	ret = devm_reset_controller_register(&pdev->dev, &scm->reset);
 	if (ret)
 		return ret;
+
+	if (scm->core_clk) {
+		ret = clk_prepare_enable(scm->core_clk);
+		if (ret)
+			return ret;
+	}
+
+	if (scm->iface_clk) {
+		ret = clk_prepare_enable(scm->iface_clk);
+		if (ret)
+			return ret;
+	}
+
+	if (scm->bus_clk) {
+		ret = clk_prepare_enable(scm->bus_clk);
+		if (ret)
+			return ret;
+	}
+
 
 	/* vote for max clk rate for highest performance */
 	ret = clk_set_rate(scm->core_clk, INT_MAX);
