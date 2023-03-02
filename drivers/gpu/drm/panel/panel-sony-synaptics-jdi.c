@@ -168,18 +168,6 @@ static int synaptics_jdi_panel_on(struct synaptics_jdi_panel *synaptics_jdi_pane
 	return ret;
 }
 
-static int synaptics_jdi_panel_disable(struct drm_panel *panel)
-{
-	struct synaptics_jdi_panel *synaptics_jdi_panel = to_synaptics_jdi_panel(panel);
-
-	if (!synaptics_jdi_panel->enabled)
-		return 0;
-
-	synaptics_jdi_panel->enabled = false;
-
-	return 0;
-}
-
 static int synaptics_jdi_panel_off(struct synaptics_jdi_panel *synaptics_jdi_panel)
 {
 	struct device *dev = &synaptics_jdi_panel->dsi->dev;
@@ -200,6 +188,20 @@ static int synaptics_jdi_panel_off(struct synaptics_jdi_panel *synaptics_jdi_pan
 	return ret;
 }
 
+static int synaptics_jdi_panel_disable(struct drm_panel *panel)
+{
+	struct synaptics_jdi_panel *synaptics_jdi_panel = to_synaptics_jdi_panel(panel);
+
+	if (synaptics_jdi_panel->enabled)
+		synaptics_jdi_panel_off(synaptics_jdi_panel);
+	else
+		return 0;
+
+	synaptics_jdi_panel->enabled = false;
+
+	return 0;
+}
+
 static int synaptics_jdi_panel_unprepare(struct drm_panel *panel)
 {
 	struct synaptics_jdi_panel *synaptics_jdi_panel = to_synaptics_jdi_panel(panel);
@@ -211,8 +213,6 @@ static int synaptics_jdi_panel_unprepare(struct drm_panel *panel)
 		gpiod_set_value(synaptics_jdi_panel->ts_reset_gpio, 0);
 		usleep_range(10000, 11000);
 	}
-
-	synaptics_jdi_panel_off(synaptics_jdi_panel);
 
 	regulator_bulk_disable(ARRAY_SIZE(synaptics_jdi_panel->supplies),
 			synaptics_jdi_panel->supplies);
