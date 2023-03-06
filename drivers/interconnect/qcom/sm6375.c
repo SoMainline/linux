@@ -23,6 +23,7 @@ static const char * const snoc_intf_clocks[] = {
 	"cpu_axi",
 	"ufs_axi",
 	"usb_axi",
+	"ipa", /* qxm_ipa */
 };
 
 static const char * const cnoc_intf_clocks[] = {

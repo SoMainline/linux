@@ -943,12 +943,14 @@
 				 <&rpmcc RPM_SMD_SNOC_A_CLK>,
 				 <&gcc GCC_SYS_NOC_CPUSS_AHB_CLK>,
 				 <&gcc GCC_SYS_NOC_UFS_PHY_AXI_CLK>,
-				 <&gcc GCC_SYS_NOC_USB3_PRIM_AXI_CLK>;
+				 <&gcc GCC_SYS_NOC_USB3_PRIM_AXI_CLK>,
+				 <&rpmcc RPM_SMD_IPA_CLK>;
 			clock-names = "bus",
 				      "bus_a",
 				      "cpu_axi",
 				      "ufs_axi",
-				      "usb_axi";
+				      "usb_axi",
+				      "ipa";
 			#interconnect-cells = <2>;
 			#address-cells = <1>;
 			#size-cells = <1>;
