@@ -1128,6 +1128,25 @@
 			reg = <0x00778000 0x7000>;
 		};
 
+		wakegic: interrupt-controller@7781b8 {
+			compatible = "qcom,mpm";
+			reg = <0x007781b8 0x1000>;
+			interrupts = <GIC_SPI 171 IRQ_TYPE_EDGE_RISING>;
+			mboxes = <&apcs_glb 1>;
+			interrupt-controller;
+			#interrupt-cells = <2>;
+			#power-domain-cells = <0>;
+			interrupt-parent = <&intc>;
+			qcom,mpm-pin-count = <96>;
+			qcom,mpm-pin-map = <2 184>,  /* TSENS1 upper_lower_int */
+					   <31 180>, /* DWC3 power_event_irq */
+					   <52 243>, /* DWC3 SSPHY IRQ */
+					   <79 347>, /* HSPHY dm_hs_phy_irq */
+					   <80 352>, /* SPSS rmb_sp2soc */
+					   /* 81 -> 347 (again, design flaw), dp_hs_phy_irq */
+					   <87 326>; /* SPMI */
+		};
+
 		qfprom: qfprom@784000 {
 			compatible = "qcom,msm8998-qfprom", "qcom,qfprom";
 			reg = <0x00784000 0x621c>;
@@ -1396,8 +1415,8 @@
 			reg = <0x010ae000 0x1000>, /* TM */
 			      <0x010ad000 0x1000>; /* SROT */
 			#qcom,sensors = <8>;
-			interrupts = <GIC_SPI 184 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 430 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts-extended = <&wakegic 2 IRQ_TYPE_LEVEL_HIGH>,
+					      <&intc GIC_SPI 430 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "uplow", "critical";
 			#thermal-sensor-cells = <1>;
 		};
@@ -1676,6 +1695,7 @@
 			reg = <0x03400000 0xc00000>;
 			interrupts = <GIC_SPI 208 IRQ_TYPE_LEVEL_HIGH>;
 			gpio-ranges = <&tlmm 0 0 150>;
+			wakeup-parent = <&wakegic>;
 			gpio-controller;
 			#gpio-cells = <2>;
 			interrupt-controller;
@@ -2678,7 +2698,7 @@
 				<0x0800a000 0x3000>;
 			reg-names = "core", "chnls", "obsrvr", "intr", "cnfg";
 			interrupt-names = "periph_irq";
-			interrupts = <GIC_SPI 326 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts-extended = <&wakegic 87 IRQ_TYPE_LEVEL_HIGH>;
 			qcom,ee = <0>;
 			qcom,channel = <0>;
 			#address-cells = <2>;
@@ -2710,8 +2730,8 @@
 					  <&gcc GCC_USB30_MASTER_CLK>;
 			assigned-clock-rates = <19200000>, <120000000>;
 
-			interrupts = <GIC_SPI 347 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 243 IRQ_TYPE_LEVEL_HIGH>;
+			interrupts-extended = <&wakegic 79 IRQ_TYPE_LEVEL_HIGH>,
+					      <&wakegic 52 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "hs_phy_irq", "ss_phy_irq";
 
 			power-domains = <&gcc USB_30_GDSC>;
