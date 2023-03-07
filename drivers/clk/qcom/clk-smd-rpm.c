@@ -128,6 +128,11 @@
 		_name##_clk, _name##_a_clk, QCOM_SMD_RPM_BUS_CLK, r_id,	      \
 		QCOM_RPM_SMD_KEY_RATE, 0)
 
+#define DEFINE_CLK_SMD_RPM_BUS_KEEP_ALIVE(_name, r_id)			      \
+		__DEFINE_CLK_SMD_RPM_AO_PREFIX(bus_##r_id##_,		      \
+		_name##_clk, _name##_a_keep_alive_clk, QCOM_SMD_RPM_BUS_CLK,  \
+		r_id, QCOM_RPM_SMD_KEY_RATE, CLK_IS_CRITICAL, true)
+
 #define DEFINE_CLK_SMD_RPM_CLK_SRC(_name, type, r_id)			      \
 		__DEFINE_CLK_SMD_RPM(					      \
 		_name##_clk_src, _name##_a_clk_src,			      \
