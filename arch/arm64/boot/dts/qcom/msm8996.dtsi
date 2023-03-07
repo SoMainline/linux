@@ -488,6 +488,7 @@
 				#clock-cells = <1>;
 				clocks = <&xo_board>;
 				clock-names = "xo";
+				qcom,clk-disable-unused;
 			};
 
 			rpmpd: power-controller {
