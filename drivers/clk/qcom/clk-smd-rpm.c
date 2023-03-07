@@ -26,7 +26,7 @@
 #define QCOM_RPM_SCALING_ENABLE_ID			0x2
 
 #define __DEFINE_CLK_SMD_RPM_PREFIX(_prefix, _name, _active,		      \
-				    type, r_id, key)			      \
+				    type, r_id, key, ao_flags)		      \
 	static struct clk_smd_rpm clk_smd_rpm_##_prefix##_active;	      \
 	static struct clk_smd_rpm clk_smd_rpm_##_prefix##_name = {	      \
 		.rpm_res_type = (type),					      \
@@ -58,13 +58,14 @@
 					.fw_name = "xo",		      \
 					.name = "xo_board",		      \
 			},						      \
+			.flags = (ao_flags),				      \
 			.num_parents = 1,				      \
 		},							      \
 	}
 
 #define __DEFINE_CLK_SMD_RPM(_name, _active, type, r_id, key)		      \
 	__DEFINE_CLK_SMD_RPM_PREFIX(/* empty */, _name, _active,	      \
-				    type, r_id, key)
+				    type, r_id, key, 0)
 
 #define __DEFINE_CLK_SMD_RPM_BRANCH_PREFIX(_prefix, _name, _active,\
 					   type, r_id, r, key, ao_flags)      \
@@ -117,7 +118,7 @@
 #define DEFINE_CLK_SMD_RPM_BUS(_name, r_id)				      \
 		__DEFINE_CLK_SMD_RPM_PREFIX(bus_##r_id##_,		      \
 		_name##_clk, _name##_a_clk, QCOM_SMD_RPM_BUS_CLK, r_id,	      \
-		QCOM_RPM_SMD_KEY_RATE)
+		QCOM_RPM_SMD_KEY_RATE, 0)
 
 #define DEFINE_CLK_SMD_RPM_CLK_SRC(_name, type, r_id)			      \
 		__DEFINE_CLK_SMD_RPM(					      \
