@@ -44,6 +44,11 @@
 			.num_parents = 1,				      \
 		},							      \
 	};								      \
+	__DEFINE_CLK_SMD_RPM_AO_PREFIX(_prefix, _name, _active, type,	      \
+				       r_id, key, ao_flags)
+
+#define __DEFINE_CLK_SMD_RPM_AO_PREFIX(_prefix, _name, _active,		      \
+				       type, r_id, key, ao_flags)	      \
 	static struct clk_smd_rpm clk_smd_rpm_##_prefix##_active = {	      \
 		.rpm_res_type = (type),					      \
 		.rpm_clk_id = (r_id),					      \
