@@ -733,8 +733,76 @@
 		};
 
 		rpm_msg_ram: sram@45f0000 {
-			compatible = "qcom,rpm-msg-ram";
+			compatible = "qcom,rpm-msg-ram", "simple-mfd";
 			reg = <0x0 0x045f0000 0x0 0x7000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0x0 0x045f0000 0x7000>;
+
+			sram@0 {
+				compatible = "qcom,rpm-msg-ram-master", "simple-mfd";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges = <0 0x0000 0x1000>;
+
+				sram@150 {
+					compatible = "qcom,rpm-master-stats";
+					reg = <0x0150 0x68>;
+					label = "APSS";
+				};
+			};
+
+			sram@1000 {
+				compatible = "qcom,rpm-msg-ram-master", "simple-mfd";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges = <0 0x1000 0x1000>;
+
+				sram@150 {
+					compatible = "qcom,rpm-master-stats";
+					reg = <0x0150 0x68>;
+					label = "MPSS";
+				};
+			};
+
+			sram@2000 {
+				compatible = "qcom,rpm-msg-ram-master", "simple-mfd";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges = <0 0x2000 0x1000>;
+
+				sram@150 {
+					compatible = "qcom,rpm-master-stats";
+					reg = <0x0150 0x68>;
+					label = "ADSP";
+				};
+			};
+
+			sram@3000 {
+				compatible = "qcom,rpm-msg-ram-master", "simple-mfd";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges = <0 0x3000 0x1000>;
+
+				sram@150 {
+					compatible = "qcom,rpm-master-stats";
+					reg = <0x0150 0x68>;
+					label = "CDSP";
+				};
+			};
+
+			sram@4000 {
+				compatible = "qcom,rpm-msg-ram-master", "simple-mfd";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges = <0 0x4000 0x1000>;
+
+				sram@150 {
+					compatible = "qcom,rpm-master-stats";
+					reg = <0x0150 0x68>;
+					label = "TZ";
+				};
+			};
 		};
 
 		sram@4690000 {
