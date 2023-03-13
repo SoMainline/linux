@@ -11,6 +11,8 @@
 #include "pm8998.dtsi"
 #include "pmi8998.dtsi"
 
+/delete-node/ &rmtfs_mem;
+
 / {
 	qcom,msm-id = <321 0x20001>; /* SDM845 v2.1 */
 	qcom,board-id = <8 0>;
@@ -109,10 +111,18 @@
 	};
 
 	reserved-memory {
-		/* SONY was cool and didn't diverge from MTP this time, yay! */
 		cont_splash_mem: memory@9d400000 {
 			reg = <0x0 0x9d400000 0x0 0x2400000>;
 			no-map;
+		};
+
+		rmtfs@f7001000 {
+			compatible = "qcom,rmtfs-mem";
+			reg = <0x0 0xf7001000 0x0 0x200000>;
+			no-map;
+
+			qcom,client-id = <1>;
+			qcom,vmid = <15>;
 		};
 
 		ramoops@ffc00000 {
@@ -538,6 +548,7 @@
 &ipa {
 	memory-region = <&ipa_fw_mem>;
 	firmware-name = "qcom/sdm845/Sony/tama/ipa_fws.mbn";
+	qcom,gsi-loader = "self";
 	status = "okay";
 };
 
