@@ -510,6 +510,7 @@ static int venc_enum_frameintervals(struct file *file, void *fh,
 static int venc_subscribe_event(struct v4l2_fh *fh,
 				const struct v4l2_event_subscription *sub)
 {
+	pr_err("venus %s %u\n", __func__, __LINE__);
 	switch (sub->type) {
 	case V4L2_EVENT_EOS:
 		return v4l2_event_subscribe(fh, sub, 2, NULL);
@@ -623,7 +624,7 @@ static int venc_set_properties(struct venus_inst *inst)
 	u32 ptype, rate_control, bitrate;
 	u32 profile, level;
 	int ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ret = venus_helper_set_work_mode(inst);
 	if (ret)
 		return ret;
@@ -631,11 +632,11 @@ static int venc_set_properties(struct venus_inst *inst)
 	ptype = HFI_PROPERTY_CONFIG_FRAME_RATE;
 	frate.buffer_type = HFI_BUFFER_OUTPUT;
 	frate.framerate = inst->fps * (1 << 16);
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ret = hfi_session_set_property(inst, ptype, &frate);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	if (inst->fmt_cap->pixfmt == V4L2_PIX_FMT_H264) {
 		struct hfi_h264_vui_timing_info info;
 		struct hfi_h264_entropy_control entropy;
@@ -646,7 +647,7 @@ static int venc_set_properties(struct venus_inst *inst)
 		info.enable = 1;
 		info.fixed_framerate = 1;
 		info.time_scale = NSEC_PER_SEC;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 		ret = hfi_session_set_property(inst, ptype, &info);
 		if (ret)
 			return ret;
@@ -656,7 +657,7 @@ static int venc_set_properties(struct venus_inst *inst)
 					  V4L2_CID_MPEG_VIDEO_H264_ENTROPY_MODE,
 					  ctr->h264_entropy_mode);
 		entropy.cabac_model = HFI_H264_CABAC_MODEL_0;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 		ret = hfi_session_set_property(inst, ptype, &entropy);
 		if (ret)
 			return ret;
@@ -671,7 +672,7 @@ static int venc_set_properties(struct venus_inst *inst)
 		ret = hfi_session_set_property(inst, ptype, &deblock);
 		if (ret)
 			return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 		ptype = HFI_PROPERTY_PARAM_VENC_H264_TRANSFORM_8X8;
 		h264_transform.enable_type = 0;
 		if (ctr->profile.h264 == V4L2_MPEG_VIDEO_H264_PROFILE_HIGH ||
@@ -683,7 +684,7 @@ static int venc_set_properties(struct venus_inst *inst)
 			return ret;
 
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	if (inst->fmt_cap->pixfmt == V4L2_PIX_FMT_H264 ||
 	    inst->fmt_cap->pixfmt == V4L2_PIX_FMT_HEVC) {
 		/* IDR periodicity, n:
@@ -697,7 +698,7 @@ static int venc_set_properties(struct venus_inst *inst)
 		if (ret)
 			return ret;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	if (inst->fmt_cap->pixfmt == V4L2_PIX_FMT_HEVC &&
 	    ctr->profile.hevc == V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_10) {
 		struct hfi_hdr10_pq_sei hdr10;
@@ -727,7 +728,7 @@ static int venc_set_properties(struct venus_inst *inst)
 		if (ret)
 			return ret;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	if (ctr->num_b_frames) {
 		u32 max_num_b_frames = NUM_B_FRAMES_MAX;
 
@@ -736,7 +737,7 @@ static int venc_set_properties(struct venus_inst *inst)
 		if (ret)
 			return ret;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ptype = HFI_PROPERTY_CONFIG_VENC_INTRA_PERIOD;
 	intra_period.pframes = ctr->num_p_frames;
 	intra_period.bframes = ctr->num_b_frames;
@@ -744,7 +745,7 @@ static int venc_set_properties(struct venus_inst *inst)
 	ret = hfi_session_set_property(inst, ptype, &intra_period);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	if (!ctr->rc_enable)
 		rate_control = HFI_RATE_CONTROL_OFF;
 	else if (ctr->bitrate_mode == V4L2_MPEG_VIDEO_BITRATE_MODE_VBR)
@@ -760,7 +761,7 @@ static int venc_set_properties(struct venus_inst *inst)
 	ret = hfi_session_set_property(inst, ptype, &rate_control);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	if (rate_control == HFI_RATE_CONTROL_CQ && ctr->const_quality) {
 		struct hfi_heic_frame_quality quality = {};
 
@@ -770,7 +771,7 @@ static int venc_set_properties(struct venus_inst *inst)
 		if (ret)
 			return ret;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	if (!ctr->bitrate)
 		bitrate = 64000;
 	else
@@ -783,7 +784,7 @@ static int venc_set_properties(struct venus_inst *inst)
 	ret = hfi_session_set_property(inst, ptype, &brate);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	if (inst->fmt_cap->pixfmt == V4L2_PIX_FMT_H264 ||
 	    inst->fmt_cap->pixfmt == V4L2_PIX_FMT_HEVC) {
 		ptype = HFI_PROPERTY_CONFIG_VENC_SYNC_FRAME_SEQUENCE_HEADER;
@@ -796,7 +797,7 @@ static int venc_set_properties(struct venus_inst *inst)
 		if (ret)
 			return ret;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	if (!ctr->bitrate_peak)
 		bitrate *= 2;
 	else
@@ -809,7 +810,7 @@ static int venc_set_properties(struct venus_inst *inst)
 	ret = hfi_session_set_property(inst, ptype, &brate);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ptype = HFI_PROPERTY_PARAM_VENC_SESSION_QP;
 	if (inst->fmt_cap->pixfmt == V4L2_PIX_FMT_HEVC) {
 		quant.qp_i = ctr->hevc_i_qp;
@@ -824,7 +825,7 @@ static int venc_set_properties(struct venus_inst *inst)
 	ret = hfi_session_set_property(inst, ptype, &quant);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ptype = HFI_PROPERTY_PARAM_VENC_SESSION_QP_RANGE;
 	if (inst->fmt_cap->pixfmt == V4L2_PIX_FMT_HEVC) {
 		quant_range.min_qp = ctr->hevc_min_qp;
@@ -837,7 +838,7 @@ static int venc_set_properties(struct venus_inst *inst)
 	ret = hfi_session_set_property(inst, ptype, &quant_range);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ptype = HFI_PROPERTY_PARAM_VENC_LTRMODE;
 	ltr_mode.ltr_count = ctr->ltr_count;
 	ltr_mode.ltr_mode = HFI_LTR_MODE_MANUAL;
@@ -873,7 +874,7 @@ static int venc_set_properties(struct venus_inst *inst)
 		level = 0;
 		break;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ret = venus_helper_set_profile_level(inst, profile, level);
 	if (ret)
 		return ret;
@@ -889,7 +890,7 @@ static int venc_set_properties(struct venus_inst *inst)
 
 		ret = hfi_session_set_property(inst, ptype, &en);
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	if ((inst->fmt_cap->pixfmt == V4L2_PIX_FMT_H264 ||
 	     inst->fmt_cap->pixfmt == V4L2_PIX_FMT_HEVC) &&
 	    (rate_control == HFI_RATE_CONTROL_CBR_VFR ||
@@ -920,7 +921,8 @@ static int venc_set_properties(struct venus_inst *inst)
 		if (ret)
 			return ret;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
+	pr_err("venus %s ret = %d", __func__, ret);
 	return 0;
 }
 
@@ -1345,7 +1347,7 @@ static int venc_open(struct file *file)
 	struct venus_core *core = video_drvdata(file);
 	struct venus_inst *inst;
 	int ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	inst = kzalloc(sizeof(*inst), GFP_KERNEL);
 	if (!inst)
 		return -ENOMEM;
@@ -1363,17 +1365,17 @@ static int venc_open(struct file *file)
 	inst->nonblock = file->f_flags & O_NONBLOCK;
 
 	venus_helper_init_instance(inst);
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ret = venc_ctrl_init(inst);
 	if (ret)
 		goto err_free;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ret = hfi_session_create(inst, &venc_hfi_ops);
 	if (ret)
 		goto err_ctrl_deinit;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	venc_inst_init(inst);
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	/*
 	 * create m2m device for every instance, the m2m context scheduling
 	 * is made by firmware side so we do not need to care about.
@@ -1383,20 +1385,20 @@ static int venc_open(struct file *file)
 		ret = PTR_ERR(inst->m2m_dev);
 		goto err_session_destroy;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	inst->m2m_ctx = v4l2_m2m_ctx_init(inst->m2m_dev, inst, m2m_queue_init);
 	if (IS_ERR(inst->m2m_ctx)) {
 		ret = PTR_ERR(inst->m2m_ctx);
 		goto err_m2m_release;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	v4l2_fh_init(&inst->fh, core->vdev_enc);
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	inst->fh.ctrl_handler = &inst->ctrl_handler;
 	v4l2_fh_add(&inst->fh);
 	inst->fh.m2m_ctx = inst->m2m_ctx;
 	file->private_data = &inst->fh;
-
+pr_err("venus %s returned 0", __func__);
 	return 0;
 
 err_m2m_release:
@@ -1407,6 +1409,7 @@ err_ctrl_deinit:
 	venc_ctrl_deinit(inst);
 err_free:
 	kfree(inst);
+	pr_err("venus %s ret = %d", __func__, ret);
 	return ret;
 }
 
