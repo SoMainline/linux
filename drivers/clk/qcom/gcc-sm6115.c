@@ -1483,7 +1483,7 @@ static struct clk_rcg2 gcc_video_venus_clk_src = {
 		.parent_data = gcc_parents_13,
 		.num_parents = ARRAY_SIZE(gcc_parents_13),
 		.flags = CLK_SET_RATE_PARENT,
-		.ops = &clk_rcg2_ops,
+		.ops = &clk_rcg2_shared_ops,
 	},
 };
 
@@ -3087,8 +3087,8 @@ static struct clk_branch gcc_venus_ctl_axi_clk = {
 static struct clk_branch gcc_video_ahb_clk = {
 	.halt_reg = 0x17004,
 	.halt_check = BRANCH_HALT,
-	.hwcg_reg = 0x17004,
-	.hwcg_bit = 1,
+	.hwcg_reg = 0x17004, // SUS
+	.hwcg_bit = 1, // SUS
 	.clkr = {
 		.enable_reg = 0x17004,
 		.enable_mask = BIT(0),
