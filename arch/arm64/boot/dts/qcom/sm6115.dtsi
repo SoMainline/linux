@@ -1363,16 +1363,16 @@
 			interrupts = <GIC_SPI 225 IRQ_TYPE_LEVEL_HIGH>;
 
 			clocks = <&gcc GCC_VIDEO_VENUS_CTL_CLK>,
-				 <&gcc GCC_VIDEO_AHB_CLK>,
 				 <&gcc GCC_VENUS_CTL_AXI_CLK>,
+				 <&gcc GCC_VENUS_AHB_CLK>,
 				 <&gcc GCC_VIDEO_VCODEC0_SYS_CLK>,
 				 <&gcc GCC_VCODEC0_AXI_CLK>,
 				 <&gcc GCC_VIDEO_THROTTLE_CORE_CLK>;
 			clock-names = "core",
-				      "iface",
 				      "bus",
-				      "vcodec0_core",
-				      "vcodec0_bus",
+				      "iface",
+				      "vcodec_core",
+				      "vcodec_bus",
 				      "throttle";
 
 			power-domains = <&gcc GCC_VENUS_GDSC>,
@@ -1383,7 +1383,8 @@
 					     "cx";
 
 			operating-points-v2 = <&venus_opp_table>;
-			iommus = <&apps_smmu 0x860 0x0>, <&apps_smmu 0x880 0x0>;
+			iommus = <&apps_smmu 0x860 0x0>,
+				 <&apps_smmu 0x880 0x0>;
 			memory-region = <&pil_video_mem>;
 
 			// status = "disabled";
@@ -2619,6 +2620,9 @@
 				     <GIC_SPI 149 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 150 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 151 IRQ_TYPE_LEVEL_HIGH>;
+
+			power-domains = <&gcc HLOS1_VOTE_MM_SNOC_MMU_TBU_RT_GDSC>,
+					<&gcc HLOS1_VOTE_MM_SNOC_MMU_TBU_NRT_GDSC>;
 		};
 
 		wifi: wifi@c800000 {

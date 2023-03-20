@@ -800,9 +800,9 @@ static const struct venus_resources sm6115_res = {
 	.freq_tbl = sm6115_freq_table,
 	.freq_tbl_size = ARRAY_SIZE(sm6115_freq_table),
 	/* TODO: BW tables */
-	.clks = { "core", "iface", "bus", "throttle" },
+	.clks = { "core", "bus", "iface", "throttle" },
 	.clks_num = 4,
-	.vcodec0_clks = { "vcodec0_core", "vcodec0_bus" },
+	.vcodec0_clks = {"vcodec_core", "vcodec_bus"},
 	.vcodec_clks_num = 2,
 	.vcodec_pmdomains = { "venus", "vcodec0" },
 	.vcodec_pmdomains_num = 2,
