@@ -1241,14 +1241,12 @@
 				 <&gcc GCC_VIDEO_AHB_CLK>,
 				 <&gcc GCC_VENUS_CTL_AXI_CLK>,
 				 <&gcc GCC_VIDEO_VCODEC0_SYS_CLK>,
-				 <&gcc GCC_VCODEC0_AXI_CLK>,
-				 <&gcc GCC_VIDEO_THROTTLE_CORE_CLK>;
+				 <&gcc GCC_VCODEC0_AXI_CLK>;
 			clock-names = "core",
 				      "iface",
 				      "bus",
 				      "vcodec0_core",
-				      "vcodec0_bus",
-				      "throttle";
+				      "vcodec0_bus";
 
 			power-domains = <&gcc GCC_VENUS_GDSC>,
 					<&gcc GCC_VCODEC0_GDSC>,
