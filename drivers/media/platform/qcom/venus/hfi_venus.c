@@ -1609,8 +1609,8 @@ static int venus_suspend_3xx(struct venus_core *core)
 	struct venus_hfi_device *hdev = to_hfi_priv(core);
 	struct device *dev = core->dev;
 	void __iomem *cpu_cs_base = hdev->core->cpu_cs_base;
+	bool val, wait_for_pc_ack;
 	u32 ctrl_status;
-	bool val;
 	int ret;
 
 	if (!hdev->power_enabled || hdev->suspended)
@@ -1644,7 +1644,8 @@ static int venus_suspend_3xx(struct venus_core *core)
 		return ret;
 	}
 
-	ret = venus_prepare_power_collapse(hdev, true);
+	wait_for_pc_ack = !IS_AR50_LITE(core);
+	ret = venus_prepare_power_collapse(hdev, wait_for_pc_ack);
 	if (ret) {
 		dev_err(dev, "prepare for power collapse fail (%d)\n", ret);
 		return ret;
