@@ -922,7 +922,8 @@ static int vdec_session_init(struct venus_inst *inst)
 	else if (ret)
 		return ret;
 
-	ret = venus_helper_set_input_resolution(inst, inst->width, inst->height);
+	ret = venus_helper_set_input_resolution(inst, frame_width_min(inst),
+						frame_height_min(inst));
 	if (ret)
 		goto deinit;
 
