@@ -164,7 +164,7 @@ static void venus_dump_packet(struct venus_hfi_device *hdev, const void *packet,
 	if (read)
 		pr_err("R HDR size=%d type=0x%x sid=%d", pkt->hdr.size, pkt->hdr.pkt_type, pkt->session_id);
 	else
-		pr_err("W HDR size=%d type=0x%x sid=%d", pkt->hdr.size, pkt->hdr.pkt_type, pkt->session_id);
+		pr_err("W HDR size=%d type=0x%x first_arg_u32=0x%x", pkt->hdr.size, pkt->hdr.pkt_type, pkt->session_id);
 }
 
 static int venus_write_queue(struct venus_hfi_device *hdev,

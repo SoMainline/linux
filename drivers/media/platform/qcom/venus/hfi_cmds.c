@@ -30,6 +30,7 @@ void pkt_sys_idle_indicator(struct hfi_sys_set_property_pkt *pkt, u32 enable)
 
 	pkt->hdr.size = struct_size(pkt, data, 1) + sizeof(*hfi);
 	pkt->hdr.pkt_type = HFI_CMD_SYS_SET_PROPERTY;
+	pr_err("sending %s\n", __func__);
 	pkt->num_properties = 1;
 	pkt->data[0] = HFI_PROPERTY_SYS_IDLE_INDICATOR;
 	hfi->enable = enable;
@@ -42,6 +43,7 @@ void pkt_sys_debug_config(struct hfi_sys_set_property_pkt *pkt, u32 mode,
 
 	pkt->hdr.size = struct_size(pkt, data, 1) + sizeof(*hfi);
 	pkt->hdr.pkt_type = HFI_CMD_SYS_SET_PROPERTY;
+	pr_err("sending %s\n", __func__);
 	pkt->num_properties = 1;
 	pkt->data[0] = HFI_PROPERTY_SYS_DEBUG_CONFIG;
 	hfi = (struct hfi_debug_config *)&pkt->data[1];
@@ -53,6 +55,7 @@ void pkt_sys_coverage_config(struct hfi_sys_set_property_pkt *pkt, u32 mode)
 {
 	pkt->hdr.size = struct_size(pkt, data, 2);
 	pkt->hdr.pkt_type = HFI_CMD_SYS_SET_PROPERTY;
+	pr_err("sending %s\n", __func__);
 	pkt->num_properties = 1;
 	pkt->data[0] = HFI_PROPERTY_SYS_CONFIG_COVERAGE;
 	pkt->data[1] = mode;
@@ -62,6 +65,7 @@ void pkt_sys_ubwc_config(struct hfi_sys_set_property_pkt *pkt, const struct hfi_
 {
 	pkt->hdr.size = struct_size(pkt, data, 1) + sizeof(*hfi);
 	pkt->hdr.pkt_type = HFI_CMD_SYS_SET_PROPERTY;
+	pr_err("sending %s\n", __func__);
 	pkt->num_properties = 1;
 	pkt->data[0] = HFI_PROPERTY_SYS_UBWC_CONFIG;
 	memcpy(&pkt->data[1], hfi, sizeof(*hfi));
@@ -128,6 +132,7 @@ void pkt_sys_power_control(struct hfi_sys_set_property_pkt *pkt, u32 enable)
 
 	pkt->hdr.size = struct_size(pkt, data, 1) + sizeof(*hfi);
 	pkt->hdr.pkt_type = HFI_CMD_SYS_SET_PROPERTY;
+	pr_err("sending %s\n", __func__);
 	pkt->num_properties = 1;
 	pkt->data[0] = HFI_PROPERTY_SYS_CODEC_POWER_PLANE_CTRL;
 	hfi->enable = enable;

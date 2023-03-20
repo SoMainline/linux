@@ -510,7 +510,7 @@ static int vdec_subscribe_event(struct v4l2_fh *fh,
 {
 	struct venus_inst *inst = container_of(fh, struct venus_inst, fh);
 	int ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	switch (sub->type) {
 	case V4L2_EVENT_EOS:
 		return v4l2_event_subscribe(fh, sub, 2, NULL);
@@ -534,11 +534,11 @@ vdec_decoder_cmd(struct file *file, void *fh, struct v4l2_decoder_cmd *cmd)
 	struct vb2_queue *dst_vq;
 	struct hfi_frame_data fdata = {0};
 	int ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ret = v4l2_m2m_ioctl_try_decoder_cmd(file, fh, cmd);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	mutex_lock(&inst->lock);
 
 	if (cmd->cmd == V4L2_DEC_CMD_STOP) {
@@ -573,6 +573,7 @@ vdec_decoder_cmd(struct file *file, void *fh, struct v4l2_decoder_cmd *cmd)
 
 unlock:
 	mutex_unlock(&inst->lock);
+pr_err("venus %s ret = %d", __func__, ret);
 	return ret;
 }
 
@@ -691,24 +692,24 @@ static int vdec_set_properties(struct venus_inst *inst)
 		level = 0;
 		break;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ret = venus_helper_set_profile_level(inst, profile, level);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ptype = HFI_PROPERTY_PARAM_VDEC_OUTPUT_ORDER;
 	decode_order = HFI_OUTPUT_ORDER_DECODE;
 	ret = hfi_session_set_property(inst, ptype, &decode_order);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ptype = HFI_PROPERTY_PARAM_VDEC_THUMBNAIL_MODE;
 	/* TODO: add / figure out a V4L2 knob for this */
 	enable = false;
 	ret = hfi_session_set_property(inst, ptype, &enable);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ptype = HFI_PROPERTY_PARAM_SECURE_SESSION;
 	/* We don't support secure playback (yet?) and Venus should be extra aware.. */
 	enable = false;
@@ -722,7 +723,7 @@ static int vdec_set_properties(struct venus_inst *inst)
 	ret = hfi_session_set_property(inst, ptype, &enable);
 	if (ret)
 		return ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ptype = HFI_PROPERTY_PARAM_VDEC_CONCEAL_COLOR;
 	conceal = ctr->conceal_color & 0xffff;
 	conceal |= ((ctr->conceal_color >> 16) & 0xffff) << 10;
@@ -731,6 +732,8 @@ static int vdec_set_properties(struct venus_inst *inst)
 	ret = hfi_session_set_property(inst, ptype, &conceal);
 	if (ret)
 		return ret;
+pr_err("venus %s %u\n", __func__, __LINE__);
+	pr_err("venus %s ret = %d", __func__, ret);
 
 	return 0;
 }
@@ -1672,7 +1675,7 @@ static int vdec_open(struct file *file)
 	struct venus_core *core = video_drvdata(file);
 	struct venus_inst *inst;
 	int ret;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	inst = kzalloc(sizeof(*inst), GFP_KERNEL);
 	if (!inst)
 		return -ENOMEM;
@@ -1696,15 +1699,15 @@ static int vdec_open(struct file *file)
 	inst->nonblock = file->f_flags & O_NONBLOCK;
 
 	venus_helper_init_instance(inst);
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ret = vdec_ctrl_init(inst);
 	if (ret)
 		goto err_free;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	ret = hfi_session_create(inst, &vdec_hfi_ops);
 	if (ret)
 		goto err_ctrl_deinit;
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	vdec_inst_init(inst);
 
 	ida_init(&inst->dpb_ids);
@@ -1718,20 +1721,20 @@ static int vdec_open(struct file *file)
 		ret = PTR_ERR(inst->m2m_dev);
 		goto err_session_destroy;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	inst->m2m_ctx = v4l2_m2m_ctx_init(inst->m2m_dev, inst, m2m_queue_init);
 	if (IS_ERR(inst->m2m_ctx)) {
 		ret = PTR_ERR(inst->m2m_ctx);
 		goto err_m2m_release;
 	}
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	v4l2_fh_init(&inst->fh, core->vdev_dec);
-
+pr_err("venus %s %u\n", __func__, __LINE__);
 	inst->fh.ctrl_handler = &inst->ctrl_handler;
 	v4l2_fh_add(&inst->fh);
 	inst->fh.m2m_ctx = inst->m2m_ctx;
 	file->private_data = &inst->fh;
-
+pr_err("venus %s returned 0", __func__);
 	return 0;
 
 err_m2m_release:
@@ -1742,6 +1745,7 @@ err_ctrl_deinit:
 	vdec_ctrl_deinit(inst);
 err_free:
 	kfree(inst);
+	pr_err("venus %s ret = %d", __func__, ret);
 	return ret;
 }
 
