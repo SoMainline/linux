@@ -30,6 +30,11 @@ properties:
     description:
       Specifies the base address and size of vMPM registers in RPM MSG RAM.
 
+  qcom,rpm-msg-ram:
+    $ref: /schemas/types.yaml#/definitions/phandle
+    description:
+      Phandle to the APSS MPM slice of the RPM Message RAM
+
   interrupts:
     maxItems: 1
     description:
@@ -67,7 +72,6 @@ properties:
 
 required:
   - compatible
-  - reg
   - interrupts
   - mboxes
   - interrupt-controller
