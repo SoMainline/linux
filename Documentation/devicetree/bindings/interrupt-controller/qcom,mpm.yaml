@@ -30,6 +30,12 @@ properties:
     description:
       Specifies the base address and size of vMPM registers in RPM MSG RAM.
 
+  shmem:
+    maxItems: 1
+    description:
+      Phandle to the APSS MPM slice of the RPM Message RAM
+    $ref: /schemas/types.yaml#/definitions/phandle
+
   interrupts:
     maxItems: 1
     description:
@@ -67,7 +73,6 @@ properties:
 
 required:
   - compatible
-  - reg
   - interrupts
   - mboxes
   - interrupt-controller
