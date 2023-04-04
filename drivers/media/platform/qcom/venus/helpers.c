@@ -681,17 +681,7 @@ int venus_helper_get_bufreq(struct venus_inst *inst, u32 type,
 	if (!ret) {
 		if (type == HFI_BUFFER_OUTPUT || type == HFI_BUFFER_OUTPUT2)
 			inst->fw_min_cnt = hfi_bufreq_get_count_min(req, ver);
-
-		/* On IRIS2.x, we calculate the buffer params ourselves */
-		if (IS_IRIS2(inst->core) || IS_IRIS2_1(inst->core))
-			return 0;
-		else {
-			/* On other HFI 6XX cores we only calculate external buffers */
-			if (type == HFI_BUFFER_INPUT ||
-			    type == HFI_BUFFER_OUTPUT ||
-			    type == HFI_BUFFER_OUTPUT2)
-				return 0;
-		}
+		return 0;
 	}
 
 	ret = hfi_session_get_property(inst, ptype, &hprop);
