@@ -3212,7 +3212,7 @@ static struct gdsc gcc_vcodec0_gdsc = {
 		.name = "gcc_vcodec0",
 	},
 	.pwrsts = PWRSTS_OFF_ON,
-	.flags = RETAIN_FF_ENABLE,
+	.flags = RETAIN_FF_ENABLE | HW_CTRL,
 };
 
 static struct gdsc gcc_venus_gdsc = {
