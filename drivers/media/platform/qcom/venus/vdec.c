@@ -551,7 +551,7 @@ pr_err("venus %s %u\n", __func__, __LINE__);
 
 		fdata.buffer_type = HFI_BUFFER_INPUT;
 		fdata.flags |= HFI_BUFFERFLAG_EOS;
-		if (IS_V6(inst->core))
+		if (IS_AR50_LITE(inst->core) || IS_V6(inst->core))
 			fdata.device_addr = 0;
 		else
 			fdata.device_addr = 0xdeadb000;

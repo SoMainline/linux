@@ -53,11 +53,11 @@ static int core_clks_enable(struct venus_core *core)
 	freq = freq_tbl[freq_tbl_size - 1].freq;
 
 	for (i = 0; i < res->clks_num; i++) {
-		if (IS_V6(core)) {
+		// if (IS_V6(core)) {
 			ret = clk_set_rate(core->clks[i], freq);
 			if (ret)
 				goto err;
-		}
+		// }
 
 		ret = clk_prepare_enable(core->clks[i]);
 		if (ret)
