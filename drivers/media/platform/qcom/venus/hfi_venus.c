@@ -985,7 +985,7 @@ static int venus_sys_set_default_properties(struct venus_hfi_device *hdev)
 	if (IS_V4(hdev->core))
 		venus_sys_idle_indicator = true;
 
-	ret = venus_sys_set_idle_message(hdev, venus_sys_idle_indicator);
+	ret = venus_sys_set_idle_message(hdev, 0);
 	if (ret)
 		dev_warn(dev, "setting idle response ON failed (%d)\n", ret);
 
