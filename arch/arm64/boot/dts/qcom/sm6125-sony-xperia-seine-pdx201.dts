@@ -147,6 +147,18 @@
 	};
 };
 
+&gmu_wrapper {
+	status = "okay";
+};
+
+&gpu {
+	status = "okay";
+
+	zap-shader {
+		firmware-name = "qcom/sm6125/Sony/seine/a610_zap.mbn";
+	};
+};
+
 &gpi_dma0 {
 	status = "okay";
 };
