@@ -920,3 +920,8 @@
 	vdda-phy-supply = <&pm8350_l6>;
 	vdda-pll-supply = <&pm8350_l1>;
 };
+
+&venus {
+	firmware-name = "qcom/sm8350/Sony/sagami/venus.mbn";
+	status = "okay";
+};
