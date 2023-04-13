@@ -652,7 +652,7 @@
 };
 
 &mdss {
-	status = "okay";
+	// status = "okay";
 };
 
 &mdss_dsi0 {
