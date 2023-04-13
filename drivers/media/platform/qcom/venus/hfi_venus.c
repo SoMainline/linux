@@ -1628,7 +1628,7 @@ static int venus_suspend_3xx(struct venus_core *core)
 		return ret;
 	}
 
-	wait_for_pc_ack = !IS_AR50_LITE(core);
+	wait_for_pc_ack = !(IS_AR50_LITE(core) || IS_IRIS2(core));
 	ret = venus_prepare_power_collapse(hdev, wait_for_pc_ack);
 	if (ret) {
 		dev_err(dev, "prepare for power collapse fail (%d)\n", ret);
