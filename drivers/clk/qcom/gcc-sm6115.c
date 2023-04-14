@@ -3208,15 +3208,24 @@ static struct gdsc gcc_usb30_prim_gdsc = {
 
 static struct gdsc gcc_vcodec0_gdsc = {
 	.gdscr = 0x58098,
+	.cxcs = (unsigned int []) {
+		0x5808c, /* GCC_VIDEO_VENUS_CTL_CLK */
+		0x6e004, /* GCC_VENUS_CTL_AXI_CLK */
+	},
+	.cxc_count = 2,
 	.pd = {
 		.name = "gcc_vcodec0",
 	},
 	.pwrsts = PWRSTS_OFF_ON,
-	.flags = RETAIN_FF_ENABLE | HW_CTRL,
 };
 
 static struct gdsc gcc_venus_gdsc = {
 	.gdscr = 0x5807c,
+	.cxcs = (unsigned int []) {
+		0x580a4, /* GCC_VIDEO_VCODEC0_SYS_CLK */
+		0x6e008, /* GCC_VCODEC0_AXI_CLK */
+	},
+	.cxc_count = 2,
 	.pd = {
 		.name = "gcc_venus",
 	},
