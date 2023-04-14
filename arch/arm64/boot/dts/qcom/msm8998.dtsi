@@ -3116,6 +3116,7 @@
 
 			clock-names = "xo",
 				      "gpll0",
+				      "gpll0_div",
 				      "dsi0dsi",
 				      "dsi0byte",
 				      "dsi1dsi",
@@ -3125,6 +3126,7 @@
 				      "dpvco";
 			clocks = <&rpmcc RPM_SMD_XO_CLK_SRC>,
 				 <&gcc GCC_MMSS_GPLL0_CLK>,
+				 <&gcc GCC_MMSS_GPLL0_DIV_CLK>,
 				 <0>,
 				 <0>,
 				 <0>,
