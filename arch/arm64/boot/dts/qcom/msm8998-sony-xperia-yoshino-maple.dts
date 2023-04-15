@@ -37,6 +37,46 @@
 	qcom,soft-start-us = <200>;
 };
 
+&mdss_dsi0 {
+	qcom,dual-dsi-mode;
+	qcom,master-dsi;
+};
+
+&mdss_dsi1 {
+	vdd-supply = <&vreg_l1a_0p875>;
+	vdda-supply = <&vreg_l2a_1p2>;
+	assigned-clock-parents = <&mdss_dsi0_phy 0>,
+				 <&mdss_dsi0_phy 1>;
+	qcom,dual-dsi-mode;
+	status = "okay";
+};
+
+&mdss_dsi1_out {
+	remote-endpoint = <&panel_in_1>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi1_phy {
+	vdds-supply = <&vreg_l1a_0p875>;
+	status = "okay";
+};
+
+&panel {
+	compatible = "sharp,ls055d1sx04", "novatek,nt35950";
+
+	dvdd-supply = <&disp_dvdd_vreg>;
+
+	ports {
+		port@1 {
+			reg = <1>;
+
+			panel_in_1: endpoint {
+				remote-endpoint = <&mdss_dsi1_out>;
+			};
+		};
+	};
+};
+
 &pm8005_gpios {
 	gpio-line-names = "EAR_EN", /* GPIO_1 */
 			  "NC",

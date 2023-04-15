@@ -291,6 +291,56 @@
 	regulator-soft-start;
 };
 
+&mdss {
+	status = "okay";
+};
+
+&mdss_dsi0 {
+	vdd-supply = <&vreg_l1a_0p875>;
+	vdda-supply = <&vreg_l2a_1p2>;
+	status = "okay";
+
+	panel: panel@0 {
+		reg = <0>;
+
+		backlight = <&pmi8998_wled>;
+		disp-te-gpios = <&tlmm 10 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&tlmm 94 GPIO_ACTIVE_HIGH>;
+
+		avdd-supply = <&lab>;
+		avee-supply = <&ibb>;
+		vddio-supply = <&vreg_l14a_1p85>;
+		tavdd-supply = <&vreg_l28_3p0>;
+		tvddio-supply = <&touch_vddio_vreg>;
+
+		pinctrl-0 = <&disp_reset_n &mdp_vsync_p>;
+		pinctrl-names = "default";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				panel_in_0: endpoint {
+					remote-endpoint = <&mdss_dsi0_out>;
+				};
+			};
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	remote-endpoint = <&panel_in_0>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi0_phy {
+	vdds-supply = <&vreg_l1a_0p875>;
+	status = "okay";
+};
+
 &pm8005_gpios {
 	gpio-line-names = "NC", /* GPIO_1 */
 			  "NC",
@@ -407,6 +457,16 @@
 
 &pm8998_resin {
 	linux,code = <KEY_VOLUMEUP>;
+	status = "okay";
+};
+
+&pmi8998_wled {
+	default-brightness = <3000>;
+	qcom,switching-freq = <800>;
+	qcom,ovp-millivolt = <29600>;
+	qcom,current-boost-limit = <970>;
+	qcom,current-limit-microamp = <25000>;
+	qcom,enabled-strings = <0 1 2>;
 	status = "okay";
 };
 
@@ -865,6 +925,13 @@
 		function = "gpio";
 		bias-disable;
 		drive-strength = <16>;
+	};
+
+	disp_reset_n: disp-reset-n-state {
+		pins = "gpio94";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
 	};
 
 	acc_cover_open: acc-cover-open-state {
