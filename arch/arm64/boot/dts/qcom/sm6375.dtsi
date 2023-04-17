@@ -1801,7 +1801,8 @@
 
 			interconnects = <&mmrt_virt MASTER_MDP_PORT0 0 &bimc SLAVE_EBI 0>,
 					<&bimc MASTER_AMPSS_M0 0 &config_noc SLAVE_DISPLAY_CFG 0>;
-			interconnect-names = "mdp0-mem", "mdp1-mem";
+			interconnect-names = "mdp0-mem",
+					     "cpu-cfg";
 
 			#address-cells = <2>;
 			#size-cells = <2>;
