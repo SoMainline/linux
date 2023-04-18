@@ -305,6 +305,17 @@
 	status = "okay";
 };
 
+&usb {
+	status = "okay";
+};
+
+&usb_hsphy {
+	vdd-supply = <&vreg_l4a_0p9>;
+	vdda-pll-supply = <&vreg_l12a_1p8>;
+	vdda-phy-dpdm-supply = <&vreg_l15a_3p128>;
+	status = "okay";
+};
+
 &xo_board {
 	clock-frequency = <19200000>;
 };
