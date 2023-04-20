@@ -16,6 +16,7 @@
 #include "icc-rpm.h"
 
 #define RPM_KEY_BW		0x00007762
+#define QCOM_RPM_SMD_KEY_RATE	0x007a484b
 
 static struct qcom_smd_rpm *icc_smd_rpm;
 
@@ -43,6 +44,34 @@ int qcom_icc_rpm_smd_send(int ctx, int rsc_type, int id, u32 val)
 				  sizeof(req));
 }
 EXPORT_SYMBOL_GPL(qcom_icc_rpm_smd_send);
+
+int qcom_icc_rpm_set_bus_rate(struct rpm_clk_resource *clk, u32 active_rate, u32 sleep_rate)
+{
+	struct clk_smd_rpm_req req = {
+		.key = cpu_to_le32(QCOM_RPM_SMD_KEY_RATE),
+		.nbytes = cpu_to_le32(sizeof(u32)),
+	};
+	int ret;
+
+	pr_debug("act=%ukHz slp=%ukHz", active_rate, sleep_rate);
+
+	req.value = cpu_to_le32(active_rate);
+	ret = qcom_rpm_smd_write(icc_smd_rpm,
+				 QCOM_SMD_RPM_ACTIVE_STATE,
+				 clk->resource_type,
+				 clk->clock_id,
+				 &req, sizeof(req));
+	if (ret)
+		return ret;
+
+	req.value = cpu_to_le32(sleep_rate);
+	return qcom_rpm_smd_write(icc_smd_rpm,
+				  QCOM_SMD_RPM_SLEEP_STATE,
+				  clk->resource_type,
+				  clk->clock_id,
+				  &req, sizeof(req));
+}
+EXPORT_SYMBOL_GPL(qcom_icc_rpm_set_bus_rate);
 
 static int qcom_icc_rpm_smd_remove(struct platform_device *pdev)
 {
