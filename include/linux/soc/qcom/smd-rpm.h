@@ -58,6 +58,11 @@ struct clk_smd_rpm_req {
 	__le32 value;
 };
 
+struct rpm_clk_resource {
+	u32 resource_type;
+	u32 clock_id;
+};
+
 int qcom_rpm_smd_write(struct qcom_smd_rpm *rpm,
 		       int state,
 		       u32 resource_type, u32 resource_id,
