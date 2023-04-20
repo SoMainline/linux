@@ -125,7 +125,7 @@
 	status = "okay";
 
 	touchscreen@48 {
-		compatible = "samsung,s6sy761";
+		// compatible = "samsung,s6sy761";
 		reg = <0x48>;
 		interrupt-parent = <&tlmm>;
 		interrupts = <22 0x2008>;
@@ -642,7 +642,7 @@
 	/delete-property/ interrupts;
 	interrupts-extended = <&intc GIC_SPI 328 IRQ_TYPE_LEVEL_HIGH>,
 			      <&tlmm 64 IRQ_TYPE_LEVEL_HIGH>;
-	status = "okay";
+	// status = "okay";
 
 	bluetooth: bluetooth {
 		compatible = "qcom,wcn3990-bt";
