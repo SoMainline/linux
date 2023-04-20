@@ -125,5 +125,6 @@ int qnoc_remove(struct platform_device *pdev);
 
 bool qcom_icc_rpm_smd_available(void);
 int qcom_icc_rpm_smd_send(int ctx, int rsc_type, int id, u32 val);
+int qcom_icc_rpm_set_bus_rate(struct rpm_clk_resource *clk, u32 active_rate, u32 sleep_rate);
 
 #endif
