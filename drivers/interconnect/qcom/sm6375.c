@@ -1486,6 +1486,7 @@ static struct qcom_icc_desc sm6375_bimc = {
 	.nodes = sm6375_bimc_nodes,
 	.num_nodes = ARRAY_SIZE(sm6375_bimc_nodes),
 	.regmap_cfg = &sm6375_bimc_regmap_config,
+	.bus_clk_desc = &bimc_clk,
 	.keep_alive = true,
 	.qos_offset = 0x8000,
 };
@@ -1552,6 +1553,7 @@ static struct qcom_icc_desc sm6375_config_noc = {
 	.regmap_cfg = &sm6375_cnoc_regmap_config,
 	.intf_clocks = cnoc_intf_clocks,
 	.num_intf_clocks = ARRAY_SIZE(cnoc_intf_clocks),
+	.bus_clk_desc = &bus_1_clk,
 	.keep_alive = true,
 };
 
@@ -1606,6 +1608,7 @@ static struct qcom_icc_desc sm6375_sys_noc = {
 	.regmap_cfg = &sm6375_sys_noc_regmap_config,
 	.intf_clocks = snoc_intf_clocks,
 	.num_intf_clocks = ARRAY_SIZE(snoc_intf_clocks),
+	.bus_clk_desc = &bus_2_clk,
 	.keep_alive = true,
 };
 
@@ -1621,6 +1624,7 @@ static struct qcom_icc_desc sm6375_clk_virt = {
 	.nodes = sm6375_clk_virt_nodes,
 	.num_nodes = ARRAY_SIZE(sm6375_clk_virt_nodes),
 	.regmap_cfg = &sm6375_sys_noc_regmap_config,
+	.bus_clk_desc = &qup_clk,
 	.keep_alive = true,
 };
 
@@ -1638,6 +1642,7 @@ static struct qcom_icc_desc sm6375_mmrt_virt = {
 	.nodes = sm6375_mmrt_virt_nodes,
 	.num_nodes = ARRAY_SIZE(sm6375_mmrt_virt_nodes),
 	.regmap_cfg = &sm6375_sys_noc_regmap_config,
+	.bus_clk_desc = &mmrt_clk,
 	.keep_alive = true,
 };
 
@@ -1657,6 +1662,7 @@ static struct qcom_icc_desc sm6375_mmnrt_virt = {
 	.nodes = sm6375_mmnrt_virt_nodes,
 	.num_nodes = ARRAY_SIZE(sm6375_mmnrt_virt_nodes),
 	.regmap_cfg = &sm6375_sys_noc_regmap_config,
+	.bus_clk_desc = &mmnrt_clk,
 	.keep_alive = true,
 };
 
