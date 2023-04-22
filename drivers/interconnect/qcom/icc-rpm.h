@@ -117,6 +117,16 @@ enum qos_mode {
 	NOC_QOS_MODE_BYPASS,
 };
 
+static struct rpm_clk_resource aggre1_clk = {
+	.resource_type = QCOM_SMD_RPM_AGGR_CLK,
+	.clock_id = 1,
+};
+
+static struct rpm_clk_resource aggre2_clk = {
+	.resource_type = QCOM_SMD_RPM_AGGR_CLK,
+	.clock_id = 2,
+};
+
 static struct rpm_clk_resource bimc_clk = {
 	.resource_type = QCOM_SMD_RPM_MEM_CLK,
 	.clock_id = 0,
@@ -140,6 +150,11 @@ static struct rpm_clk_resource mmnrt_clk = {
 static struct rpm_clk_resource mmrt_clk = {
 	.resource_type = QCOM_SMD_RPM_MMAXI_CLK,
 	.clock_id = 1,
+};
+
+static struct rpm_clk_resource mmssnoc_axi_rpm = {
+	.resource_type = QCOM_SMD_RPM_MMAXI_CLK,
+	.clock_id = 0,
 };
 
 static struct rpm_clk_resource qup_clk = {
