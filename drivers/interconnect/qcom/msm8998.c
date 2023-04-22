@@ -1677,6 +1677,7 @@ static struct qcom_icc_desc msm8998_a1noc = {
 	.nodes = msm8998_a1noc_nodes,
 	.num_nodes = ARRAY_SIZE(msm8998_a1noc_nodes),
 	.regmap_cfg = &msm8998_a1noc_regmap_config,
+	.bus_clk_desc = &aggre1_clk,
 	.intf_clocks = a1noc_intf_clocks,
 	.num_intf_clocks = ARRAY_SIZE(a1noc_intf_clocks),
 	.qos_offset = 0x9000,
@@ -1709,6 +1710,7 @@ static struct qcom_icc_desc msm8998_a2noc = {
 	.nodes = msm8998_a2noc_nodes,
 	.num_nodes = ARRAY_SIZE(msm8998_a2noc_nodes),
 	.regmap_cfg = &msm8998_a2noc_regmap_config,
+	.bus_clk_desc = &aggre2_clk,
 	.intf_clocks = a2noc_intf_clocks,
 	.num_intf_clocks = ARRAY_SIZE(a2noc_intf_clocks),
 	.qos_offset = 0x5000,
@@ -1747,6 +1749,7 @@ static struct qcom_icc_desc msm8998_bimc = {
 	 * (BIMC_BASE + QoS_OFFSET + 0x300), but that's what we unfortunately
 	 * have to treat as our BIMC_BASE in DT..
 	 */
+	.bus_clk_desc = &bimc_clk,
 	.qos_offset = -0x300,
 };
 
@@ -1806,6 +1809,7 @@ static struct qcom_icc_desc msm8998_cnoc = {
 	.nodes = msm8998_cnoc_nodes,
 	.num_nodes = ARRAY_SIZE(msm8998_cnoc_nodes),
 	.regmap_cfg = &msm8998_cnoc_regmap_config,
+	.bus_clk_desc = &bus_2_clk,
 	.intf_clocks = cnoc_snoc_intf_clocks,
 	.num_intf_clocks = ARRAY_SIZE(cnoc_snoc_intf_clocks),
 	.keep_alive = true,
@@ -1920,6 +1924,7 @@ static struct qcom_icc_desc msm8998_snoc = {
 	.nodes = msm8998_snoc_nodes,
 	.num_nodes = ARRAY_SIZE(msm8998_snoc_nodes),
 	.regmap_cfg = &msm8998_snoc_regmap_config,
+	.bus_clk_desc = &bus_1_clk,
 	.intf_clocks = cnoc_snoc_intf_clocks,
 	.num_intf_clocks = ARRAY_SIZE(cnoc_snoc_intf_clocks),
 	.qos_offset = 0x5000,
