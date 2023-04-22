@@ -292,7 +292,7 @@ static int nt35950_on(struct nt35950 *nt)
 	nt->dsi[0]->mode_flags |= MIPI_DSI_MODE_LPM;
 	nt->dsi[1]->mode_flags |= MIPI_DSI_MODE_LPM;
 
-	ret = nt35950_set_cmd2_page(nt, 0);
+	ret = nt35950_set_cmd2_page(nt, 7);
 	if (ret < 0)
 		return ret;
 
@@ -311,6 +311,12 @@ static int nt35950_on(struct nt35950 *nt)
 	ret = nt35950_set_dispout(nt);
 	if (ret < 0)
 		return ret;
+
+	/* Frame rate setting for 60hz */
+	mipi_dsi_dcs_write_seq(dsi, 0xbd,
+			  0x00, 0xac, 0x0c, 0x0c, 0x00,
+			  0x01, 0x56, 0x09, 0x09, 0x01,
+			  0x01, 0x0c, 0x0c, 0x00, 0xd9);
 
 	ret = mipi_dsi_dcs_set_tear_on(dsi, MIPI_DSI_DCS_TEAR_MODE_VBLANK);
 	if (ret < 0) {
