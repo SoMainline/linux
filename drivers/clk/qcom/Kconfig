@@ -539,6 +539,14 @@ config SC_VIDEOCC_7280
 	  Say Y if you want to support video devices and functionality such as
 	  video encode and decode.
 
+config SC_VIDEOCC_8280XP
+	tristate "SC8280XP Video Clock Controller"
+	select SC_GCC_8280XP
+	help
+	  Support for the video clock controller on SC7280 devices.
+	  Say Y if you want to support video devices and functionality such as
+	  video encode and decode.
+
 config SDM_CAMCC_845
 	tristate "SDM845 Camera Clock Controller"
 	select SDM_GCC_845
