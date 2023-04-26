@@ -91,7 +91,7 @@ static void dpu_hw_pp_setup_dither(struct dpu_hw_pingpong *pp,
 	DPU_REG_WRITE(c, base + PP_DITHER_EN, 1);
 }
 
-static int dpu_hw_pp_setup_te_config(struct dpu_hw_pingpong *pp,
+static int dpu_hw_pp_enable_te(struct dpu_hw_pingpong *pp,
 		struct dpu_hw_tear_check *te)
 {
 	struct dpu_hw_blk_reg_map *c;
@@ -117,6 +117,8 @@ static int dpu_hw_pp_setup_te_config(struct dpu_hw_pingpong *pp,
 			 te->sync_threshold_start));
 	DPU_REG_WRITE(c, PP_SYNC_WRCOUNT,
 			(te->start_pos + te->sync_threshold_start + 1));
+
+	DPU_REG_WRITE(c, PP_TEAR_CHECK_EN, 1);
 
 	return 0;
 }
@@ -144,7 +146,7 @@ static bool dpu_hw_pp_get_autorefresh_config(struct dpu_hw_pingpong *pp,
 	return !!((val & BIT(31)) >> 31);
 }
 
-static int dpu_hw_pp_enable_te(struct dpu_hw_pingpong *pp, bool enable)
+static int dpu_hw_pp_disable_te(struct dpu_hw_pingpong *pp)
 {
 	struct dpu_hw_blk_reg_map *c;
 
@@ -152,7 +154,7 @@ static int dpu_hw_pp_enable_te(struct dpu_hw_pingpong *pp, bool enable)
 		return -EINVAL;
 	c = &pp->hw;
 
-	DPU_REG_WRITE(c, PP_TEAR_CHECK_EN, enable);
+	DPU_REG_WRITE(c, PP_TEAR_CHECK_EN, 0);
 	return 0;
 }
 
@@ -301,8 +303,8 @@ static void _setup_pingpong_ops(struct dpu_hw_pingpong *c,
 				unsigned long features)
 {
 	if (test_bit(DPU_PINGPONG_TE, &features)) {
-		c->ops.setup_tearcheck = dpu_hw_pp_setup_te_config;
 		c->ops.enable_tearcheck = dpu_hw_pp_enable_te;
+		c->ops.disable_tearcheck = dpu_hw_pp_disable_te;
 		c->ops.connect_external_te = dpu_hw_pp_connect_external_te;
 		c->ops.get_line_count = dpu_hw_pp_get_line_count;
 		c->ops.disable_autorefresh = dpu_hw_pp_disable_autorefresh;
