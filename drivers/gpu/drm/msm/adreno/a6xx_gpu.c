@@ -1956,12 +1956,9 @@ static int a6xx_gmu_get_timestamp(struct msm_gpu *gpu, uint64_t *value)
 
 	mutex_lock(&a6xx_gpu->gmu.lock);
 
-	/* Force the GPU power on so we can read this register */
-	a6xx_gmu_set_oob(&a6xx_gpu->gmu, GMU_OOB_PERFCOUNTER_SET);
-
-	*value = gpu_read64(gpu, REG_A6XX_CP_ALWAYS_ON_COUNTER);
-
-	a6xx_gmu_clear_oob(&a6xx_gpu->gmu, GMU_OOB_PERFCOUNTER_SET);
+	*value = gmu_read64(&a6xx_gpu->gmu,
+			    REG_A6XX_GMU_ALWAYS_ON_COUNTER_L,
+			    REG_A6XX_GMU_ALWAYS_ON_COUNTER_H);
 
 	mutex_unlock(&a6xx_gpu->gmu.lock);
 
