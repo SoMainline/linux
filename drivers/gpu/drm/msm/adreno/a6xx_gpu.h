@@ -92,4 +92,7 @@ int a6xx_gpu_state_put(struct msm_gpu_state *state);
 void a6xx_bus_clear_pending_transactions(struct adreno_gpu *adreno_gpu, bool gx_off);
 void a6xx_gpu_sw_reset(struct msm_gpu *gpu, bool assert);
 
+void a6xx_llc_write(struct a6xx_gpu *a6xx_gpu, u32 reg, u32 value);
+u32 a6xx_llc_read(struct a6xx_gpu *a6xx_gpu, u32 reg);
+
 #endif /* __A6XX_GPU_H__ */
