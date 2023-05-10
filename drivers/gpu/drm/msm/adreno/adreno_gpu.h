@@ -316,6 +316,17 @@ static inline int adreno_is_a640_family(struct adreno_gpu *gpu)
 	return adreno_is_a640(gpu) || adreno_is_a680(gpu);
 }
 
+static inline int adreno_is_a730(struct adreno_gpu *gpu)
+{
+	return adreno_cmp_rev(ADRENO_REV(7, 3, 0, ANY_ID), gpu->rev);
+}
+
+static inline int adreno_is_a7xx(struct adreno_gpu *gpu)
+{
+	/* Update with non-fake (i.e. non-A702) Gen 7 GPUs */
+	return adreno_is_a730(gpu);
+}
+
 u64 adreno_private_address_space_size(struct msm_gpu *gpu);
 int adreno_get_param(struct msm_gpu *gpu, struct msm_file_private *ctx,
 		     uint32_t param, uint64_t *value, uint32_t *len);

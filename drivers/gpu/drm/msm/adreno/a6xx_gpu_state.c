@@ -329,6 +329,10 @@ static void a6xx_get_debugbus(struct msm_gpu *gpu,
 	void __iomem *cxdbg = NULL;
 	int nr_debugbus_blocks;
 
+	/* TODO: implement A7xx debugbus */
+	if (adreno_is_a7xx(to_adreno_gpu(gpu)))
+		return;
+
 	/* Set up the GX debug bus */
 
 	gpu_write(gpu, REG_A6XX_DBGC_CFG_DBGBUS_CNTLT,
@@ -988,7 +992,8 @@ static void a6xx_get_indexed_registers(struct msm_gpu *gpu,
 		a6xx_get_indexed_regs(gpu, a6xx_state, &a6xx_indexed_reglist[i],
 			&a6xx_state->indexed_regs[i]);
 
-	if (adreno_is_a650_family(to_adreno_gpu(gpu))) {
+	if (adreno_is_a650_family(to_adreno_gpu(gpu)) ||
+	    adreno_is_a7xx(to_adreno_gpu(gpu))) {
 		u32 val;
 
 		val = gpu_read(gpu, REG_A6XX_CP_CHICKEN_DBG);
