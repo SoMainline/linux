@@ -546,12 +546,15 @@ struct msm_gpu_state {
 
 static inline void gpu_write(struct msm_gpu *gpu, u32 reg, u32 data)
 {
+	pr_err("[gpu_write] 0x%x <- 0x%x", reg, data);
 	msm_writel(data, gpu->mmio + (reg << 2));
 }
 
 static inline u32 gpu_read(struct msm_gpu *gpu, u32 reg)
 {
-	return msm_readl(gpu->mmio + (reg << 2));
+	u32 value = msm_readl(gpu->mmio + (reg << 2));
+	pr_err("[gpu_read] 0x%x -> 0x%x", reg, value);
+	return value;
 }
 
 static inline void gpu_rmw(struct msm_gpu *gpu, u32 reg, u32 mask, u32 or)
