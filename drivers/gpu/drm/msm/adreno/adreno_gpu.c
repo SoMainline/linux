@@ -317,7 +317,9 @@ int adreno_get_param(struct msm_gpu *gpu, struct msm_file_private *ctx,
 
 	switch (param) {
 	case MSM_PARAM_GPU_ID:
-		*value = adreno_gpu->info->revn;
+		/* A7xx revn field is an obfuscated ID for the GMU fw, skip reporting it */
+		if (!adreno_is_a7xx(adreno_gpu))
+			*value = adreno_gpu->info->revn;
 		return 0;
 	case MSM_PARAM_GMEM_SIZE:
 		*value = adreno_gpu->gmem;
@@ -578,6 +580,7 @@ int adreno_hw_init(struct msm_gpu *gpu)
 		ring->cur = ring->start;
 		ring->next = ring->start;
 		ring->memptrs->rptr = 0;
+		ring->memptrs->bv_fence = ring->fctx->completed_fence;
 
 		/* Detect and clean up an impossible fence, ie. if GPU managed
 		 * to scribble something invalid, we don't want that to confuse
