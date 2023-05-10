@@ -55,12 +55,8 @@ struct adreno_reglist {
 	u32 value;
 };
 
-<<<<<<< HEAD
-extern const struct adreno_reglist a615_hwcg[], a630_hwcg[], a640_hwcg[], a650_hwcg[], a660_hwcg[], a690_hwcg[];
-=======
 extern const struct adreno_reglist a612_hwcg[], a615_hwcg[], a630_hwcg[], a640_hwcg[], a650_hwcg[];
-extern const struct adreno_reglist a660_hwcg[];
->>>>>>> 4c5f1bb90057 (drm/msm/a6xx: Add A610 support)
+extern const struct adreno_reglist a660_hwcg[], a690_hwcg[], a730_hwcg[];
 
 struct adreno_info {
 	struct adreno_rev rev;
