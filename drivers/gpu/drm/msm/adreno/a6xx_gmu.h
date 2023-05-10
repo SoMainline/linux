@@ -103,11 +103,14 @@ struct a6xx_gmu {
 
 static inline u32 gmu_read(struct a6xx_gmu *gmu, u32 offset)
 {
-	return msm_readl(gmu->mmio + (offset << 2));
+	u32 value = msm_readl(gmu->mmio + (offset << 2));
+	pr_err("[gmu_read]: 0x%x -> 0x%x\n", offset, value);
+	return value;
 }
 
 static inline void gmu_write(struct a6xx_gmu *gmu, u32 offset, u32 value)
 {
+	pr_err("[gmu_write]: 0x%x <- 0x%x\n", offset, value);
 	msm_writel(value, gmu->mmio + (offset << 2));
 }
 
@@ -143,11 +146,14 @@ static inline u64 gmu_read64(struct a6xx_gmu *gmu, u32 lo, u32 hi)
 
 static inline u32 gmu_read_rscc(struct a6xx_gmu *gmu, u32 offset)
 {
-	return msm_readl(gmu->rscc + (offset << 2));
+	u32 value = msm_readl(gmu->rscc + (offset << 2));
+	pr_err("[gmu_read_rscc]: 0x%x -> 0x%x\n", offset, value);
+	return value;
 }
 
 static inline void gmu_write_rscc(struct a6xx_gmu *gmu, u32 offset, u32 value)
 {
+	pr_err("[gmu_write_rscc]: 0x%x <- 0x%x\n", offset, value);
 	msm_writel(value, gmu->rscc + (offset << 2));
 }
 
