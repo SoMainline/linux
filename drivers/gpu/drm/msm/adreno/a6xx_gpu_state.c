@@ -952,6 +952,18 @@ static u32 a6xx_get_cp_roq_size(struct msm_gpu *gpu)
 	return gpu_read(gpu, REG_A6XX_CP_ROQ_THRESHOLDS_2) >> 14;
 }
 
+static u32 a7xx_get_cp_roq_size(struct msm_gpu *gpu)
+{
+	/*
+	 * The value at CP_ROQ_THRESHOLDS_2[20:31] is in 4dword units.
+	 * That register however is not directly accessible from APSS on A7xx.
+	 * Program the SQE_UCODE_DBG_ADDR with offset=0x70d3 and read the value.
+	 */
+	gpu_write(gpu, REG_A6XX_CP_SQE_UCODE_DBG_ADDR, 0x70d3);
+
+	return 4 * (gpu_read(gpu, REG_A6XX_CP_SQE_UCODE_DBG_DATA) >> 20);
+}
+
 /* Read a block of data from an indexed register pair */
 static void a6xx_get_indexed_regs(struct msm_gpu *gpu,
 		struct a6xx_gpu_state *a6xx_state,
@@ -979,17 +991,28 @@ static void a6xx_get_indexed_regs(struct msm_gpu *gpu,
 static void a6xx_get_indexed_registers(struct msm_gpu *gpu,
 		struct a6xx_gpu_state *a6xx_state)
 {
+	static struct a6xx_indexed_registers *regs_array;
 	u32 mempool_size;
-	int count = ARRAY_SIZE(a6xx_indexed_reglist) + 1;
+	int count;
 	int i;
+
+	if (adreno_is_a7xx(to_adreno_gpu(gpu))) {
+		regs_array = a7xx_indexed_reglist;
+		count = ARRAY_SIZE(a7xx_indexed_reglist) + 1;
+	} else {
+		regs_array = a6xx_indexed_reglist;
+		count = ARRAY_SIZE(a6xx_indexed_reglist) + 1;
+	}
 
 	a6xx_state->indexed_regs = state_kcalloc(a6xx_state, count,
 		sizeof(*a6xx_state->indexed_regs));
 	if (!a6xx_state->indexed_regs)
 		return;
 
-	for (i = 0; i < ARRAY_SIZE(a6xx_indexed_reglist); i++)
-		a6xx_get_indexed_regs(gpu, a6xx_state, &a6xx_indexed_reglist[i],
+	a6xx_state->nr_indexed_regs = count;
+
+	for (i = 0; i < count - 1; i++)
+		a6xx_get_indexed_regs(gpu, a6xx_state, &regs_array[i],
 			&a6xx_state->indexed_regs[i]);
 
 	if (adreno_is_a650_family(to_adreno_gpu(gpu)) ||
@@ -1004,7 +1027,6 @@ static void a6xx_get_indexed_registers(struct msm_gpu *gpu,
 			&a6xx_state->indexed_regs[i]);
 
 		gpu_write(gpu, REG_A6XX_CP_CHICKEN_DBG, val);
-		a6xx_state->nr_indexed_regs = count;
 		return;
 	}
 
@@ -1024,8 +1046,6 @@ static void a6xx_get_indexed_registers(struct msm_gpu *gpu,
 
 	/* Restore the size in the hardware */
 	gpu_write(gpu, REG_A6XX_CP_MEM_POOL_SIZE, mempool_size);
-
-	a6xx_state->nr_indexed_regs = count;
 }
 
 struct msm_gpu_state *a6xx_gpu_state_get(struct msm_gpu *gpu)
@@ -1057,11 +1077,13 @@ struct msm_gpu_state *a6xx_gpu_state_get(struct msm_gpu *gpu)
 	}
 
 	/* If GX isn't on the rest of the data isn't going to be accessible */
-	if (!adreno_has_gmu_wrapper(adreno_gpu) && !a6xx_gmu_gx_is_on(&a6xx_gpu->gmu))
+	if ((!adreno_has_gmu_wrapper(adreno_gpu) && !a6xx_gmu_gx_is_on(&a6xx_gpu->gmu))
+	    /* ||adreno_is_a7xx(adreno_gpu)  FAT HACK */)
 		return &a6xx_state->base;
 
 	/* Get the banks of indexed registers */
 	a6xx_get_indexed_registers(gpu, a6xx_state);
+return &a6xx_state->base;
 
 	/*
 	 * Try to initialize the crashdumper, if we are not dumping state
