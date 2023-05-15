@@ -2031,6 +2031,8 @@
 			operating-points-v2 = <&gpu_opp_table>;
 
 			qcom,gmu = <&gmu>;
+			interconnects = <&gem_noc MASTER_GFX3D 0 &mc_virt SLAVE_EBI1 0>;
+			interconnect-names = "gfx-mem";
 
 			status = "disabled";
 
@@ -2044,61 +2046,73 @@
 				opp-818000000 {
 					opp-hz = /bits/ 64 <818000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_TURBO>;
+					opp-peak-kBps = <(3350 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-791000000 {
 					opp-hz = /bits/ 64 <791000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_NOM_L1>;
+					opp-peak-kBps = <(3196 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-734000000 {
 					opp-hz = /bits/ 64 <734000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_NOM>;
+					opp-peak-kBps = <(2736 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-640000000 {
 					opp-hz = /bits/ 64 <640000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L2>;
+					opp-peak-kBps = <(2092 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-599000000 {
 					opp-hz = /bits/ 64 <599000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L1>;
+					opp-peak-kBps = <(1708 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-545000000 {
 					opp-hz = /bits/ 64 <545000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L0>;
+					opp-peak-kBps = <(1555 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-492000000 {
 					opp-hz = /bits/ 64 <492000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_SVS>;
+					opp-peak-kBps = <(768 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-421000000 {
 					opp-hz = /bits/ 64 <421000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS_L1>;
+					opp-peak-kBps = <(681 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-350000000 {
 					opp-hz = /bits/ 64 <350000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
+					opp-peak-kBps = <(547 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-317000000 {
 					opp-hz = /bits/ 64 <317000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
+					opp-peak-kBps = <(451 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-285000000 {
 					opp-hz = /bits/ 64 <285000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS_D1>;
+					opp-peak-kBps = <(200 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-220000000 {
 					opp-hz = /bits/ 64 <220000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS_D1>;
+					opp-peak-kBps = <(200 * 4 * 1000000 / 1024)>;
 				};
 			};
 		};
@@ -2139,6 +2153,7 @@
 			qcom,qmp = <&aoss_qmp>;
 
 			operating-points-v2 = <&gmu_opp_table>;
+			interconnects = <&gem_noc MASTER_GFX3D 0 &mc_virt SLAVE_EBI1 0>;
 			dma-coherent;
 
 			gmu_opp_table: opp-table {
@@ -2147,11 +2162,13 @@
 				opp-500000000 {
 					opp-hz = /bits/ 64 <500000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_SVS>;
+					opp-peak-kBps = <(200 * 4 * 1000000 / 1024)>;
 				};
 
 				opp-200000000 {
 					opp-hz = /bits/ 64 <200000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
+					opp-peak-kBps = <(200 * 4 * 1000000 / 1024)>;
 				};
 			};
 		};
