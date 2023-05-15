@@ -20,6 +20,7 @@ static const char * const a6xx_hfi_msg_id[] = {
 	HFI_MSG_ID(HFI_H2F_MSG_PERF_TABLE),
 	HFI_MSG_ID(HFI_H2F_MSG_TEST),
 	HFI_MSG_ID(HFI_H2F_MSG_START),
+	HFI_MSG_ID(HFI_H2F_MSG_FEATURE_CTRL),
 	HFI_MSG_ID(HFI_H2F_MSG_CORE_FW_START),
 	HFI_MSG_ID(HFI_H2F_MSG_GX_BW_PERF_VOTE),
 	HFI_MSG_ID(HFI_H2F_MSG_PREPARE_SLUMBER),
@@ -642,6 +643,19 @@ int a6xx_hfi_send_prep_slumber(struct a6xx_gmu *gmu)
 	/* TODO: should freq and bw fields be non-zero ? */
 
 	return a6xx_hfi_send_msg(gmu, HFI_H2F_MSG_PREPARE_SLUMBER, &msg,
+		sizeof(msg), NULL, 0);
+}
+
+int a6xx_hfi_send_feature_ctrl(struct a6xx_gmu *gmu, u32 feature,
+			       u32 enable, u32 data)
+{
+	struct a6xx_hfi_msg_feature_ctrl msg = { 0 };
+
+	msg.feature = feature;
+	msg.enable = enable;
+	msg.data = data;
+
+	return a6xx_hfi_send_msg(gmu, HFI_H2F_MSG_FEATURE_CTRL, &msg,
 		sizeof(msg), NULL, 0);
 }
 
