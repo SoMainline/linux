@@ -976,6 +976,7 @@ static void a6xx_gmu_set_initial_bw(struct msm_gpu *gpu, struct a6xx_gmu *gmu)
 	if (IS_ERR(gpu_opp))
 		return;
 
+	dev_pm_opp_of_find_icc_paths(gmu->dev, NULL);
 	dev_pm_opp_set_opp(&gpu->pdev->dev, gpu_opp);
 	dev_pm_opp_put(gpu_opp);
 }
