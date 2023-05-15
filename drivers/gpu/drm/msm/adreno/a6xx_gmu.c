@@ -136,6 +136,7 @@ void a6xx_gmu_set_freq(struct msm_gpu *gpu, struct dev_pm_opp *opp,
 		return;
 
 	if (!gmu->legacy) {
+		pr_err("hfi set freq idx=%u, setting %d\n", perf_index, perf_index);
 		a6xx_hfi_set_freq(gmu, perf_index);
 		dev_pm_opp_set_opp(&gpu->pdev->dev, opp);
 		return;
@@ -1236,6 +1237,8 @@ static int a6xx_gmu_memory_alloc(struct a6xx_gmu *gmu, struct a6xx_gmu_bo *bo,
 		drm_gem_object_put(bo->obj);
 		return ret;
 	}
+
+	pr_err("gmu_memory_alloc: %s <0x%x 0x%x>\n", name, bo->iova, size);
 
 	bo->virt = msm_gem_get_vaddr(bo->obj);
 	bo->size = size;
