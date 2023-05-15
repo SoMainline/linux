@@ -207,6 +207,22 @@ static int a6xx_gmu_start(struct a6xx_gmu *gmu)
 	int ret;
 
 	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff8);
+	pr_err("core version = 0x%x\n", val);
+
+	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff9);
+	pr_err("core_dev version = 0x%x\n", val);
+
+	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xffa);
+	pr_err("pwr version = 0x%x\n", val);
+
+	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xffb);
+	pr_err("pwr_dev version = 0x%x\n", val);
+
+	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xffc);
+	pr_err("hfi version = 0x%x\n", val);
+
+
+	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff8);
 	if (val <= 0x20010004 && !adreno_is_a7xx(adreno_gpu)) {
 		mask = 0xffffffff;
 		reset_val = 0xbabeface;
@@ -307,6 +323,8 @@ int a6xx_gmu_set_oob(struct a6xx_gmu *gmu, enum a6xx_gmu_oob_state state)
 
 	if (state >= ARRAY_SIZE(a6xx_gmu_oob_bits))
 		return -EINVAL;
+
+	pr_err("SETTING OOB %s\n", a6xx_gmu_oob_bits[state].name);
 
 	if (gmu->legacy) {
 		request = a6xx_gmu_oob_bits[state].set;
