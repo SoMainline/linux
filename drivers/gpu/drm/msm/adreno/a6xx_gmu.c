@@ -1023,8 +1023,9 @@ int a6xx_gmu_resume(struct a6xx_gpu *a6xx_gpu)
 
 	/* Check to see if we are doing a cold or warm boot */
 	if (adreno_is_a7xx(adreno_gpu)) {
-		status = a6xx_llc_read(a6xx_gpu, REG_A7XX_CX_MISC_TCM_RET_CNTL) == 1 ?
-			GMU_WARM_BOOT : GMU_COLD_BOOT;
+		status = GMU_COLD_BOOT;
+		// status = a6xx_llc_read(a6xx_gpu, REG_A7XX_CX_MISC_TCM_RET_CNTL) == 1 ?
+		// 	GMU_WARM_BOOT : GMU_COLD_BOOT;
 	} else if (gmu->legacy) {
 		status = gmu_read(gmu, REG_A6XX_GMU_GENERAL_7) == 1 ?
 			GMU_WARM_BOOT : GMU_COLD_BOOT;
@@ -1694,13 +1695,13 @@ int a6xx_gmu_init(struct a6xx_gpu *a6xx_gpu, struct device_node *node)
 			goto err_memory;
 	}
 
-	/* Allocate memory for for the HFI queues */
-	ret = a6xx_gmu_memory_alloc(gmu, &gmu->hfi, SZ_16K, 0, "hfi");
+	/* Allocate memory for the GMU log region */
+	ret = a6xx_gmu_memory_alloc(gmu, &gmu->log, SZ_16K, 0, "log");
 	if (ret)
 		goto err_memory;
 
-	/* Allocate memory for the GMU log region */
-	ret = a6xx_gmu_memory_alloc(gmu, &gmu->log, SZ_4K, 0, "log");
+	/* Allocate memory for for the HFI queues */
+	ret = a6xx_gmu_memory_alloc(gmu, &gmu->hfi, SZ_16K, 0, "hfi");
 	if (ret)
 		goto err_memory;
 
