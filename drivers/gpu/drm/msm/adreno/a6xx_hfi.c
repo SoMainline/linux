@@ -696,6 +696,8 @@ static int a6xx_hfi_start_v1(struct a6xx_gmu *gmu, int boot_state)
 
 int a6xx_hfi_start(struct a6xx_gmu *gmu, int boot_state)
 {
+	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
+	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
 	int ret;
 
 	if (gmu->legacy)
@@ -709,6 +711,24 @@ int a6xx_hfi_start(struct a6xx_gmu *gmu, int boot_state)
 	ret = a6xx_hfi_send_bw_table(gmu);
 	if (ret)
 		return ret;
+
+#if 0
+	ret = a6xx_hfi_send_feature_ctrl(gmu, HFI_FEATURE_ACD, true, 0);
+	if (ret)
+		return ret;
+	// send acd table and poke aop mbox
+
+	ret = a6xx_hfi_send_feature_ctrl(gmu, HFI_FEATURE_BCL, true, 0);
+	if (ret)
+		return ret;
+#endif
+
+	if (adreno_is_a7xx(adreno_gpu) &&
+	    gmu->idle_level == GMU_IDLE_STATE_IFPC) {
+		ret = a6xx_hfi_send_feature_ctrl(gmu, HFI_FEATURE_IFPC, true, 0x1680);
+		if (ret)
+			return ret;
+	}
 
 	ret = a6xx_hfi_send_core_fw_start(gmu);
 	if (ret)
