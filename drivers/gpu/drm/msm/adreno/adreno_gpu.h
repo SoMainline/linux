@@ -56,7 +56,7 @@ struct adreno_reglist {
 };
 
 extern const struct adreno_reglist a612_hwcg[], a615_hwcg[], a630_hwcg[], a640_hwcg[], a650_hwcg[];
-extern const struct adreno_reglist a660_hwcg[], a730_hwcg[];
+extern const struct adreno_reglist a660_hwcg[], a730_hwcg[], a740_hwcg[];
 
 struct adreno_info {
 	struct adreno_rev rev;
@@ -321,10 +321,21 @@ static inline int adreno_is_a730(struct adreno_gpu *gpu)
 	return adreno_cmp_rev(ADRENO_REV(7, 3, 0, ANY_ID), gpu->rev);
 }
 
+static inline int adreno_is_a740(struct adreno_gpu *gpu)
+{
+	return adreno_cmp_rev(ADRENO_REV(7, 4, 0, ANY_ID), gpu->rev);
+}
+
+/* Placeholder to make future diffs smaller */
+static inline int adreno_is_a740_family(struct adreno_gpu *gpu)
+{
+	return adreno_is_a740(gpu);
+}
+
 static inline int adreno_is_a7xx(struct adreno_gpu *gpu)
 {
 	/* Update with non-fake (i.e. non-A702) Gen 7 GPUs */
-	return adreno_is_a730(gpu);
+	return adreno_is_a730(gpu) || adreno_is_a740_family(gpu);
 }
 
 u64 adreno_private_address_space_size(struct msm_gpu *gpu);
