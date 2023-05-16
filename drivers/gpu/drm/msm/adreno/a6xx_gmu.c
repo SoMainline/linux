@@ -522,6 +522,7 @@ static void a6xx_gmu_rpmh_init(struct a6xx_gmu *gmu)
 	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
 	struct platform_device *pdev = to_platform_device(gmu->dev);
 	void __iomem *pdcptr = a6xx_gmu_get_mmio(pdev, "gmu_pdc");
+	u32 seqmem0_drv0_reg = REG_A6XX_RSCC_SEQ_MEM_0_DRV0;
 	void __iomem *seqptr = NULL;
 	uint32_t pdc_address_offset;
 	bool pdc_in_aop = false;
@@ -555,21 +556,26 @@ static void a6xx_gmu_rpmh_init(struct a6xx_gmu *gmu)
 	gmu_write_rscc(gmu, REG_A6XX_RSCC_HIDDEN_TCS_CMD0_ADDR, 0);
 	gmu_write_rscc(gmu, REG_A6XX_RSCC_HIDDEN_TCS_CMD0_DATA + 2, 0);
 	gmu_write_rscc(gmu, REG_A6XX_RSCC_HIDDEN_TCS_CMD0_ADDR + 2, 0);
-	gmu_write_rscc(gmu, REG_A6XX_RSCC_HIDDEN_TCS_CMD0_DATA + 4, 0x80000000);
+	gmu_write_rscc(gmu, REG_A6XX_RSCC_HIDDEN_TCS_CMD0_DATA + 4,
+		       adreno_is_a740_family(adreno_gpu) ? 0x80000021 : 0x80000000);
 	gmu_write_rscc(gmu, REG_A6XX_RSCC_HIDDEN_TCS_CMD0_ADDR + 4, 0);
 	gmu_write_rscc(gmu, REG_A6XX_RSCC_OVERRIDE_START_ADDR, 0);
 	gmu_write_rscc(gmu, REG_A6XX_RSCC_PDC_SEQ_START_ADDR, 0x4520);
 	gmu_write_rscc(gmu, REG_A6XX_RSCC_PDC_MATCH_VALUE_LO, 0x4510);
 	gmu_write_rscc(gmu, REG_A6XX_RSCC_PDC_MATCH_VALUE_HI, 0x4514);
 
+	/* The second spin of A7xx GPUs messed with some register offsets.. */
+	if (adreno_is_a740_family(adreno_gpu))
+		seqmem0_drv0_reg = REG_A7XX_RSCC_SEQ_MEM_0_DRV0_A740;
+
 	/* Load RSC sequencer uCode for sleep and wakeup */
 	if (adreno_is_a650_family(adreno_gpu) ||
 	    adreno_is_a7xx(adreno_gpu)) {
-		gmu_write_rscc(gmu, REG_A6XX_RSCC_SEQ_MEM_0_DRV0, 0xeaaae5a0);
-		gmu_write_rscc(gmu, REG_A6XX_RSCC_SEQ_MEM_0_DRV0 + 1, 0xe1a1ebab);
-		gmu_write_rscc(gmu, REG_A6XX_RSCC_SEQ_MEM_0_DRV0 + 2, 0xa2e0a581);
-		gmu_write_rscc(gmu, REG_A6XX_RSCC_SEQ_MEM_0_DRV0 + 3, 0xecac82e2);
-		gmu_write_rscc(gmu, REG_A6XX_RSCC_SEQ_MEM_0_DRV0 + 4, 0x0020edad);
+		gmu_write_rscc(gmu, seqmem0_drv0_reg, 0xeaaae5a0);
+		gmu_write_rscc(gmu, seqmem0_drv0_reg + 1, 0xe1a1ebab);
+		gmu_write_rscc(gmu, seqmem0_drv0_reg + 2, 0xa2e0a581);
+		gmu_write_rscc(gmu, seqmem0_drv0_reg + 3, 0xecac82e2);
+		gmu_write_rscc(gmu, seqmem0_drv0_reg + 4, 0x0020edad);
 	} else {
 		gmu_write_rscc(gmu, REG_A6XX_RSCC_SEQ_MEM_0_DRV0, 0xa7a506a0);
 		gmu_write_rscc(gmu, REG_A6XX_RSCC_SEQ_MEM_0_DRV0 + 1, 0xa1e6a6e7);
@@ -833,10 +839,20 @@ static int a6xx_gmu_fw_start(struct a6xx_gmu *gmu, unsigned int state)
 	 */
 	gmu_write(gmu, REG_A6XX_GMU_CM3_CFG, 0x4052);
 
-	chipid = adreno_gpu->rev.core << 24;
-	chipid |= adreno_gpu->rev.major << 16;
-	chipid |= adreno_gpu->rev.minor << 12;
-	chipid |= adreno_gpu->rev.patchid << 8;
+	/* NOTE: A730 may also fall in this if-condition with a future GMU fw update. */
+	if (adreno_is_a7xx(adreno_gpu) && !adreno_is_a730(adreno_gpu)) {
+		/* A7xx GPUs have obfuscated chip IDs. Use constant maj/min from revn */
+		chipid = FIELD_PREP(GENMASK(31, 24), adreno_gpu->revn / 100);
+		chipid |= FIELD_PREP(GENMASK(23, 16), (adreno_gpu->revn / 10) % 10);
+
+		/* Get the patchid (which may vary) from the device tree */
+		chipid |= FIELD_PREP(GENMASK(15, 8), adreno_gpu->rev.patchid);
+	} else {
+		chipid = adreno_gpu->rev.core << 24;
+		chipid |= adreno_gpu->rev.major << 16;
+		chipid |= adreno_gpu->rev.minor << 12;
+		chipid |= adreno_gpu->rev.patchid << 8;
+	}
 
 	if (adreno_is_a7xx(adreno_gpu)) {
 		gmu_write(gmu, REG_A6XX_GMU_GENERAL_10, chipid);
@@ -899,17 +915,23 @@ static void a6xx_gmu_irq_disable(struct a6xx_gmu *gmu)
 
 static void a6xx_gmu_rpmh_off(struct a6xx_gmu *gmu)
 {
-	u32 val;
+	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
+	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
+	u32 val, seqmem_off = 0;
+
+	/* The second spin of A7xx GPUs messed with some register offsets.. */
+	if (adreno_is_a740_family(adreno_gpu))
+		seqmem_off = 4;
 
 	/* Make sure there are no outstanding RPMh votes */
-	gmu_poll_timeout_rscc(gmu, REG_A6XX_RSCC_TCS0_DRV0_STATUS, val,
-		(val & 1), 100, 10000);
-	gmu_poll_timeout_rscc(gmu, REG_A6XX_RSCC_TCS1_DRV0_STATUS, val,
-		(val & 1), 100, 10000);
-	gmu_poll_timeout_rscc(gmu, REG_A6XX_RSCC_TCS2_DRV0_STATUS, val,
-		(val & 1), 100, 10000);
-	gmu_poll_timeout_rscc(gmu, REG_A6XX_RSCC_TCS3_DRV0_STATUS, val,
-		(val & 1), 100, 1000);
+	gmu_poll_timeout_rscc(gmu, REG_A6XX_RSCC_TCS0_DRV0_STATUS + seqmem_off,
+		val, (val & 1), 100, 10000);
+	gmu_poll_timeout_rscc(gmu, REG_A6XX_RSCC_TCS1_DRV0_STATUS + seqmem_off,
+		val, (val & 1), 100, 10000);
+	gmu_poll_timeout_rscc(gmu, REG_A6XX_RSCC_TCS2_DRV0_STATUS + seqmem_off,
+		val, (val & 1), 100, 10000);
+	gmu_poll_timeout_rscc(gmu, REG_A6XX_RSCC_TCS3_DRV0_STATUS + seqmem_off,
+		val, (val & 1), 100, 1000);
 }
 
 /* Force the GMU off in case it isn't responsive */
@@ -1018,7 +1040,8 @@ int a6xx_gmu_resume(struct a6xx_gpu *a6xx_gpu)
 
 	/* Use a known rate to bring up the GMU */
 	clk_set_rate(gmu->core_clk, 200000000);
-	clk_set_rate(gmu->hub_clk, 150000000);
+	clk_set_rate(gmu->hub_clk, adreno_is_a740_family(adreno_gpu) ?
+		     200000000 : 150000000);
 	ret = clk_bulk_prepare_enable(gmu->nr_clocks, gmu->clocks);
 	if (ret) {
 		pm_runtime_put(gmu->gxpd);
