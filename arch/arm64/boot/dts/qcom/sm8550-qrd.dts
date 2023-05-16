@@ -586,6 +586,14 @@
 	status = "okay";
 };
 
+&gpu {
+	status = "okay";
+
+	zap-shader {
+		firmware-name = "qcom/sm8550/a740_zap.mbn";
+	};
+};
+
 &pcie_1_phy_aux_clk {
 	status = "disabled";
 };
