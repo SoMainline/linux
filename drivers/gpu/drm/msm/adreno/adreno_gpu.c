@@ -325,7 +325,11 @@ int adreno_get_param(struct msm_gpu *gpu, struct msm_file_private *ctx,
 		*value = adreno_gpu->gmem;
 		return 0;
 	case MSM_PARAM_GMEM_BASE:
-		*value = !adreno_is_a650_family(adreno_gpu) ? 0x100000 : 0;
+		if (adreno_is_a650_family(adreno_gpu) ||
+		    adreno_is_a740_family(adreno_gpu))
+			*value = 0;
+		else
+			*value = 0x100000;
 		return 0;
 	case MSM_PARAM_CHIP_ID:
 		*value =  (uint64_t)adreno_gpu->rev.patchid |
