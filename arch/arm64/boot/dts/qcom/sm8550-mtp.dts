@@ -18,6 +18,7 @@
 / {
 	model = "Qualcomm Technologies, Inc. SM8550 MTP";
 	compatible = "qcom,sm8550-mtp", "qcom,sm8550";
+	qcom,msm-id = <0x218 0x20000>;
 
 	aliases {
 		serial0 = &uart7;
@@ -411,10 +412,10 @@
 
 &mdss_dsi0 {
 	vdda-supply = <&vreg_l3e_1p2>;
-	status = "okay";
+//	status = "okay";
 
 	panel@0 {
-		compatible = "visionox,vtdr6130";
+//		compatible = "visionox,vtdr6130";
 		reg = <0>;
 
 		pinctrl-names = "default", "sleep";
