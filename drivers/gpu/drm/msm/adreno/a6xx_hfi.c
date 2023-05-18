@@ -178,8 +178,6 @@ static int a6xx_hfi_send_msg(struct a6xx_gmu *gmu, int id,
 
 	seqnum = atomic_inc_return(&queue->seqnum) % 0xfff;
 
-	pr_err("hfi sending %s | id %d\n", a6xx_hfi_msg_id[id], seqnum);
-
 	/* First dword of the message is the message header - fill it in */
 	*((u32 *) data) = (seqnum << 20) | (HFI_MSG_CMD << 16) |
 		(dwords << 8) | id;
