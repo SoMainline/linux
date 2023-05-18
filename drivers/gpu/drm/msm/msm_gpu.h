@@ -550,11 +550,6 @@ static inline void gpu_write(struct msm_gpu *gpu, u32 reg, u32 data)
 	msm_writel(data, gpu->mmio + (reg << 2));
 }
 
-static inline u32 gpu_read_nolog(struct msm_gpu *gpu, u32 reg)
-{
-	return msm_readl(gpu->mmio + (reg << 2));
-}
-
 static inline u32 gpu_read(struct msm_gpu *gpu, u32 reg)
 {
 	u32 value = msm_readl(gpu->mmio + (reg << 2));

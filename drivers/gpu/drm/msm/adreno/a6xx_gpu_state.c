@@ -985,7 +985,7 @@ static void a6xx_get_indexed_regs(struct msm_gpu *gpu,
 
 	/* Read the data - each read increments the internal address by 1 */
 	for (i = 0; i < indexed->count; i++)
-		obj->data[i] = gpu_read_nolog(gpu, indexed->data);
+		obj->data[i] = gpu_read(gpu, indexed->data);
 }
 
 static void a6xx_get_indexed_registers(struct msm_gpu *gpu,
