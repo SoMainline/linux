@@ -555,14 +555,14 @@
 	vccq2-supply = <&vreg_l3g_1p2>;
 	vccq2-max-microamp = <100>;
 
-	status = "okay";
+	// status = "okay";
 };
 
 &ufs_mem_phy {
 	vdda-phy-supply = <&vreg_l1d_0p88>;
 	vdda-pll-supply = <&vreg_l3e_1p2>;
 
-	status = "okay";
+	// status = "okay";
 };
 
 &usb_1 {
@@ -570,7 +570,7 @@
 };
 
 &usb_1_dwc3 {
-	dr_mode = "peripheral";
+	dr_mode = "host";
 };
 
 &usb_1_hsphy {
