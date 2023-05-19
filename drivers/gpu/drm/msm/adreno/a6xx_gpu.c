@@ -1519,6 +1519,10 @@ static int hw_init(struct msm_gpu *gpu)
 		mb();
 	}
 
+	/* Some GPUs are stubborn and take their sweet time to unhalt GBIF! */
+	if (a6xx_has_gbif(adreno_gpu))
+		spin_until(gpu_read(gpu, REG_A6XX_GBIF_HALT_ACK) == 0);
+
 	gpu_write(gpu, REG_A6XX_RBBM_SECVID_TSB_CNTL, 0);
 
 	if (adreno_is_a619_holi(adreno_gpu))
