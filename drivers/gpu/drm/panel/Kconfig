@@ -692,6 +692,20 @@ config DRM_PANEL_SAMSUNG_SOFEF03
 
 	  The panel features a 1080x2520@60 and 1080x2520@120 mode.
 
+config DRM_PANEL_SAMSUNG_SOUXP00
+	tristate "Samsung souxp00 Sony Xperia 1 and 1 II DSI cmd mode panels"
+	depends on GPIOLIB && OF
+	depends on DRM_MIPI_DSI
+	depends on BACKLIGHT_CLASS_DEVICE
+	help
+	  Say Y here if you want to enable support for the Sony Xperia 1
+	  (amb650wh01) and 1 II (amb650wh07) 4k 6.5" OLED DSI cmd mode
+	  panels produced by Samsung.
+
+	  This Driver-IC uses Display Stream Compression 1.1.
+
+	  Both panels feature a 1644x3840@60 and 1096x2560@60 mode.
+
 config DRM_PANEL_SEIKO_43WVF1G
 	tristate "Seiko 43WVF1G panel"
 	depends on OF

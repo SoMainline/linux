@@ -10,7 +10,7 @@ maintainers:
   - Marijn Suijten <marijn.suijten@somainline.org>
 
 description: |
-  Unnamed Samsung Display-IC and panel found in the Sony Xperia 1
+  Unnamed Samsung Driver-IC and panel found in the Sony Xperia 1
   (kumano griffin) smartphone.
 
 allOf:
