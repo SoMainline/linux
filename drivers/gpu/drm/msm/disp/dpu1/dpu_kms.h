@@ -112,11 +112,6 @@ struct dpu_kms {
 	u32 num_paths;
 };
 
-struct vsync_info {
-	u32 frame_count;
-	u32 line_count;
-};
-
 #define DPU_ENC_WR_PTR_START_TIMEOUT_US 20000
 
 #define DPU_ENC_MAX_POLL_TIMEOUT_US	2000
@@ -191,12 +186,6 @@ void *dpu_debugfs_get_root(struct dpu_kms *dpu_kms);
  * containing one or more "key=value\n" entries.
  */
 #define DPU_KMS_INFO_MAX_SIZE	4096
-
-/**
- * Vblank enable/disable functions
- */
-int dpu_enable_vblank(struct msm_kms *kms, struct drm_crtc *crtc);
-void dpu_disable_vblank(struct msm_kms *kms, struct drm_crtc *crtc);
 
 /**
  * dpu_kms_get_clk_rate() - get the clock rate
