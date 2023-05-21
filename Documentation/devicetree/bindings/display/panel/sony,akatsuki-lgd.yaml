@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/display/panel/sony,akatsuki-lgd.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Sony Xperia XZ3 LG Display 1440x2880 6.0" OLED DSI panel
+
+maintainers:
+  - Marijn Suijten <marijn.suijten@somainline.org>
+
+description: |
+  This is an unnamed 6.0" 1440x2880 (9:18 aspect ratio) 60 hz panel
+  produced by LG Display, found in the Sony Xperia XZ3 smartphone.
+  It is always programmed with DSI 1.1. enabled.
+
+  The assembly features an Atmel maXTouch digitizer, described separately
+  as atmel,maxtouch.
+
+allOf:
+  - $ref: panel-common.yaml#
+
+properties:
+  compatible:
+    const: sony,akatsuki-lgd
+
+  port: true
+
+  reg:
+    maxItems: 1
+    description: DSI virtual channel
+
+  reset-gpios: true
+
+  vddio-supply:
+    description: I/O voltage supply (1.8V)
+
+required:
+  - compatible
+  - port
+  - reg
+  - reset-gpios
+  - vddio-supply
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/gpio/gpio.h>
+
+    dsi {
+        #address-cells = <1>;
+        #size-cells = <0>;
+        panel@0 {
+            compatible = "sony,akatsuki-lgd";
+            reg = <0>;
+
+            vddio-supply = <&vreg_l14a_1p8>;
+
+            reset-gpios = <&tlmm 6 GPIO_ACTIVE_HIGH>;
+
+            port {
+                panel_in: endpoint {
+                    remote-endpoint = <&dsi0_out>;
+                };
+            };
+        };
+    };
+
+...
+
