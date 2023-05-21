@@ -37,11 +37,23 @@
 };
 
 &panel {
+	compatible = "sony,akatsuki-lgd";
+
 	/* Akatsuki uses an OLED panel. */
 	/delete-property/ backlight;
 	/delete-property/ vsp-supply;
 	/delete-property/ vsn-supply;
 	/delete-property/ touch-reset-gpios;
+
+	/*
+	 * Correct misnamed property in board DTSI, which cannot be
+	 * renamed for backwards compatibility with sony,td4353-jdi.
+	 *
+	 * Additionally correct the polarity, so that the driver sets
+	 * the line to HIGH/1 when it wants to assert the reset pin.
+	 */
+	/delete-property/ panel-reset-gpios;
+	reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
 };
 
 &pmi8998_gpios {
