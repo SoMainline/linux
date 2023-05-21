@@ -666,6 +666,18 @@ config DRM_PANEL_SAMSUNG_SOFEF00
 
 	  The panels are 2280x1080@60Hz and 2340x1080@60Hz respectively
 
+config DRM_PANEL_SAMSUNG_SOFEF01
+	tristate "Samsung sofef01 Sony Xperia 5 / 10 II DSI cmd mode panels"
+	depends on GPIOLIB
+	depends on OF
+	depends on DRM_MIPI_DSI
+	depends on BACKLIGHT_CLASS_DEVICE
+	help
+	  Say Y or M here if you want to enable support for the Samsung AMOLED
+	  command mode panels found in the Sony Xperia 5 / 10 II smartphones.
+
+	  This panel features a fixed mode of 1080x2520@60.
+
 config DRM_PANEL_SEIKO_43WVF1G
 	tristate "Seiko 43WVF1G panel"
 	depends on OF
