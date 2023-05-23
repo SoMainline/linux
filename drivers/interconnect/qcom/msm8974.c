@@ -215,6 +215,7 @@ static struct qcom_icc_node * const msm8974_bimc_nodes[] = {
 static const struct qcom_icc_desc msm8974_bimc = {
 	.nodes = msm8974_bimc_nodes,
 	.num_nodes = ARRAY_SIZE(msm8974_bimc_nodes),
+	.bus_clk_desc = &bimc_clk,
 };
 
 DEFINE_QNODE(mas_rpm_inst, MSM8974_CNOC_MAS_RPM_INST, 8, 45, -1);
@@ -298,6 +299,7 @@ static struct qcom_icc_node * const msm8974_cnoc_nodes[] = {
 static const struct qcom_icc_desc msm8974_cnoc = {
 	.nodes = msm8974_cnoc_nodes,
 	.num_nodes = ARRAY_SIZE(msm8974_cnoc_nodes),
+	.bus_clk_desc = &bus_2_clk,
 };
 
 DEFINE_QNODE(mas_graphics_3d, MSM8974_MNOC_MAS_GRAPHICS_3D, 16, 6, -1, MSM8974_MNOC_TO_BIMC);
@@ -449,6 +451,7 @@ static struct qcom_icc_node * const msm8974_pnoc_nodes[] = {
 static const struct qcom_icc_desc msm8974_pnoc = {
 	.nodes = msm8974_pnoc_nodes,
 	.num_nodes = ARRAY_SIZE(msm8974_pnoc_nodes),
+	.bus_clk_desc = &bus_0_clk,
 };
 
 DEFINE_QNODE(mas_lpass_ahb, MSM8974_SNOC_MAS_LPASS_AHB, 8, 18, -1);
@@ -506,6 +509,7 @@ static struct qcom_icc_node * const msm8974_snoc_nodes[] = {
 static const struct qcom_icc_desc msm8974_snoc = {
 	.nodes = msm8974_snoc_nodes,
 	.num_nodes = ARRAY_SIZE(msm8974_snoc_nodes),
+	.bus_clk_desc = &bus_1_clk,
 };
 
 static const struct of_device_id msm8974_noc_of_match[] = {
