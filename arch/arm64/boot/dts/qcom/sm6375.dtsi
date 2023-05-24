@@ -1073,8 +1073,8 @@
 			interrupts = <GIC_SPI 421 IRQ_TYPE_LEVEL_HIGH>;
 
 			operating-points-v2 = <&cpu_bwmon_opp_table>;
-			interconnects = <&bimc MASTER_AMPSS_M0 QCOM_ICC_TAG_ACTIVE_ONLY
-					 &bimc SLAVE_EBI QCOM_ICC_TAG_ACTIVE_ONLY>;
+			interconnects = <&bimc MASTER_AMPSS_M0 1
+					 &bimc SLAVE_EBI 1>;
 
 			cpu_bwmon_opp_table: opp-table {
 				compatible = "operating-points-v2";
