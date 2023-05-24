@@ -376,6 +376,9 @@ static int qcom_icc_set(struct icc_node *src, struct icc_node *dst)
 	active_rate = min_t(u32, active_rate, INT_MAX);
 	sleep_rate = min_t(u32, sleep_rate, INT_MAX);
 
+	if (qp->bus_clk_desc->resource_type == QCOM_SMD_RPM_MEM_CLK)
+		pr_err("act=%uMHz slp=%uMHz\n", active_rate/1000, sleep_rate/1000);
+
 	if (active_rate != qp->bus_clk_rate[QCOM_SMD_RPM_ACTIVE_STATE]) {
 		ret = qcom_icc_rpm_set_bus_rate(qp->bus_clk_desc, active_rate, true);
 		if (ret)

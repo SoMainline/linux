@@ -650,6 +650,7 @@ static irqreturn_t bwmon_intr_thread(int irq, void *dev_id)
 	unsigned int bw_kbps, up_kbps, down_kbps;
 
 	bw_kbps = bwmon->target_kbps;
+	pr_err("bw_kbps = %llu\n", bw_kbps);
 
 	target_opp = dev_pm_opp_find_bw_ceil(bwmon->dev, &bw_kbps, 0);
 	if (IS_ERR(target_opp) && PTR_ERR(target_opp) == -ERANGE)
