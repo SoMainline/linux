@@ -316,6 +316,9 @@ static void qcom_icc_bus_aggregate(struct icc_provider *provider, u64 *agg_clk_r
 			else
 				agg_avg_rate = qn->sum_avg[i];
 
+			agg_avg_rate *= 151;
+			agg_avg_rate /= 100;
+
 			agg_rate = max_t(u64, agg_avg_rate, qn->max_peak[i]);
 			do_div(agg_rate, qn->buswidth);
 
