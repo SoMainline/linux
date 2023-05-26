@@ -151,6 +151,7 @@
 #define to_clk_smd_rpm(_hw) container_of(_hw, struct clk_smd_rpm, hw)
 
 static struct qcom_smd_rpm *rpmcc_smd_rpm;
+static bool smd_rpm_clk_scaling;
 
 struct clk_smd_rpm {
 	const int rpm_res_type;
@@ -393,6 +394,12 @@ static unsigned long clk_smd_rpm_recalc_rate(struct clk_hw *hw,
 	return r->rate;
 }
 
+bool qcom_smd_rpm_scaling_available(void)
+{
+	return smd_rpm_clk_scaling;
+}
+EXPORT_SYMBOL_GPL(qcom_smd_rpm_scaling_available);
+
 static int clk_smd_rpm_enable_scaling(void)
 {
 	int ret;
@@ -417,6 +424,8 @@ static int clk_smd_rpm_enable_scaling(void)
 		pr_err("RPM clock scaling (active set) not enabled!\n");
 		return ret;
 	}
+
+	smd_rpm_clk_scaling = true;
 
 	pr_debug("%s: RPM clock scaling is enabled\n", __func__);
 	return 0;

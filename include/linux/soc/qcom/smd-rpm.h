@@ -65,4 +65,6 @@ int qcom_rpm_smd_write(struct qcom_smd_rpm *rpm,
 		       u32 resource_type, u32 resource_id,
 		       void *buf, size_t count);
 
+bool qcom_smd_rpm_scaling_available(void);
+
 #endif
