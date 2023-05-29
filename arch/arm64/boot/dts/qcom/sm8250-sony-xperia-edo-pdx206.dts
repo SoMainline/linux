@@ -33,7 +33,7 @@
 };
 
 &panel {
-	compatible = "samsung,sofef03-m";
+	compatible = "samsung,sofef03-m-amb609vp01";
 };
 
 &pm8009_gpios {

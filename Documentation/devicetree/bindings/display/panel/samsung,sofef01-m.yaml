@@ -10,7 +10,7 @@ maintainers:
   - Marijn Suijten <marijn.suijten@somainline.org>
 
 description: |
-  Samsung SOFEF01-M Display-IC panels found in the Sony Xperia 5
+  Samsung SOFEF01-M Driver-IC panels found in the Sony Xperia 5
   (kumano bahamut) and Sony Xperia 10 II (seine pdx201) smartphones.
 
 allOf:
@@ -19,8 +19,7 @@ allOf:
   - if:
       properties:
         compatible:
-          const: samsung,sofef01-m-bahamut
-
+          const: samsung,sofef01-m-amb609tc01
     then:
       properties:
         vci-supply:
@@ -36,8 +35,10 @@ allOf:
 properties:
   compatible:
     enum:
-      - samsung,sofef01-m-bahamut # 6.1"
-      - samsung,sofef01-m-pdx201 # 6.0"
+      - samsung,sofef01-m-amb609tc01 # 6.1"
+      - samsung,sofef01-m-ams597ut01 # 6.0"
+      - samsung,sofef01-m-ams597ut04 # 6.0"
+      - samsung,sofef01-m-ams597ut05 # 6.0"
 
   port: true
 
@@ -67,7 +68,7 @@ examples:
         #address-cells = <1>;
         #size-cells = <0>;
         panel@0 {
-            compatible = "samsung,sofef01-m-bahamut";
+            compatible = "samsung,sofef01-m-amb609tc01";
             reg = <0>;
 
             reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
@@ -90,7 +91,7 @@ examples:
         #address-cells = <1>;
         #size-cells = <0>;
         panel@0 {
-            compatible = "samsung,sofef01-m-pdx201";
+            compatible = "samsung,sofef01-m-ams597ut01";
             reg = <0>;
 
             reset-gpios = <&tlmm 90 GPIO_ACTIVE_LOW>;
@@ -105,5 +106,5 @@ examples:
         };
     };
 
-...
+---
 
