@@ -187,10 +187,10 @@
 	};
 };
 
-&adsp {
-	status = "okay";
-	firmware-name = "qcom/sm8350/Sony/sagami/adsp.mbn";
-};
+// &adsp {
+// 	status = "okay";
+// 	firmware-name = "qcom/sm8350/Sony/sagami/adsp.mbn";
+// };
 
 &apps_rsc {
 	regulators-0 {
@@ -540,10 +540,10 @@
 	};
 };
 
-&cdsp {
-	status = "okay";
-	firmware-name = "qcom/sm8350/Sony/sagami/cdsp.mbn";
-};
+// &cdsp {
+// 	status = "okay";
+// 	firmware-name = "qcom/sm8350/Sony/sagami/cdsp.mbn";
+// };
 
 &i2c1 {
 	status = "okay";
@@ -650,10 +650,10 @@
 	};
 };
 
-&mpss {
-	status = "okay";
-	firmware-name = "qcom/sm8350/Sony/sagami/modem.mbn";
-};
+// &mpss {
+// 	status = "okay";
+// 	firmware-name = "qcom/sm8350/Sony/sagami/modem.mbn";
+// };
 
 &pm8350_gpios {
 	gpio-line-names = "ASSIGN1_THERM", /* GPIO_1 */
@@ -746,10 +746,10 @@
 	status = "okay";
 };
 
-&slpi {
-	status = "okay";
-	firmware-name = "qcom/sm8350/Sony/sagami/slpi.mbn";
-};
+// &slpi {
+// 	status = "okay";
+// 	firmware-name = "qcom/sm8350/Sony/sagami/slpi.mbn";
+// };
 
 &spi14 {
 	status = "okay";
@@ -1050,7 +1050,7 @@
 	vdda-pll-supply = <&pm8350_l1>;
 };
 
-&venus {
-	firmware-name = "qcom/sm8350/Sony/sagami/venus.mbn";
-	status = "okay";
-};
+// &venus {
+// 	firmware-name = "qcom/sm8350/Sony/sagami/venus.mbn";
+// 	status = "okay";
+// };
