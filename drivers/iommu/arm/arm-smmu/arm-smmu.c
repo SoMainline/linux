@@ -32,6 +32,7 @@
 #include <linux/of_device.h>
 #include <linux/pci.h>
 #include <linux/platform_device.h>
+#include <linux/pm_opp.h>
 #include <linux/pm_runtime.h>
 #include <linux/ratelimit.h>
 #include <linux/slab.h>
@@ -1970,7 +1971,10 @@ static int arm_smmu_device_dt_probe(struct arm_smmu_device *smmu,
 {
 	const struct arm_smmu_match_data *data;
 	struct device *dev = smmu->dev;
+	struct dev_pm_opp *opp;
 	bool legacy_binding;
+	unsigned int bw = 0;
+	int ret;
 
 	if (of_property_read_u32(dev->of_node, "#global-interrupts", global_irqs))
 		return dev_err_probe(dev, -ENODEV,
@@ -1998,7 +2002,25 @@ static int arm_smmu_device_dt_probe(struct arm_smmu_device *smmu,
 	if (of_dma_is_coherent(dev->of_node))
 		smmu->features |= ARM_SMMU_FEAT_COHERENT_WALK;
 
-	return 0;
+	/* It's fine to omit the OPP table */
+	if (!dev_pm_opp_of_get_opp_desc_node(dev))
+		return 0;
+
+	ret = devm_pm_opp_of_add_table(dev);
+	if (ret)
+		return ret;
+
+	ret = dev_pm_opp_of_find_icc_paths(dev, NULL);
+	if (ret)
+		return ret;
+
+	opp = dev_pm_opp_find_bw_ceil(dev, &bw, 0);
+	if (IS_ERR(opp))
+		return PTR_ERR(opp);
+
+	dev_pm_opp_set_opp(dev, opp);
+
+	return ret;
 }
 
 static void arm_smmu_rmr_install_bypass_smr(struct arm_smmu_device *smmu)
@@ -2224,8 +2246,20 @@ static void arm_smmu_device_remove(struct platform_device *pdev)
 static int __maybe_unused arm_smmu_runtime_resume(struct device *dev)
 {
 	struct arm_smmu_device *smmu = dev_get_drvdata(dev);
+	struct dev_pm_opp *opp;
+	unsigned int bw = 0;
 	int ret;
 
+	if (PTR_ERR(dev_pm_opp_get_opp_table(dev)) < 0)
+		goto skip_opp;
+
+	opp = dev_pm_opp_find_bw_ceil(dev, &bw, 0);
+	if (IS_ERR(opp))
+		return PTR_ERR(opp);
+
+	dev_pm_opp_set_opp(dev, opp);
+
+skip_opp:
 	ret = clk_bulk_enable(smmu->num_clks, smmu->clks);
 	if (ret)
 		return ret;
@@ -2240,6 +2274,11 @@ static int __maybe_unused arm_smmu_runtime_suspend(struct device *dev)
 	struct arm_smmu_device *smmu = dev_get_drvdata(dev);
 
 	clk_bulk_disable(smmu->num_clks, smmu->clks);
+
+	if (PTR_ERR(dev_pm_opp_get_opp_table(dev)) < 0)
+		return 0;
+
+	dev_pm_opp_set_opp(dev, NULL);
 
 	return 0;
 }
