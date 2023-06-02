@@ -4199,6 +4199,11 @@
 			};
 		};
 
+		llcc_pmu: pmu@9095000 {
+			compatible = "qcom,llcc-pmu-v2";
+			reg = <0 0x09095000 0 0x300>;
+		};
+
 		system-cache-controller@9200000 {
 			compatible = "qcom,sm8250-llcc";
 			reg = <0 0x09200000 0 0x50000>, <0 0x09280000 0 0x50000>,
