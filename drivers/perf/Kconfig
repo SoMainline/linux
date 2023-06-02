@@ -155,6 +155,14 @@ config QCOM_L3_PMU
 	   Adds the L3 cache PMU into the perf events subsystem for
 	   monitoring L3 cache events.
 
+config QCOM_LLCC_PMU
+	tristate "Qualcomm Technologies LLCC PMU"
+	depends on (ARCH_QCOM && ARM64) || COMPILE_TEST
+	depends on OF
+	help
+	  Support for the last-level cache performance monitor unit found
+	  on some Qualcomm Snapdragon SoCs.
+
 config THUNDERX2_PMU
 	tristate "Cavium ThunderX2 SoC PMU UNCORE"
 	depends on ARCH_THUNDER2 || COMPILE_TEST
