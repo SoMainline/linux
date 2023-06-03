@@ -327,6 +327,7 @@ static int dsi_pll_7nm_vco_set_rate(struct clk_hw *hw, unsigned long rate,
 
 static int dsi_pll_7nm_lock_status(struct dsi_pll_7nm *pll)
 {
+	struct device *dev = &pll->phy->pdev->dev;
 	int rc;
 	u32 status = 0;
 	u32 const delay_us = 100;
@@ -339,8 +340,10 @@ static int dsi_pll_7nm_lock_status(struct dsi_pll_7nm *pll)
 				       delay_us,
 				       timeout_us);
 	if (rc)
-		pr_err("DSI PLL(%d) lock failed, status=0x%08x\n",
-		       pll->phy->id, status);
+		DRM_DEV_ERROR(dev, "DSI PLL(%d) lock failed, status=0x%08x: %d\n",
+			      pll->phy->id, status, rc);
+	else
+		dev_notice(dev, "PLL lock successful %#08x\n", status);
 
 	return rc;
 }
