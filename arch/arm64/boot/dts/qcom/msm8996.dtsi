@@ -924,9 +924,18 @@
 		mnoc: interconnect@5a4000 {
 			compatible = "qcom,msm8996-mnoc";
 			reg = <0x005a4000 0x1c000>;
+			clocks = <&mmcc MMSS_MMAGIC_AHB_CLK>,
+				 <&mmcc MMSS_MMAGIC_MAXI_CLK>;
+			clock-names = "iface",
+				      "mnoc_bus";
 			#interconnect-cells = <1>;
-			clocks = <&mmcc AHB_CLK_SRC>;
-			clock-names = "iface";
+
+			mnoc_ahb: interconnect-mnoc-ahb {
+				compatible = "qcom,msm8996-mnoc-ahb";
+				clocks = <&mmcc AHB_CLK_SRC>;
+				clock-names = "bus";
+				#interconnect-cells = <1>;
+			};
 		};
 
 		pnoc: interconnect@5c0000 {
@@ -2371,7 +2380,7 @@
 				 <&mmcc VIDEO_MAXI_CLK>;
 			clock-names = "core", "iface", "bus", "mbus";
 			interconnects = <&mnoc MASTER_VIDEO_P0 &bimc SLAVE_EBI_CH0>,
-					<&bimc MASTER_AMPSS_M0 &mnoc SLAVE_VENUS_CFG>;
+					<&bimc MASTER_AMPSS_M0 &mnoc_ahb SLAVE_VENUS_CFG>;
 			interconnect-names = "video-mem", "cpu-cfg";
 			iommus = <&venus_smmu 0x00>,
 				 <&venus_smmu 0x01>,
