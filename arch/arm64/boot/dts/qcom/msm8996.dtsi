@@ -915,17 +915,18 @@
 			compatible = "qcom,msm8996-a2noc";
 			reg = <0x00583000 0x7000>;
 			#interconnect-cells = <1>;
-			clock-names = "aggre2_ufs_axi", "ufs_axi";
 			clocks = <&gcc GCC_AGGRE2_UFS_AXI_CLK>,
 				 <&gcc GCC_UFS_AXI_CLK>;
+			clock-names = "aggre2_ufs_axi",
+				      "ufs_axi";
 		};
 
 		mnoc: interconnect@5a4000 {
 			compatible = "qcom,msm8996-mnoc";
 			reg = <0x005a4000 0x1c000>;
 			#interconnect-cells = <1>;
-			clock-names = "iface";
 			clocks = <&mmcc AHB_CLK_SRC>;
+			clock-names = "iface";
 		};
 
 		pnoc: interconnect@5c0000 {
