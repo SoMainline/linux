@@ -126,7 +126,7 @@
 	status = "okay";
 
 	synaptics@2c {
-		compatible = "syna,rmi4-i2c";
+		// compatible = "syna,rmi4-i2c";
 		reg = <0x2c>;
 		interrupt-parent = <&tlmm>;
 		interrupts = <125 IRQ_TYPE_EDGE_FALLING>;
