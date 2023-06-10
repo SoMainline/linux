@@ -2057,7 +2057,8 @@ static const struct qcom_icc_desc msm8996_pnoc = {
 	.nodes = pnoc_nodes,
 	.num_nodes = ARRAY_SIZE(pnoc_nodes),
 	.bus_clk_desc = &bus_0_clk,
-	.regmap_cfg = &msm8996_pnoc_regmap_config
+	.regmap_cfg = &msm8996_pnoc_regmap_config,
+	.keep_alive = true,
 };
 
 static struct qcom_icc_node * const snoc_nodes[] = {
