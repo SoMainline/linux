@@ -18,10 +18,6 @@
 #include "icc-rpm.h"
 #include "msm8996.h"
 
-static const char * const mm_intf_clocks[] = {
-	"iface"
-};
-
 static const char * const a0noc_intf_clocks[] = {
 	"aggre0_snoc_axi",
 	"aggre0_cnoc_ahb",
@@ -31,6 +27,11 @@ static const char * const a0noc_intf_clocks[] = {
 static const char * const a2noc_intf_clocks[] = {
 	"aggre2_ufs_axi",
 	"ufs_axi"
+};
+
+static const char * const mnoc_intf_clocks[] = {
+	"iface",
+	"mnoc_bus",
 };
 
 static const u16 mas_a0noc_common_links[] = {
@@ -1965,10 +1966,31 @@ static struct qcom_icc_node * const mnoc_nodes[] = {
 	[MASTER_VFE] = &mas_vfe,
 	[MASTER_SNOC_VMEM] = &mas_snoc_vmem,
 	[MASTER_VIDEO_P0_OCMEM] = &mas_venus_vmem,
-	[MASTER_CNOC_MNOC_MMSS_CFG] = &mas_cnoc_mnoc_mmss_cfg,
 	[SLAVE_MNOC_BIMC] = &slv_mnoc_bimc,
 	[SLAVE_VMEM] = &slv_vmem,
 	[SLAVE_SERVICE_MNOC] = &slv_srvc_mnoc,
+};
+
+static const struct regmap_config msm8996_mnoc_regmap_config = {
+	.reg_bits	= 32,
+	.reg_stride	= 4,
+	.val_bits	= 32,
+	.max_register	= 0x1c000,
+	.fast_io	= true
+};
+
+static const struct qcom_icc_desc msm8996_mnoc = {
+	.type = QCOM_ICC_NOC,
+	.nodes = mnoc_nodes,
+	.num_nodes = ARRAY_SIZE(mnoc_nodes),
+	.bus_clk_desc = &mmaxi_0_clk,
+	.intf_clocks = mnoc_intf_clocks,
+	.num_intf_clocks = ARRAY_SIZE(mnoc_intf_clocks),
+	.regmap_cfg = &msm8996_mnoc_regmap_config
+};
+
+static struct qcom_icc_node * const mnoc_ahb_nodes[] = {
+	[MASTER_CNOC_MNOC_MMSS_CFG] = &mas_cnoc_mnoc_mmss_cfg,
 	[SLAVE_MMAGIC_CFG] = &slv_mmagic_cfg,
 	[SLAVE_CPR_CFG] = &slv_cpr_cfg,
 	[SLAVE_MISC_CFG] = &slv_misc_cfg,
@@ -1989,24 +2011,14 @@ static struct qcom_icc_node * const mnoc_nodes[] = {
 	[SLAVE_SMMU_VENUS_CFG] = &slv_smmu_venus_cfg,
 	[SLAVE_SMMU_CPP_CFG] = &slv_smmu_cpp_cfg,
 	[SLAVE_SMMU_JPEG_CFG] = &slv_smmu_jpeg_cfg,
-	[SLAVE_SMMU_VFE_CFG] = &slv_smmu_vfe_cfg
+	[SLAVE_SMMU_VFE_CFG] = &slv_smmu_vfe_cfg,
 };
 
-static const struct regmap_config msm8996_mnoc_regmap_config = {
-	.reg_bits	= 32,
-	.reg_stride	= 4,
-	.val_bits	= 32,
-	.max_register	= 0x1c000,
-	.fast_io	= true
-};
-
-static const struct qcom_icc_desc msm8996_mnoc = {
+static const struct qcom_icc_desc msm8996_mnoc_ahb = {
 	.type = QCOM_ICC_NOC,
 	.nodes = mnoc_nodes,
 	.num_nodes = ARRAY_SIZE(mnoc_nodes),
 	.bus_clk_desc = &mmaxi_0_clk,
-	.intf_clocks = mm_intf_clocks,
-	.num_intf_clocks = ARRAY_SIZE(mm_intf_clocks),
 	.regmap_cfg = &msm8996_mnoc_regmap_config,
 	.ab_coeff = 154,
 };
@@ -2100,6 +2112,7 @@ static const struct of_device_id qnoc_of_match[] = {
 	{ .compatible = "qcom,msm8996-bimc", .data = &msm8996_bimc},
 	{ .compatible = "qcom,msm8996-cnoc", .data = &msm8996_cnoc},
 	{ .compatible = "qcom,msm8996-mnoc", .data = &msm8996_mnoc},
+	{ .compatible = "qcom,msm8996-mnoc-ahb", .data = &msm8996_mnoc_ahb},
 	{ .compatible = "qcom,msm8996-pnoc", .data = &msm8996_pnoc},
 	{ .compatible = "qcom,msm8996-snoc", .data = &msm8996_snoc},
 	{ }
