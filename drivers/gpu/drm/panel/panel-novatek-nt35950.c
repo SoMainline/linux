@@ -59,6 +59,7 @@ struct nt35950 {
 
 	int cur_mode;
 	u8 last_page;
+	bool enabled;
 	bool prepared;
 };
 
@@ -486,10 +487,6 @@ static int nt35950_unprepare(struct drm_panel *panel)
 	if (!nt->prepared)
 		return 0;
 
-	ret = nt35950_off(nt);
-	if (ret < 0)
-		dev_err(dev, "Failed to deinitialize panel: %d\n", ret);
-
 	gpiod_set_value_cansleep(nt->reset_gpio, 0);
 	regulator_bulk_disable(ARRAY_SIZE(nt->vregs), nt->vregs);
 
@@ -528,9 +525,37 @@ static int nt35950_get_modes(struct drm_panel *panel,
 	return nt->desc->num_modes;
 }
 
+static int nt35950_enable(struct drm_panel *panel)
+{
+	struct nt35950 *nt = to_nt35950(panel);
+
+	if (nt->enabled)
+		return 0;
+
+	nt->enabled = true;
+
+	return 0;
+}
+
+static int nt35950_disable(struct drm_panel *panel)
+{
+	struct nt35950 *nt = to_nt35950(panel);
+
+	if (nt->enabled)
+		nt35950_off(nt);
+	else
+		return 0;
+
+	nt->enabled = false;
+
+	return 0;
+}
+
 static const struct drm_panel_funcs nt35950_panel_funcs = {
 	.prepare = nt35950_prepare,
+	.enable = nt35950_enable,
 	.unprepare = nt35950_unprepare,
+	.disable = nt35950_disable,
 	.get_modes = nt35950_get_modes,
 };
 
