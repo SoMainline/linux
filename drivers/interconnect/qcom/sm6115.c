@@ -609,8 +609,8 @@ static struct qcom_icc_node xm_usb3_0 = {
 static struct qcom_icc_node ebi = {
 	.name = "ebi",
 	.id = SM6115_SLAVE_EBI_CH0,
-	.channels = 1,
-	.buswidth = 8,
+	.channels = 2,
+	.buswidth = 4,
 	.mas_rpm_id = -1,
 	.slv_rpm_id = 0,
 };
