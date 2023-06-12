@@ -264,7 +264,7 @@ static struct clk_rcg2 system_noc_clk_src = {
 		.name = "system_noc_clk_src",
 		.parent_data = gcc_xo_gpll0_gpll0_early_div,
 		.num_parents = ARRAY_SIZE(gcc_xo_gpll0_gpll0_early_div),
-		.ops = &clk_rcg2_ops,
+		.ops = &clk_rcg2_ro_ops,
 	},
 };
 
@@ -284,7 +284,7 @@ static struct clk_rcg2 config_noc_clk_src = {
 		.name = "config_noc_clk_src",
 		.parent_data = gcc_xo_gpll0,
 		.num_parents = ARRAY_SIZE(gcc_xo_gpll0),
-		.ops = &clk_rcg2_ops,
+		.ops = &clk_rcg2_ro_ops,
 	},
 };
 
@@ -306,7 +306,7 @@ static struct clk_rcg2 periph_noc_clk_src = {
 		.name = "periph_noc_clk_src",
 		.parent_data = gcc_xo_gpll0,
 		.num_parents = ARRAY_SIZE(gcc_xo_gpll0),
-		.ops = &clk_rcg2_ops,
+		.ops = &clk_rcg2_ro_ops,
 	},
 };
 
