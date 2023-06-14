@@ -584,6 +584,7 @@ static int nt35950_probe(struct mipi_dsi_device *dsi)
 
 	drm_panel_init(&nt->panel, dev, &nt35950_panel_funcs,
 		       DRM_MODE_CONNECTOR_DSI);
+	nt->panel.prepare_prev_first = true;
 
 	ret = drm_panel_of_backlight(&nt->panel);
 	if (ret) {
