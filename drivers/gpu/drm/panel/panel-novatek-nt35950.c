@@ -349,42 +349,6 @@ static int nt35950_on(struct nt35950 *nt)
 	if (ret < 0)
 		return ret;
 
-	ret = mipi_dsi_dcs_exit_sleep_mode(dsi);
-	if (ret < 0)
-		return ret;
-	msleep(120);
-
-	ret = mipi_dsi_dcs_set_display_on(dsi);
-	if (ret < 0)
-		return ret;
-	msleep(120);
-
-	return 0;
-}
-
-static int nt35950_off(struct nt35950 *nt)
-{
-	struct device *dev = &nt->dsi[0]->dev;
-	int ret;
-
-	ret = mipi_dsi_dcs_set_display_off(nt->dsi[0]);
-	if (ret < 0) {
-		dev_err(dev, "Failed to set display off: %d\n", ret);
-		goto set_lpm;
-	}
-	usleep_range(10000, 11000);
-
-	ret = mipi_dsi_dcs_enter_sleep_mode(nt->dsi[0]);
-	if (ret < 0) {
-		dev_err(dev, "Failed to enter sleep mode: %d\n", ret);
-		goto set_lpm;
-	}
-	msleep(150);
-
-set_lpm:
-	nt->dsi[0]->mode_flags |= MIPI_DSI_MODE_LPM;
-	nt->dsi[1]->mode_flags |= MIPI_DSI_MODE_LPM;
-
 	return 0;
 }
 
@@ -465,15 +429,60 @@ end:
 	return 0;
 }
 
+static int nt35950_enable(struct drm_panel *panel)
+{
+	struct nt35950 *nt = to_nt35950(panel);
+	struct mipi_dsi_device *dsi = nt->dsi[0];
+	struct device *dev = &dsi->dev;
+	int ret;
+
+	ret = mipi_dsi_dcs_exit_sleep_mode(dsi);
+	if (ret < 0) {
+		dev_err(dev, "Failed to exit sleep mode: %d\n", ret);
+		return ret;
+	}
+	msleep(120);
+
+	ret = mipi_dsi_dcs_set_display_on(dsi);
+	if (ret < 0) {
+		dev_err(dev, "Failed to set display on: %d\n", ret);
+		return ret;
+	}
+	msleep(120);
+
+	return 0;
+}
+
+static int nt35950_disable(struct drm_panel *panel)
+{
+	struct nt35950 *nt = to_nt35950(panel);
+	struct mipi_dsi_device *dsi = nt->dsi[0];
+	struct device *dev = &dsi->dev;
+	int ret;
+
+	ret = mipi_dsi_dcs_set_display_off(dsi);
+	if (ret < 0) {
+		dev_err(dev, "Failed to set display off: %d\n", ret);
+		return ret;
+	}
+	usleep_range(10000, 11000);
+
+	ret = mipi_dsi_dcs_enter_sleep_mode(dsi);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enter sleep mode: %d\n", ret);
+		return ret;
+	}
+	msleep(150);
+
+	return 0;
+}
+
 static int nt35950_unprepare(struct drm_panel *panel)
 {
 	struct nt35950 *nt = to_nt35950(panel);
-	struct device *dev = &nt->dsi[0]->dev;
-	int ret;
 
-	ret = nt35950_off(nt);
-	if (ret < 0)
-		dev_err(dev, "Failed to deinitialize panel: %d\n", ret);
+	nt->dsi[0]->mode_flags &= ~MIPI_DSI_MODE_LPM;
+	nt->dsi[1]->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
 	gpiod_set_value_cansleep(nt->reset_gpio, 0);
 	regulator_bulk_disable(ARRAY_SIZE(nt->vregs), nt->vregs);
@@ -514,6 +523,8 @@ static int nt35950_get_modes(struct drm_panel *panel,
 
 static const struct drm_panel_funcs nt35950_panel_funcs = {
 	.prepare = nt35950_prepare,
+	.enable = nt35950_enable,
+	.disable = nt35950_disable,
 	.unprepare = nt35950_unprepare,
 	.get_modes = nt35950_get_modes,
 };
