@@ -359,9 +359,6 @@ static int nt35950_on(struct nt35950 *nt)
 		return ret;
 	msleep(120);
 
-	nt->dsi[0]->mode_flags &= ~MIPI_DSI_MODE_LPM;
-	nt->dsi[1]->mode_flags &= ~MIPI_DSI_MODE_LPM;
-
 	return 0;
 }
 
