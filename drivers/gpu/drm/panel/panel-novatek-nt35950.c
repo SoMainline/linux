@@ -550,7 +550,8 @@ static int nt35950_probe(struct mipi_dsi_device *dsi)
 	if (!nt->desc)
 		return -ENODEV;
 
-	nt->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_ASIS);
+	/* Make sure to set RESX LOW before starting the power-on sequence */
+	nt->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_LOW);
 	if (IS_ERR(nt->reset_gpio)) {
 		return dev_err_probe(dev, PTR_ERR(nt->reset_gpio),
 				     "Failed to get reset gpio\n");
@@ -617,8 +618,6 @@ static int nt35950_probe(struct mipi_dsi_device *dsi)
 		}
 	}
 
-	/* Make sure to set RESX LOW before starting the power-on sequence */
-	gpiod_set_value_cansleep(nt->reset_gpio, 0);
 	return 0;
 }
 
