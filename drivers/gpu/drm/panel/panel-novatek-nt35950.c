@@ -4,6 +4,8 @@
  *
  * Copyright (c) 2021 AngeloGioacchino Del Regno
  *                    <angelogioacchino.delregno@somainline.org>
+ * Copyright (c) 2023 Marijn Suijten
+ *                    <marijn.suijten@somainline.org>
  */
 #include <linux/delay.h>
 #include <linux/gpio/consumer.h>
@@ -687,5 +689,6 @@ static struct mipi_dsi_driver nt35950_driver = {
 module_mipi_dsi_driver(nt35950_driver);
 
 MODULE_AUTHOR("AngeloGioacchino Del Regno <angelogioacchino.delregno@somainline.org>");
+MODULE_AUTHOR("Marijn Suijten <marijn.suijten@somainline.org>");
 MODULE_DESCRIPTION("Novatek NT35950 DriverIC panels driver");
 MODULE_LICENSE("GPL v2");
