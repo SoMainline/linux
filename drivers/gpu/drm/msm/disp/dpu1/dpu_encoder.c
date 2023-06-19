@@ -511,7 +511,7 @@ bool dpu_encoder_use_dsc_merge(struct drm_encoder *drm_enc)
 		if (dpu_enc->phys_encs[i])
 			intf_count++;
 
-	/* See dpu_encoder_get_topology, we only support 2:2:1 topology */
+	/* See dpu_encoder_get_topology, we only support 2:2:1 and 2:2:2 topology */
 	if (dpu_enc->dsc)
 		num_dsc = 2;
 
@@ -1850,7 +1850,7 @@ static void dpu_encoder_dsc_pipe_cfg(struct dpu_hw_ctl *ctl,
 static void dpu_encoder_prep_dsc(struct dpu_encoder_virt *dpu_enc,
 				 struct drm_dsc_config *dsc)
 {
-	/* coding only for 2LM, 2enc, 1 dsc config */
+	/* coding only for 2LM, 2 DSC enc config */
 	struct dpu_encoder_phys *enc_master = dpu_enc->cur_master;
 	struct dpu_hw_ctl *ctl = enc_master->hw_ctl;
 	struct dpu_hw_dsc *hw_dsc[MAX_CHANNELS_PER_ENC];
@@ -2033,7 +2033,7 @@ static void dpu_encoder_dsc_pipe_clr(struct dpu_hw_ctl *ctl,
 
 static void dpu_encoder_unprep_dsc(struct dpu_encoder_virt *dpu_enc)
 {
-	/* coding only for 2LM, 2enc, 1 dsc config */
+	/* coding only for 2LM, 2 DSC enc config */
 	struct dpu_encoder_phys *enc_master = dpu_enc->cur_master;
 	struct dpu_hw_ctl *ctl = enc_master->hw_ctl;
 	struct dpu_hw_dsc *hw_dsc[MAX_CHANNELS_PER_ENC];
