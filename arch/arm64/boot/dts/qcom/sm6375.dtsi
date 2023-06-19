@@ -978,12 +978,10 @@
 		system_noc: interconnect@1880000 {
 			compatible = "qcom,sm6375-snoc";
 			reg = <0 0x01880000 0 0x5f080>;
-			clocks = <&gcc GCC_SYS_NOC_CPUSS_AHB_CLK>,
-				 <&gcc GCC_SYS_NOC_UFS_PHY_AXI_CLK>,
+			clocks = <&gcc GCC_SYS_NOC_UFS_PHY_AXI_CLK>,
 				 <&gcc GCC_SYS_NOC_USB3_PRIM_AXI_CLK>,
 				 <&rpmcc RPM_SMD_IPA_CLK>;
-			clock-names = "cpu_axi",
-				      "ufs_axi",
+			clock-names = "ufs_axi",
 				      "usb_axi",
 				      "ipa";
 			#interconnect-cells = <2>;

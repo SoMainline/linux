@@ -19,7 +19,7 @@
 #include "icc-rpm.h"
 
 static const char * const snoc_intf_clocks[] = {
-	"cpu_axi",
+	// "cpu_axi",
 	"ufs_axi",
 	"usb_axi",
 	"ipa", /* qxm_ipa */
