@@ -664,7 +664,7 @@ static struct msm_display_topology dpu_encoder_get_topology(
 	/* Datapath topology selection
 	 *
 	 * Dual display
-	 * 2 LM, 2 INTF ( Split display using 2 interfaces)
+	 * 2 LM, 2 INTF (split display using 2 interfaces)
 	 *
 	 * Single display
 	 * 1 LM, 1 INTF
@@ -2229,7 +2229,7 @@ static void dpu_encoder_dsc_pipe_clr(struct dpu_hw_ctl *ctl,
 
 static void dpu_encoder_unprep_dsc(struct dpu_encoder_virt *dpu_enc)
 {
-	/* coding only for 2LM, 2enc, 1 dsc config */
+	/* coding only for 2LM, 2 DSC enc config */
 	struct dpu_encoder_phys *enc_master = dpu_enc->cur_master;
 	struct dpu_hw_ctl *ctl = enc_master->hw_ctl;
 	struct dpu_hw_dsc *hw_dsc[MAX_CHANNELS_PER_ENC];
