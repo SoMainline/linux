@@ -26,45 +26,47 @@ static const struct dpu_ubwc_cfg msm8996_ubwc_cfg = {
 
 static const struct dpu_mdp_cfg msm8996_mdp[] = {
 	{
-	.name = "top_0",
-	.base = 0x0, .len = 0x454,
-	.features = BIT(DPU_MDP_VSYNC_SEL),
-	.clk_ctrls[DPU_CLK_CTRL_VIG0] = { .reg_off = 0x2ac, .bit_off = 0 },
-	.clk_ctrls[DPU_CLK_CTRL_VIG1] = { .reg_off = 0x2b4, .bit_off = 0 },
-	.clk_ctrls[DPU_CLK_CTRL_VIG2] = { .reg_off = 0x2bc, .bit_off = 0 },
-	.clk_ctrls[DPU_CLK_CTRL_VIG3] = { .reg_off = 0x2c4, .bit_off = 0 },
-	.clk_ctrls[DPU_CLK_CTRL_RGB0] = { .reg_off = 0x2ac, .bit_off = 4 },
-	.clk_ctrls[DPU_CLK_CTRL_RGB1] = { .reg_off = 0x2b4, .bit_off = 4 },
-	.clk_ctrls[DPU_CLK_CTRL_RGB2] = { .reg_off = 0x2bc, .bit_off = 4 },
-	.clk_ctrls[DPU_CLK_CTRL_RGB3] = { .reg_off = 0x2c4, .bit_off = 4 },
-	.clk_ctrls[DPU_CLK_CTRL_DMA0] = { .reg_off = 0x2ac, .bit_off = 8 },
-	.clk_ctrls[DPU_CLK_CTRL_DMA1] = { .reg_off = 0x2b4, .bit_off = 8 },
-	.clk_ctrls[DPU_CLK_CTRL_CURSOR0] = { .reg_off = 0x3a8, .bit_off = 16 },
-	.clk_ctrls[DPU_CLK_CTRL_CURSOR1] = { .reg_off = 0x3b0, .bit_off = 16 },
+		.name = "top_0",
+		.base = 0x0, .len = 0x454,
+		.features = BIT(DPU_MDP_VSYNC_SEL),
+		.clk_ctrls = {
+			[DPU_CLK_CTRL_VIG0] = { .reg_off = 0x2ac, .bit_off = 0 },
+			[DPU_CLK_CTRL_VIG1] = { .reg_off = 0x2b4, .bit_off = 0 },
+			[DPU_CLK_CTRL_VIG2] = { .reg_off = 0x2bc, .bit_off = 0 },
+			[DPU_CLK_CTRL_VIG3] = { .reg_off = 0x2c4, .bit_off = 0 },
+			[DPU_CLK_CTRL_RGB0] = { .reg_off = 0x2ac, .bit_off = 4 },
+			[DPU_CLK_CTRL_RGB1] = { .reg_off = 0x2b4, .bit_off = 4 },
+			[DPU_CLK_CTRL_RGB2] = { .reg_off = 0x2bc, .bit_off = 4 },
+			[DPU_CLK_CTRL_RGB3] = { .reg_off = 0x2c4, .bit_off = 4 },
+			[DPU_CLK_CTRL_DMA0] = { .reg_off = 0x2ac, .bit_off = 8 },
+			[DPU_CLK_CTRL_DMA1] = { .reg_off = 0x2b4, .bit_off = 8 },
+			[DPU_CLK_CTRL_CURSOR0] = { .reg_off = 0x3a8, .bit_off = 16 },
+			[DPU_CLK_CTRL_CURSOR1] = { .reg_off = 0x3b0, .bit_off = 16 },
+		},
 	},
 };
 
 static const struct dpu_ctl_cfg msm8996_ctl[] = {
 	{
-	.name = "ctl_0", .id = CTL_0,
-	.base = 0x1000, .len = 0x64,
-	.intr_start = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR2, 9),
+		.name = "ctl_0", .id = CTL_0,
+		.base = 0x1000, .len = 0x64,
+		.intr_start = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR2, 9),
 	}, {
-	.name = "ctl_1", .id = CTL_1,
-	.base = 0x1200, .len = 0x64,
-	.intr_start = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR2, 10),
+		.name = "ctl_1", .id = CTL_1,
+		.base = 0x1200, .len = 0x64,
+		.intr_start = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR2, 10),
 	}, {
-	.name = "ctl_2", .id = CTL_2,
-	.base = 0x1400, .len = 0x64,
-	.intr_start = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR2, 11),
+		.name = "ctl_2", .id = CTL_2,
+		.base = 0x1400, .len = 0x64,
+		.intr_start = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR2, 11),
 	}, {
-	.name = "ctl_3", .id = CTL_3,
-	.base = 0x1600, .len = 0x64,
-	.intr_start = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR2, 12),
+		.name = "ctl_3", .id = CTL_3,
+		.base = 0x1600, .len = 0x64,
+		.intr_start = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR2, 12),
 	}, {
-	.name = "ctl_4", .id = CTL_4,
-	.base = 0x1800, .len = 0x64,
-	.intr_start = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR2, 13),
+		.name = "ctl_4", .id = CTL_4,
+		.base = 0x1800, .len = 0x64,
+		.intr_start = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR2, 13),
 	},
 };
 
@@ -176,7 +178,7 @@ static const struct dpu_lm_cfg msm8996_lm[] = {
 		.base = 0x44000, .len = 0x320,
 		.features = MIXER_MSM8998_MASK,
 		.sblk = &msm8998_lm_sblk,
-		.lm_pair = LM_2,
+		.lm_pair = LM_1,
 		.pingpong = PINGPONG_0,
 		.dspp = DSPP_0,
 	}, {
@@ -184,7 +186,7 @@ static const struct dpu_lm_cfg msm8996_lm[] = {
 		.base = 0x45000, .len = 0x320,
 		.features = MIXER_MSM8998_MASK,
 		.sblk = &msm8998_lm_sblk,
-		.lm_pair = LM_5,
+		.lm_pair = LM_0,
 		.pingpong = PINGPONG_1,
 		.dspp = DSPP_1,
 	}, {
@@ -192,26 +194,24 @@ static const struct dpu_lm_cfg msm8996_lm[] = {
 		.base = 0x46000, .len = 0x320,
 		.features = MIXER_MSM8998_MASK,
 		.sblk = &msm8998_lm_sblk,
-		.lm_pair = LM_0,
+		.lm_pair = LM_5,
 		.pingpong = PINGPONG_2,
 	}, {
 		.name = "lm_3", .id = LM_3,
 		.base = 0x47000, .len = 0x320,
 		.features = MIXER_MSM8998_MASK,
 		.sblk = &msm8998_lm_sblk,
-		.pingpong = PINGPONG_NONE,
 	}, {
 		.name = "lm_4", .id = LM_4,
 		.base = 0x48000, .len = 0x320,
 		.features = MIXER_MSM8998_MASK,
 		.sblk = &msm8998_lm_sblk,
-		.pingpong = PINGPONG_NONE,
 	}, {
 		.name = "lm_5", .id = LM_5,
 		.base = 0x49000, .len = 0x320,
 		.features = MIXER_MSM8998_MASK,
 		.sblk = &msm8998_lm_sblk,
-		.lm_pair = LM_1,
+		.lm_pair = LM_2,
 		.pingpong = PINGPONG_3,
 	},
 };
@@ -245,6 +245,16 @@ static const struct dpu_pingpong_cfg msm8996_pp[] = {
 		.sblk = &msm8996_pp_sblk,
 		.intr_done = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR, 11),
 		.intr_rdptr = DPU_IRQ_IDX(MDP_SSPP_TOP0_INTR, 15),
+	},
+};
+
+static const struct dpu_dsc_cfg msm8996_dsc[] = {
+	{
+		.name = "dsc_0", .id = DSC_0,
+		.base = 0x80000, .len = 0x140,
+	}, {
+		.name = "dsc_1", .id = DSC_1,
+		.base = 0x80400, .len = 0x140,
 	},
 };
 
@@ -350,6 +360,8 @@ const struct dpu_mdss_cfg dpu_msm8996_cfg = {
 	.dspp = msm8996_dspp,
 	.pingpong_count = ARRAY_SIZE(msm8996_pp),
 	.pingpong = msm8996_pp,
+	.dsc_count = ARRAY_SIZE(msm8996_dsc),
+	.dsc = msm8996_dsc,
 	.intf_count = ARRAY_SIZE(msm8996_intf),
 	.intf = msm8996_intf,
 	.vbif_count = ARRAY_SIZE(msm8996_vbif),
@@ -358,7 +370,6 @@ const struct dpu_mdss_cfg dpu_msm8996_cfg = {
 	.mdss_irqs = BIT(MDP_SSPP_TOP0_INTR) | \
 		     BIT(MDP_SSPP_TOP0_INTR2) | \
 		     BIT(MDP_SSPP_TOP0_HIST_INTR) | \
-		     BIT(MDP_INTF0_INTR) | \
 		     BIT(MDP_INTF1_INTR) | \
 		     BIT(MDP_INTF2_INTR) | \
 		     BIT(MDP_INTF3_INTR),
