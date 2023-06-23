@@ -1300,7 +1300,7 @@ static int rpm_smd_clk_probe(struct platform_device *pdev)
 			goto err;
 
 		/* Marking clocks enabled here will trigger unused cleanup */
-		rpm_smd_clks[i]->enabled = true;
+		// rpm_smd_clks[i]->enabled = true;
 	}
 
 	for (i = 0; i < desc->num_icc_clks; i++) {
