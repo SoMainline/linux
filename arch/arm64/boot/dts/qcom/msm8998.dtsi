@@ -8,6 +8,7 @@
 #include <dt-bindings/clock/qcom,rpmcc.h>
 #include <dt-bindings/firmware/qcom,scm.h>
 #include <dt-bindings/interconnect/qcom,icc.h>
+#include <dt-bindings/interconnect/qcom,rpm-icc.h>
 #include <dt-bindings/interconnect/qcom,msm8998.h>
 #include <dt-bindings/power/qcom-rpmpd.h>
 #include <dt-bindings/gpio/gpio.h>
@@ -251,6 +252,11 @@
 	firmware {
 		scm {
 			compatible = "qcom,scm-msm8998", "qcom,scm";
+			// clocks = <&rpmcc RPM_SMD_CE1_CLK>;
+			// clock-names = "core";
+			// assigned-clocks = <&rpmcc RPM_SMD_CE1_CLK>;
+			// assigned-clock-rates = <85710000>;
+			// interconnects = <&snoc MASTER_CRYPTO_C0 0 &bimc SLAVE_EBI 0>;
 		};
 	};
 
@@ -1168,6 +1174,7 @@
 			protected-clocks = <AGGRE2_SNOC_NORTH_AXI>,
 					   <SSC_XO>,
 					   <SSC_CNOC_AHBS_CLK>;
+			power-domains = <&rpmpd MSM8998_VDDCX>;
 		};
 
 		rpm_msg_ram: sram@778000 {
@@ -1377,8 +1384,8 @@
 			reg-names = "monitor", "global";
 			interrupts = <GIC_SPI 183 IRQ_TYPE_LEVEL_HIGH>;
 			operating-points-v2 = <&cpu_bwmon_opp_table>;
-			interconnects = <&gnoc MASTER_APSS_PROC QCOM_ICC_TAG_ACTIVE_ONLY
-					 &bimc SLAVE_EBI QCOM_ICC_TAG_ACTIVE_ONLY>;
+			interconnects = <&gnoc MASTER_APSS_PROC RPM_ACTIVE_TAG
+					 &bimc SLAVE_EBI RPM_ACTIVE_TAG>;
 
 			cpu_bwmon_opp_table: opp-table {
 				compatible = "operating-points-v2";
@@ -2932,8 +2939,8 @@
 				 <&gcc GCC_SDCC2_APPS_CLK>,
 				 <&rpmcc RPM_SMD_XO_CLK_SRC>;
 			clock-names = "iface", "core", "xo";
-			interconnects = <&a2noc MASTER_SDCC_2 QCOM_ICC_TAG_ALWAYS
-					 &bimc SLAVE_EBI QCOM_ICC_TAG_ALWAYS>;
+			interconnects = <&a2noc MASTER_SDCC_2 RPM_ALWAYS_TAG
+					 &bimc SLAVE_EBI RPM_ALWAYS_TAG>;
 			interconnect-names = "sdhc-ddr";
 			power-domains = <&rpmpd MSM8998_VDDCX>;
 			operating-points-v2 = <&sdhc2_opp_table>;
@@ -3492,6 +3499,7 @@
 				 <0>,
 				 <0>,
 				 <&gcc GCC_MMSS_GPLL0_DIV_CLK>;
+			power-domains = <&rpmpd MSM8998_VDDMX>;
 		};
 
 		mdss: display-subsystem@c900000 {
@@ -3537,18 +3545,30 @@
 					 <&mmcc MDSS_AXI_CLK>,
 					 <&mmcc MNOC_AHB_CLK>,
 					 <&mmcc MDSS_MDP_CLK>,
-					 <&mmcc MDSS_VSYNC_CLK>;
+					 <&mmcc MDSS_VSYNC_CLK>,
+					 <&mmcc MDSS_MDP_LUT_CLK>;
 				clock-names = "iface",
 					      "bus",
 					      "mnoc",
 					      "core",
-					      "vsync";
+					      "vsync",
+					      "lut";
 
 				assigned-clocks = <&mmcc MDSS_VSYNC_CLK>;
 				assigned-clock-rates = <19200000>;
 
 				operating-points-v2 = <&mdp_opp_table>;
 				power-domains = <&rpmpd MSM8998_VDDMX>;
+
+				interconnects = <&mnoc MASTER_MDP_P0 RPM_ALWAYS_TAG
+						 &bimc SLAVE_EBI RPM_ALWAYS_TAG>,
+						<&mnoc MASTER_MDP_P1 RPM_ALWAYS_TAG
+						 &bimc SLAVE_EBI RPM_ALWAYS_TAG>,
+						<&gnoc MASTER_APSS_PROC RPM_ALWAYS_TAG
+						 &mnoc_ahb SLAVE_DISPLAY_CFG RPM_ALWAYS_TAG>;
+				interconnect-names = "mdp0-mem",
+						     "mdp1-mem",
+						     "cpu-cfg";
 
 				mdp_opp_table: opp-table {
 					compatible = "operating-points-v2";
@@ -3981,7 +4001,6 @@
 				<GIC_SPI 261 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 262 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 272 IRQ_TYPE_LEVEL_HIGH>;
-
 			power-domains = <&mmcc BIMC_SMMU_GDSC>;
 		};
 
