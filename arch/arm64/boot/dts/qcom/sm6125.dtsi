@@ -42,11 +42,9 @@
 			device_type = "cpu";
 			compatible = "qcom,kryo260";
 			reg = <0x0 0x0>;
-			clocks = <&cpufreq_hw 0>;
 			enable-method = "psci";
 			capacity-dmips-mhz = <1024>;
 			next-level-cache = <&L2_0>;
-			qcom,freq-domain = <&cpufreq_hw 0>;
 			L2_0: l2-cache {
 				compatible = "cache";
 				cache-level = <2>;
@@ -58,44 +56,36 @@
 			device_type = "cpu";
 			compatible = "qcom,kryo260";
 			reg = <0x0 0x1>;
-			clocks = <&cpufreq_hw 0>;
 			enable-method = "psci";
 			capacity-dmips-mhz = <1024>;
 			next-level-cache = <&L2_0>;
-			qcom,freq-domain = <&cpufreq_hw 0>;
 		};
 
 		CPU2: cpu@2 {
 			device_type = "cpu";
 			compatible = "qcom,kryo260";
 			reg = <0x0 0x2>;
-			clocks = <&cpufreq_hw 0>;
 			enable-method = "psci";
 			capacity-dmips-mhz = <1024>;
 			next-level-cache = <&L2_0>;
-			qcom,freq-domain = <&cpufreq_hw 0>;
 		};
 
 		CPU3: cpu@3 {
 			device_type = "cpu";
 			compatible = "qcom,kryo260";
 			reg = <0x0 0x3>;
-			clocks = <&cpufreq_hw 0>;
 			enable-method = "psci";
 			capacity-dmips-mhz = <1024>;
 			next-level-cache = <&L2_0>;
-			qcom,freq-domain = <&cpufreq_hw 0>;
 		};
 
 		CPU4: cpu@100 {
 			device_type = "cpu";
 			compatible = "qcom,kryo260";
 			reg = <0x0 0x100>;
-			clocks = <&cpufreq_hw 1>;
 			enable-method = "psci";
 			capacity-dmips-mhz = <1638>;
 			next-level-cache = <&L2_1>;
-			qcom,freq-domain = <&cpufreq_hw 1>;
 			L2_1: l2-cache {
 				compatible = "cache";
 				cache-level = <2>;
@@ -107,33 +97,27 @@
 			device_type = "cpu";
 			compatible = "qcom,kryo260";
 			reg = <0x0 0x101>;
-			clocks = <&cpufreq_hw 1>;
 			enable-method = "psci";
 			capacity-dmips-mhz = <1638>;
 			next-level-cache = <&L2_1>;
-			qcom,freq-domain = <&cpufreq_hw 1>;
 		};
 
 		CPU6: cpu@102 {
 			device_type = "cpu";
 			compatible = "qcom,kryo260";
 			reg = <0x0 0x102>;
-			clocks = <&cpufreq_hw 1>;
 			enable-method = "psci";
 			capacity-dmips-mhz = <1638>;
 			next-level-cache = <&L2_1>;
-			qcom,freq-domain = <&cpufreq_hw 1>;
 		};
 
 		CPU7: cpu@103 {
 			device_type = "cpu";
 			compatible = "qcom,kryo260";
 			reg = <0x0 0x103>;
-			clocks = <&cpufreq_hw 1>;
 			enable-method = "psci";
 			capacity-dmips-mhz = <1638>;
 			next-level-cache = <&L2_1>;
-			qcom,freq-domain = <&cpufreq_hw 1>;
 		};
 
 		cpu-map {
@@ -1714,19 +1698,6 @@
 			#interrupt-cells = <3>;
 			interrupt-controller;
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
-		};
-
-		cpufreq_hw: cpufreq@f521000 {
-			compatible = "qcom,cpufreq-hw";
-			reg = <0xf521000 0x1400>,
-			      <0xf523000 0x1400>;
-			reg-names = "freq-domain0", "freq-domain1";
-
-			clocks = <&rpmcc RPM_SMD_XO_CLK_SRC>, <&gcc GPLL0_OUT_MAIN>;
-			clock-names = "xo", "alternate";
-
-			#freq-domain-cells = <1>;
-			#clock-cells = <1>;
 		};
 	};
 
