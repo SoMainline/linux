@@ -351,7 +351,7 @@
 	status = "okay";
 
 	panel@0 {
-		compatible = "samsung,sofef01-m-ams597ut05";
+		compatible = "samsung,sofef01-m-ams597ut04";
 		reg = <0>;
 
 		#address-cells = <1>;
