@@ -47,17 +47,6 @@ static int cmp_vcd(void *priv, const struct list_head *a, const struct list_head
 	return bcm_a->aux_data.vcd - bcm_b->aux_data.vcd;
 }
 
-static u64 bcm_div(u64 num, u32 base)
-{
-	/* Ensure that small votes aren't lost. */
-	if (num && num < base)
-		return 1;
-
-	do_div(num, base);
-
-	return num;
-}
-
 /* BCMs with enable_mask use one-hot-encoding for on/off signaling */
 static void bcm_aggregate_mask(struct qcom_icc_bcm *bcm)
 {
