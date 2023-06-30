@@ -132,6 +132,10 @@ struct a6xx_hfi_msg_perf_table {
 
 #define HFI_H2F_MSG_BW_TABLE 3
 
+#define CNOC_MAX_LEVEL_NUM 2
+#define CNOC_MAX_BCMS 6
+#define DDR_MAX_LEVEL_NUM 16
+#define DDR_MAX_BCMS 8
 struct a6xx_hfi_msg_bw_table {
 	u32 header;
 	u32 bw_level_num;
@@ -139,10 +143,10 @@ struct a6xx_hfi_msg_bw_table {
 	u32 ddr_cmds_num;
 	u32 cnoc_wait_bitmask;
 	u32 ddr_wait_bitmask;
-	u32 cnoc_cmds_addrs[6];
-	u32 cnoc_cmds_data[2][6];
-	u32 ddr_cmds_addrs[8];
-	u32 ddr_cmds_data[16][8];
+	u32 cnoc_cmds_addrs[CNOC_MAX_BCMS];
+	u32 cnoc_cmds_data[CNOC_MAX_LEVEL_NUM][CNOC_MAX_BCMS];
+	u32 ddr_cmds_addrs[DDR_MAX_BCMS];
+	u32 ddr_cmds_data[DDR_MAX_LEVEL_NUM][DDR_MAX_BCMS];
 };
 
 #define HFI_H2F_MSG_TEST 5
