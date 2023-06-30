@@ -102,6 +102,38 @@ int qcom_icc_set(struct icc_node *src, struct icc_node *dst)
 EXPORT_SYMBOL_GPL(qcom_icc_set);
 
 /**
+ * qcom_bcm_read_aux_data - populates bcm aux data
+ * @dev: pointer to the associated device
+ * @bcm: name of the BCM within cmd-db
+ * @aux_data: pointer to struct bcm_db to populate
+ *
+ * Returns 0 on success or an errno on failure.
+ */
+int qcom_bcm_read_aux_data(struct device *dev, const char *name, struct bcm_db *aux_data)
+{
+	const struct bcm_db *data;
+	size_t data_count;
+
+	data = cmd_db_read_aux_data(name, &data_count);
+	if (IS_ERR(data)) {
+		dev_err(dev, "%s command db read error (%ld)\n", name, PTR_ERR(data));
+		return PTR_ERR(data);
+	}
+	if (!data_count) {
+		dev_err(dev, "%s command db missing or partial aux data\n", name);
+		return -EINVAL;
+	}
+
+	aux_data->unit = le32_to_cpu(data->unit);
+	aux_data->width = le16_to_cpu(data->width);
+	aux_data->vcd = data->vcd;
+	aux_data->reserved = data->reserved;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(qcom_bcm_read_aux_data);
+
+/**
  * qcom_icc_bcm_init - populates bcm aux data and connect qnodes
  * @bcm: bcm to be initialized
  * @dev: associated provider device
@@ -111,9 +143,7 @@ EXPORT_SYMBOL_GPL(qcom_icc_set);
 int qcom_icc_bcm_init(struct qcom_icc_bcm *bcm, struct device *dev)
 {
 	struct qcom_icc_node *qn;
-	const struct bcm_db *data;
-	size_t data_count;
-	int i;
+	int i, ret;
 
 	/* BCM is already initialised*/
 	if (bcm->addr)
@@ -126,22 +156,10 @@ int qcom_icc_bcm_init(struct qcom_icc_bcm *bcm, struct device *dev)
 		return -EINVAL;
 	}
 
-	data = cmd_db_read_aux_data(bcm->name, &data_count);
-	if (IS_ERR(data)) {
-		dev_err(dev, "%s command db read error (%ld)\n",
-			bcm->name, PTR_ERR(data));
-		return PTR_ERR(data);
-	}
-	if (!data_count) {
-		dev_err(dev, "%s command db missing or partial aux data\n",
-			bcm->name);
-		return -EINVAL;
-	}
+	ret = qcom_bcm_read_aux_data(dev, bcm->name, &bcm->aux_data);
+	if (ret)
+		return ret;
 
-	bcm->aux_data.unit = le32_to_cpu(data->unit);
-	bcm->aux_data.width = le16_to_cpu(data->width);
-	bcm->aux_data.vcd = data->vcd;
-	bcm->aux_data.reserved = data->reserved;
 	INIT_LIST_HEAD(&bcm->list);
 	INIT_LIST_HEAD(&bcm->ws_list);
 
