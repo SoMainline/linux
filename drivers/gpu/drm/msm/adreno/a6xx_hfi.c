@@ -740,7 +740,7 @@ static int a6xx_build_bw_table(struct a6xx_gpu *a6xx_gpu,
 
 static struct hfi_bcm sdm845_ddr_hfi_bcms[] = {
 	{ .bcm.name = "MC0", .mem_buswidth = 4 },
-	{ .bcm.name = "SN7", .mem_buswidth = 4 },
+	{ .bcm.name = "SH0", .mem_buswidth = 16 },
 	{ .bcm.name = "ACV", .bcm.fixed = true },
 };
 
