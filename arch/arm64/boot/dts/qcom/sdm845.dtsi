@@ -4775,9 +4775,6 @@
 			qcom,gmu = <&gmu>;
 			#cooling-cells = <2>;
 
-			interconnects = <&mem_noc MASTER_GFX3D 0 &mem_noc SLAVE_EBI1 0>;
-			interconnect-names = "gfx-mem";
-
 			status = "disabled";
 
 			gpu_opp_table: opp-table {
@@ -4786,43 +4783,36 @@
 				opp-710000000 {
 					opp-hz = /bits/ 64 <710000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_TURBO_L1>;
-					opp-peak-kBps = <7216000>;
 				};
 
 				opp-675000000 {
 					opp-hz = /bits/ 64 <675000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_TURBO>;
-					opp-peak-kBps = <7216000>;
 				};
 
 				opp-596000000 {
 					opp-hz = /bits/ 64 <596000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_NOM_L1>;
-					opp-peak-kBps = <6220000>;
 				};
 
 				opp-520000000 {
 					opp-hz = /bits/ 64 <520000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_NOM>;
-					opp-peak-kBps = <6220000>;
 				};
 
 				opp-414000000 {
 					opp-hz = /bits/ 64 <414000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L1>;
-					opp-peak-kBps = <4068000>;
 				};
 
 				opp-342000000 {
 					opp-hz = /bits/ 64 <342000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_SVS>;
-					opp-peak-kBps = <2724000>;
 				};
 
 				opp-257000000 {
 					opp-hz = /bits/ 64 <257000000>;
 					opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>;
-					opp-peak-kBps = <1648000>;
 				};
 			};
 		};
@@ -4874,6 +4864,18 @@
 			iommus = <&adreno_smmu 5>;
 
 			operating-points-v2 = <&gmu_opp_table>;
+			qcom,bandwidth-levels-kBps = <400000>,
+						     <600000>,
+						     <800000>,
+						     <1200000>,
+						     <1648000>,
+						     <2188000>,
+						     <2724000>,
+						     <3072000>,
+						     <4068000>,
+						     <5184000>,
+						     <6220000>,
+						     <7216000>;
 
 			status = "disabled";
 
