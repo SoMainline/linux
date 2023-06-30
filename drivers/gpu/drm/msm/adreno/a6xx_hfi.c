@@ -682,35 +682,32 @@ static int a6xx_build_bw_table(struct a6xx_gpu *a6xx_gpu,
 			       struct hfi_bcm *ddr_hbcms, int num_ddr_bcms,
 			       struct hfi_bcm *cnoc_hbcms, int num_cnoc_bcms)
 {
+	struct device_node *gmu_np = a6xx_gpu->gmu.dev->of_node;
 	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
-	bool is_a7xx = adreno_is_a7xx(adreno_gpu);
 	struct device *dev = &adreno_gpu->base.pdev->dev;
+	bool is_a7xx = adreno_is_a7xx(adreno_gpu);
 	u64 ddr_ib[DDR_MAX_LEVEL_NUM] = { 0 };
-	int num_ddr_levels = 1;
-	struct dev_pm_opp *opp;
-	u32 bw = 0;
+	int num_ddr_levels;
 	int i, ret;
+	u32 tmp;
 
-	/* Retrieve the number of DDR levels from OPP, level 0 corresponds to 'off' (ib = 0) */
-	for (i = 1; i < DDR_MAX_LEVEL_NUM; i++) {
-		opp = dev_pm_opp_find_bw_ceil(dev, &bw, 0);
-		if (IS_ERR(opp)) {
-			/* No more bw values, we're done! */
-			if (PTR_ERR(opp) == -ERANGE)
-				break;
+	num_ddr_levels = of_property_count_u32_elems(gmu_np, "qcom,bandwidth-levels-kBps");
+	if (num_ddr_levels < 0)
+		return num_ddr_levels;
 
-			return PTR_ERR(opp);
-		}
-		dev_pm_opp_put(opp);
+	if (num_ddr_levels >= DDR_MAX_LEVEL_NUM)
+		return -EINVAL;
 
-		/* Only take into account unique bw values */
-		if (bw != ddr_ib[num_ddr_levels]) {
-			ddr_ib[num_ddr_levels] = bw;
-			num_ddr_levels++;
-		}
+	/* Level 0 ('off', ib = 0) is hardcoded to zero, always. No point including it in the dt */
+	num_ddr_levels++;
 
-		/* Uptick the bw by 1 kBps to get the next value */
-		bw++;
+	for (i = 1; i < num_ddr_levels; i++) {
+		ret = of_property_read_u32_index(gmu_np, "qcom,bandwidth-levels-kBps",
+						 (i - 1), &tmp);
+		if (ret)
+			return ret;
+
+		ddr_ib[i] = tmp;
 	}
 
 	msg->bw_level_num = num_ddr_levels;
