@@ -653,12 +653,18 @@ static void a6xx_build_ddr_table(struct a6xx_hfi_msg_bw_table *msg, u64 *ib, boo
 	int i;
 
 	/* BCMs on the MAS_GFX3D-LLCC-SLV_EBI path (?) */
-	for (i = 0; i < num_ddr_bcms; i++)
+	for (i = 0; i < num_ddr_bcms; i++) {
 		msg->ddr_cmds_addrs[i] = cmd_db_read_addr(hbcms[i].bcm.name);
+		pr_err("DDR ADDRESS[%i] = 0x%x", i, msg->ddr_cmds_addrs[i]);
+	}
 
-	for (i = 0; i < num_ddr_levels; i++)
+	for (i = 0; i < num_ddr_levels; i++) {
 		tcs_cmd_data(hbcms, num_ddr_bcms, ib[i], is_a7xx,
 			     &msg->ddr_wait_bitmask, msg->ddr_cmds_data[i]);
+		for (int j = 0; j < num_ddr_bcms; j++)
+			pr_err("DDR VOTE[%i][%i] = 0x%x\n", i, j, msg->ddr_cmds_data[i][j]);
+	}
+	pr_err("ddr_wait_bitmask = 0x%x\n", msg->ddr_wait_bitmask);
 }
 
 static u64 cnoc_bw_table[CNOC_MAX_LEVEL_NUM] = { 0, 100 };
@@ -668,13 +674,18 @@ static void a6xx_build_cnoc_table(struct a6xx_hfi_msg_bw_table *msg, bool is_a7x
 	int i;
 
 	/* BCMs on the MAS_GPU-SLV_CNoC path */
-	for (i = 0; i < num_cnoc_bcms; i++)
+	for (i = 0; i < num_cnoc_bcms; i++) {
 		msg->cnoc_cmds_addrs[i] = cmd_db_read_addr(hbcms[i].bcm.name);
+		pr_err("CNOC ADDRESS[%i] = 0x%x", i, msg->cnoc_cmds_addrs[i]);
+	}
 
 	/* The CNoC path always accepts precisely 2 votes: 0 (off) and 100 (on). */
-	for (i = 0; i < CNOC_MAX_LEVEL_NUM; i++)
+	for (i = 0; i < CNOC_MAX_LEVEL_NUM; i++) {
 		tcs_cmd_data(hbcms, num_cnoc_bcms, cnoc_bw_table[i], is_a7xx,
 			     &msg->cnoc_wait_bitmask, msg->cnoc_cmds_data[i]);
+		for (int j = 0; j < num_cnoc_bcms; j++)
+			pr_err("CNOC VOTE[%i][%i] = 0x%x\n", i, j, msg->cnoc_cmds_data[i][j]);
+	}
 }
 
 static int a6xx_build_bw_table(struct a6xx_gpu *a6xx_gpu,
