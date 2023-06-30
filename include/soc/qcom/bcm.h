@@ -37,4 +37,6 @@ static inline u64 bcm_div(u64 num, u32 base)
 	return num;
 }
 
+int qcom_bcm_read_aux_data(struct device *dev, const char *name, struct bcm_db *aux_data);
+
 #endif
