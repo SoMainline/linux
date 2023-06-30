@@ -5,7 +5,9 @@
 #include <linux/circ_buf.h>
 #include <linux/list.h>
 
+#include <soc/qcom/bcm.h>
 #include <soc/qcom/cmd-db.h>
+#include <soc/qcom/tcs.h>
 
 #include "a6xx_gmu.h"
 #include "a6xx_gmu.xml.h"
@@ -590,49 +592,175 @@ static void a740_build_bw_table(struct a6xx_hfi_msg_bw_table *msg)
 	msg->cnoc_cmds_data[1][0] = 0x60000001;
 }
 
-static void a6xx_build_bw_table(struct a6xx_hfi_msg_bw_table *msg)
+struct hfi_bcm {
+	struct bcm bcm;
+	u16 mem_buswidth; /* width of the (only) connection to DDR/LLCC */
+};
+
+static void tcs_cmd_data(struct hfi_bcm *hbcms, int num_bcms, u64 ib, bool is_a7xx,
+			 u32 *wait_bmsk, u32 *data)
 {
-	/* Send a single "off" entry since the 630 GMU doesn't do bus scaling */
-	msg->bw_level_num = 1;
+	/* A7xx expects average bw, A6xx doesn't */
+	u64 ab = is_a7xx ? ib : 0;
+	u64 avg, peak, x, y;
+	bool commit, valid;
+	int i;
 
-	msg->ddr_cmds_num = 3;
-	msg->ddr_wait_bitmask = 0x07;
+	for (i = 0; i < num_bcms; i++) {
+		struct bcm *cur_bcm = &hbcms[i].bcm;
+		struct bcm_db *cur_aux_data = &cur_bcm->aux_data;
+		commit = false;
 
-	msg->ddr_cmds_addrs[0] = 0x50000;
-	msg->ddr_cmds_addrs[1] = 0x5005c;
-	msg->ddr_cmds_addrs[2] = 0x5000c;
+		/*
+		 * If it's the last BCM or the next one lies within a different Virtual Clock
+		 * Domain, commit the vote and wait for this BCM to flush.
+		 */
+		if (i == num_bcms - 1 || cur_aux_data->vcd != hbcms[i + 1].bcm.aux_data.vcd) {
+			*wait_bmsk |= BIT(i);
+			commit = true;
+		}
 
-	msg->ddr_cmds_data[0][0] =  0x40000000;
-	msg->ddr_cmds_data[0][1] =  0x40000000;
-	msg->ddr_cmds_data[0][2] =  0x40000000;
+		/* Some BCMs (like ACV) accept one-hot-encoded values */
+		if (cur_bcm->fixed) {
+			//TODO: replace with enable_mask from Neil's icc-rpmh patchset
+			if (ab || ib)
+				data[i] = BCM_TCS_CMD(commit, true, 0x0, BIT(3));
+			else
+				data[i] = BCM_TCS_CMD(commit, false, 0x0, 0x0);
 
-	/*
-	 * These are the CX (CNOC) votes.  This is used but the values for the
-	 * sdm845 GMU are known and fixed so we can hard code them.
-	 */
+			continue;
+		}
 
-	msg->cnoc_cmds_num = 3;
-	msg->cnoc_wait_bitmask = 0x05;
+		avg = bcm_div(ab * cur_aux_data->width, hbcms[i].mem_buswidth);
+		peak = bcm_div(ib * cur_aux_data->width, hbcms[i].mem_buswidth);
 
-	msg->cnoc_cmds_addrs[0] = 0x50034;
-	msg->cnoc_cmds_addrs[1] = 0x5007c;
-	msg->cnoc_cmds_addrs[2] = 0x5004c;
+		x = bcm_div(1000ULL * avg, cur_aux_data->unit);
+		y = bcm_div(1000ULL * peak, cur_aux_data->unit);
 
-	msg->cnoc_cmds_data[0][0] =  0x40000000;
-	msg->cnoc_cmds_data[0][1] =  0x00000000;
-	msg->cnoc_cmds_data[0][2] =  0x40000000;
+		x = min_t(u64, x, BCM_TCS_CMD_VOTE_MASK);
+		y = min_t(u64, y, BCM_TCS_CMD_VOTE_MASK);
 
-	msg->cnoc_cmds_data[1][0] =  0x60000001;
-	msg->cnoc_cmds_data[1][1] =  0x20000001;
-	msg->cnoc_cmds_data[1][2] =  0x60000001;
+		/* So long as the vote is non-zero, it's considered valid. */
+		valid = x || y;
+
+		data[i] = BCM_TCS_CMD(commit, valid, x, y);
+	}
 }
 
+static void a6xx_build_ddr_table(struct a6xx_hfi_msg_bw_table *msg, u64 *ib, bool is_a7xx,
+				 struct hfi_bcm *hbcms, int num_ddr_bcms, int num_ddr_levels)
+{
+	int i;
+
+	/* BCMs on the MAS_GFX3D-LLCC-SLV_EBI path (?) */
+	for (i = 0; i < num_ddr_bcms; i++)
+		msg->ddr_cmds_addrs[i] = cmd_db_read_addr(hbcms[i].bcm.name);
+
+	for (i = 0; i < num_ddr_levels; i++)
+		tcs_cmd_data(hbcms, num_ddr_bcms, ib[i], is_a7xx,
+			     &msg->ddr_wait_bitmask, msg->ddr_cmds_data[i]);
+}
+
+static u64 cnoc_bw_table[CNOC_MAX_LEVEL_NUM] = { 0, 100 };
+static void a6xx_build_cnoc_table(struct a6xx_hfi_msg_bw_table *msg, bool is_a7xx,
+				  struct hfi_bcm *hbcms, int num_cnoc_bcms)
+{
+	int i;
+
+	/* BCMs on the MAS_GPU-SLV_CNoC path */
+	for (i = 0; i < num_cnoc_bcms; i++)
+		msg->cnoc_cmds_addrs[i] = cmd_db_read_addr(hbcms[i].bcm.name);
+
+	/* The CNoC path always accepts precisely 2 votes: 0 (off) and 100 (on). */
+	for (i = 0; i < CNOC_MAX_LEVEL_NUM; i++)
+		tcs_cmd_data(hbcms, num_cnoc_bcms, cnoc_bw_table[i], is_a7xx,
+			     &msg->cnoc_wait_bitmask, msg->cnoc_cmds_data[i]);
+}
+
+static int a6xx_build_bw_table(struct a6xx_gpu *a6xx_gpu,
+			       struct a6xx_hfi_msg_bw_table *msg,
+			       struct hfi_bcm *ddr_hbcms, int num_ddr_bcms,
+			       struct hfi_bcm *cnoc_hbcms, int num_cnoc_bcms)
+{
+	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
+	bool is_a7xx = adreno_is_a7xx(adreno_gpu);
+	struct device *dev = &adreno_gpu->base.pdev->dev;
+	u64 ddr_ib[DDR_MAX_LEVEL_NUM] = { 0 };
+	int num_ddr_levels = 1;
+	struct dev_pm_opp *opp;
+	u32 bw = 0;
+	int i, ret;
+
+	/* Retrieve the number of DDR levels from OPP, level 0 corresponds to 'off' (ib = 0) */
+	for (i = 1; i < DDR_MAX_LEVEL_NUM; i++) {
+		opp = dev_pm_opp_find_bw_ceil(dev, &bw, 0);
+		if (IS_ERR(opp)) {
+			/* No more bw values, we're done! */
+			if (PTR_ERR(opp) == -ERANGE)
+				break;
+
+			return PTR_ERR(opp);
+		}
+		dev_pm_opp_put(opp);
+
+		/* Only take into account unique bw values */
+		if (bw != ddr_ib[num_ddr_levels]) {
+			ddr_ib[num_ddr_levels] = bw;
+			num_ddr_levels++;
+		}
+
+		/* Uptick the bw by 1 kBps to get the next value */
+		bw++;
+	}
+
+	msg->bw_level_num = num_ddr_levels;
+
+	/* Try initializing the BCM info and bail out early on failure */
+	for (i = 0; i < num_ddr_bcms; i++) {
+		struct bcm *cur_bcm = &ddr_hbcms[i].bcm;
+
+		ret = qcom_bcm_read_aux_data(dev, cur_bcm->name, &cur_bcm->aux_data);
+		if (ret)
+			return ret;
+	}
+
+	for (i = 0; i < num_cnoc_bcms; i++) {
+		struct bcm *cur_bcm = &cnoc_hbcms[i].bcm;
+
+		ret = qcom_bcm_read_aux_data(dev, cur_bcm->name, &cur_bcm->aux_data);
+		if (ret)
+			return ret;
+	}
+
+	a6xx_build_ddr_table(msg, ddr_ib, is_a7xx, ddr_hbcms, num_ddr_bcms, num_ddr_levels);
+	msg->ddr_cmds_num = num_ddr_bcms;
+
+	a6xx_build_cnoc_table(msg, is_a7xx, cnoc_hbcms, num_cnoc_bcms);
+	msg->cnoc_cmds_num = num_cnoc_bcms;
+
+	return 0;
+}
+
+static struct hfi_bcm sdm845_ddr_hfi_bcms[] = {
+	{ .bcm.name = "MC0", .mem_buswidth = 4 },
+	{ .bcm.name = "SN7", .mem_buswidth = 4 },
+	{ .bcm.name = "ACV", .bcm.fixed = true },
+};
+
+static struct hfi_bcm sdm845_cnoc_hfi_bcms[] = {
+	{ .bcm.name = "SH2", .mem_buswidth = 8 },
+	{ .bcm.name = "SN15", .mem_buswidth = 8 },
+	{ .bcm.name = "SN3", .mem_buswidth = 8 },
+};
 
 static int a6xx_hfi_send_bw_table(struct a6xx_gmu *gmu)
 {
 	struct a6xx_hfi_msg_bw_table msg = { 0 };
 	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
 	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
+	struct hfi_bcm *cnoc_hbcms, *ddr_hbcms;
+	int num_ddr_bcms, num_cnoc_bcms;
+	int ret = 0;
 
 	if (adreno_is_a618(adreno_gpu))
 		a618_build_bw_table(&msg);
@@ -652,8 +780,20 @@ static int a6xx_hfi_send_bw_table(struct a6xx_gmu *gmu)
 		a730_build_bw_table(&msg);
 	else if (adreno_is_a740_family(adreno_gpu))
 		a740_build_bw_table(&msg);
-	else
-		a6xx_build_bw_table(&msg);
+	else if (adreno_is_a630(adreno_gpu)) {
+		cnoc_hbcms = sdm845_cnoc_hfi_bcms;
+		num_cnoc_bcms = ARRAY_SIZE(sdm845_cnoc_hfi_bcms);
+
+		ddr_hbcms = sdm845_ddr_hfi_bcms;
+		num_ddr_bcms = ARRAY_SIZE(sdm845_ddr_hfi_bcms);
+
+		ret = a6xx_build_bw_table(a6xx_gpu, &msg, ddr_hbcms, num_ddr_bcms,
+					  cnoc_hbcms, num_cnoc_bcms);
+	} else
+		return -EINVAL;
+
+	if (ret)
+		return ret;
 
 	return a6xx_hfi_send_msg(gmu, HFI_H2F_MSG_BW_TABLE, &msg, sizeof(msg),
 		NULL, 0);
@@ -699,7 +839,7 @@ int a6xx_hfi_send_prep_slumber(struct a6xx_gmu *gmu)
 {
 	struct a6xx_hfi_prep_slumber_cmd msg = { 0 };
 
-	/* TODO: should freq and bw fields be non-zero ? */
+	/* TODO: set the lowest freq with ACD settings and corresponding bw */
 
 	return a6xx_hfi_send_msg(gmu, HFI_H2F_MSG_PREPARE_SLUMBER, &msg,
 		sizeof(msg), NULL, 0);
