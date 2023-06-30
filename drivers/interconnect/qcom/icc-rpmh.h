@@ -6,6 +6,8 @@
 #ifndef __DRIVERS_INTERCONNECT_QCOM_ICC_RPMH_H__
 #define __DRIVERS_INTERCONNECT_QCOM_ICC_RPMH_H__
 
+#include <soc/qcom/bcm.h>
+
 #include <dt-bindings/interconnect/qcom,icc.h>
 
 #define to_qcom_provider(_provider) \
@@ -25,20 +27,6 @@ struct qcom_icc_provider {
 	struct qcom_icc_bcm * const *bcms;
 	size_t num_bcms;
 	struct bcm_voter *voter;
-};
-
-/**
- * struct bcm_db - Auxiliary data pertaining to each Bus Clock Manager (BCM)
- * @unit: divisor used to convert bytes/sec bw value to an RPMh msg
- * @width: multiplier used to convert bytes/sec bw value to an RPMh msg
- * @vcd: virtual clock domain that this bcm belongs to
- * @reserved: reserved field
- */
-struct bcm_db {
-	__le32 unit;
-	__le16 width;
-	u8 vcd;
-	u8 reserved;
 };
 
 #define MAX_LINKS		128
