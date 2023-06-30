@@ -20,6 +20,12 @@ struct bcm_db {
 	u8 reserved;
 };
 
+struct bcm {
+	const char *name;
+	struct bcm_db aux_data;
+	bool fixed;
+};
+
 static inline u64 bcm_div(u64 num, u32 base)
 {
 	/* Ensure that small votes aren't lost. */
