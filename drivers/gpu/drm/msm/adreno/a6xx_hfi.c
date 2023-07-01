@@ -703,8 +703,9 @@ static int a6xx_build_bw_table(struct a6xx_gpu *a6xx_gpu,
 	u32 tmp;
 
 	num_ddr_levels = of_property_count_u32_elems(gmu_np, "qcom,bandwidth-levels-kBps");
+	/* Instead of failing, send a single 'off' entry for backwards compatibility */
 	if (num_ddr_levels < 0)
-		return num_ddr_levels;
+		dev_warn(dev, "Couldn't find GMU bw levels! Please fix or update your devicetree!\n");
 
 	if (num_ddr_levels >= DDR_MAX_LEVEL_NUM)
 		return -EINVAL;
@@ -749,7 +750,7 @@ static int a6xx_build_bw_table(struct a6xx_gpu *a6xx_gpu,
 	return 0;
 }
 
-static struct hfi_bcm sdm845_ddr_hfi_bcms[] = {
+static struct hfi_bcm ddr_hfi_bcms[] = {
 	{ .bcm.name = "MC0", .mem_buswidth = 4 },
 	{ .bcm.name = "SH0", .mem_buswidth = 16 },
 	{ .bcm.name = "ACV", .bcm.fixed = true },
@@ -761,45 +762,63 @@ static struct hfi_bcm sdm845_cnoc_hfi_bcms[] = {
 	{ .bcm.name = "SN3", .mem_buswidth = 8 },
 };
 
+static struct hfi_bcm cn0_cnoc_hfi_bcms[] = { // 8280, 8[345]50 (why is it not 16!?)
+	{ .bcm.name = "CN0", .mem_buswidth = 4 },
+};
+
+static struct hfi_bcm sn10_cnoc_hfi_bcms[] = { // 6350
+	{ .bcm.name = "SN10", .mem_buswidth = 8 },
+};
+
+static struct hfi_bcm sn11_cnoc_hfi_bcms[] = { //8250
+	{ .bcm.name = "SN11", .mem_buswidth = 16 },
+};
+
+static struct hfi_bcm sn12_cnoc_hfi_bcms[] = { //7180
+	{ .bcm.name = "SN11", .mem_buswidth = 8 },
+};
+
+static struct hfi_bcm sn15_cnoc_hfi_bcms[] = { // 8150
+	{ .bcm.name = "SN15", .mem_buswidth = 8 },
+};
+
 static int a6xx_hfi_send_bw_table(struct a6xx_gmu *gmu)
 {
 	struct a6xx_hfi_msg_bw_table msg = { 0 };
 	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
 	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
-	struct hfi_bcm *cnoc_hbcms, *ddr_hbcms;
-	int num_ddr_bcms, num_cnoc_bcms;
+	struct hfi_bcm *cnoc_hbcms;
+	int num_cnoc_bcms;
 	int ret = 0;
 
-	if (adreno_is_a618(adreno_gpu))
-		a618_build_bw_table(&msg);
-	else if (adreno_is_a619(adreno_gpu))
-		a619_build_bw_table(&msg);
-	else if (adreno_is_a640_family(adreno_gpu))
-		a640_build_bw_table(&msg);
-	else if (adreno_is_a650(adreno_gpu))
-		a650_build_bw_table(&msg);
-	else if (adreno_is_7c3(adreno_gpu))
-		adreno_7c3_build_bw_table(&msg);
-	else if (adreno_is_a660(adreno_gpu))
-		a660_build_bw_table(&msg);
-	else if (adreno_is_a690(adreno_gpu))
-		a690_build_bw_table(&msg);
-	else if (adreno_is_a730(adreno_gpu))
-		a730_build_bw_table(&msg);
-	else if (adreno_is_a740_family(adreno_gpu))
-		a740_build_bw_table(&msg);
-	else if (adreno_is_a630(adreno_gpu)) {
+	if (adreno_is_a618(adreno_gpu)) {
+		cnoc_hbcms = sn12_cnoc_hfi_bcms;
+		num_cnoc_bcms = ARRAY_SIZE(sn12_cnoc_hfi_bcms);
+	} else if (adreno_is_a619(adreno_gpu)) {
+		cnoc_hbcms = sn10_cnoc_hfi_bcms;
+		num_cnoc_bcms = ARRAY_SIZE(sn10_cnoc_hfi_bcms);
+	} else if (adreno_is_a630(adreno_gpu)) {
 		cnoc_hbcms = sdm845_cnoc_hfi_bcms;
 		num_cnoc_bcms = ARRAY_SIZE(sdm845_cnoc_hfi_bcms);
-
-		ddr_hbcms = sdm845_ddr_hfi_bcms;
-		num_ddr_bcms = ARRAY_SIZE(sdm845_ddr_hfi_bcms);
-
-		ret = a6xx_build_bw_table(a6xx_gpu, &msg, ddr_hbcms, num_ddr_bcms,
-					  cnoc_hbcms, num_cnoc_bcms);
+	} else if (adreno_is_a640_family(adreno_gpu)) {
+		cnoc_hbcms = sn15_cnoc_hfi_bcms;
+		num_cnoc_bcms = ARRAY_SIZE(sn15_cnoc_hfi_bcms);
+	} else if (adreno_is_a650(adreno_gpu)) {
+		cnoc_hbcms = sn11_cnoc_hfi_bcms;
+		num_cnoc_bcms = ARRAY_SIZE(sn11_cnoc_hfi_bcms);
+	} else if (adreno_is_7c3(adreno_gpu)) {
+		// asdf //
+	} else if (adreno_is_a660(adreno_gpu) ||
+		   adreno_is_a690(adreno_gpu) ||
+		   adreno_is_a730(adreno_gpu) ||
+		   adreno_is_a740_family(adreno_gpu)) {
+		cnoc_hbcms = cn0_cnoc_hfi_bcms;
+		num_cnoc_bcms = ARRAY_SIZE(cn0_cnoc_hfi_bcms);
 	} else
 		return -EINVAL;
 
+	ret = a6xx_build_bw_table(a6xx_gpu, &msg, ddr_hfi_bcms, ARRAY_SIZE(ddr_hfi_bcms),
+				  cnoc_hbcms, num_cnoc_bcms);
 	if (ret)
 		return ret;
 
