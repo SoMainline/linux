@@ -4272,7 +4272,7 @@
 		};
 
 		venus: video-codec@aa00000 {
-			compatible = "qcom,sm8250-venus";
+			// compatible = "qcom,sm8250-venus";
 			reg = <0 0x0aa00000 0 0x100000>;
 			interrupts = <GIC_SPI 174 IRQ_TYPE_LEVEL_HIGH>;
 			power-domains = <&videocc MVS0C_GDSC>,
