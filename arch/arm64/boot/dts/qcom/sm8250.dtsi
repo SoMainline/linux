@@ -3004,6 +3004,17 @@
 			iommus = <&adreno_smmu 5 0x400>;
 
 			operating-points-v2 = <&gmu_opp_table>;
+			qcom,bandwidth-levels-kBps = <781250>,
+						     <1171875>,
+						     <1761718>,
+						     <2136718>,
+						     <2660156>,
+						     <3000000>,
+						     <3972656>,
+						     <6074218>,
+						     <7046875>,
+						     <8171875>,
+						     <10687500>;
 
 			status = "disabled";
 
