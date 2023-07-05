@@ -13,6 +13,7 @@
 #include <dt-bindings/dma/qcom-gpi.h>
 #include <dt-bindings/firmware/qcom,scm.h>
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interconnect/qcom,icc.h>
 #include <dt-bindings/interconnect/qcom,sm8350.h>
 #include <dt-bindings/mailbox/qcom-ipcc.h>
 #include <dt-bindings/phy/phy-qcom-qmp.h>
@@ -2923,6 +2924,25 @@
 			#power-domain-cells = <1>;
 
 			power-domains = <&rpmhpd RPMHPD_MMCX>;
+		};
+
+		disp_rsc: rsc@af20000 {
+			compatible = "qcom,rpmh-rsc";
+			reg = <0 0x0af20000 0 0x10000>;
+			reg-names = "drv-0";
+			interrupts = <GIC_SPI 129 IRQ_TYPE_LEVEL_HIGH>;
+			label = "disp_rsc";
+			qcom,tcs-offset = <0x1c00>;
+			qcom,drv-id = <0>;
+			qcom,tcs-config = <ACTIVE_TCS  0>,
+					  <SLEEP_TCS   1>,
+					  <WAKE_TCS    1>,
+					  <CONTROL_TCS 0>;
+
+			disp_bcm_voter: bcm-voter {
+				compatible = "qcom,bcm-voter";
+				qcom,tcs-wait; /* AMC-only? */
+			};
 		};
 
 		pdc: interrupt-controller@b220000 {
