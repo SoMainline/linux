@@ -2969,6 +2969,15 @@
 			#clock-cells = <0>;
 		};
 
+		stats@c320000 {
+			compatible = "qcom,rpmh-pm-violators";
+			reg = <0 0x0c320000 0 0x1000>;
+			qcom,drv-names = "TZ", "HYP", "HLOS", "L3", "SECPROC", "AUDIO", "SENSOR",
+					 "AOP", "DEBUG", "GPU", "DISPLAY", "COMPUTE", "MDM SW",
+					 "MDM HW", "WLAN RF", "WLAN BB", "DDR AUX", "ARC CPRF";
+			qcom,qmp = <&aoss_qmp>;
+		};
+
 		sram@c3f0000 {
 			compatible = "qcom,rpmh-stats";
 			reg = <0 0x0c3f0000 0 0x400>;
