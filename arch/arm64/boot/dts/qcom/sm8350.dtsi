@@ -2953,6 +2953,25 @@
 			power-domains = <&rpmhpd RPMHPD_MMCX>;
 		};
 
+		disp_rsc: rsc@af20000 {
+			compatible = "qcom,rpmh-rsc";
+			reg = <0 0x0af20000 0 0x10000>;
+			reg-names = "drv-0";
+			interrupts = <GIC_SPI 129 IRQ_TYPE_LEVEL_HIGH>;
+			label = "disp_rsc";
+			qcom,tcs-offset = <0x1c00>;
+			qcom,drv-id = <0>;
+			qcom,tcs-config = <ACTIVE_TCS  0>,
+					  <SLEEP_TCS   1>,
+					  <WAKE_TCS    1>,
+					  <CONTROL_TCS 0>;
+
+			disp_bcm_voter: bcm-voter {
+				compatible = "qcom,bcm-voter";
+				qcom,tcs-wait; /* AMC-only? */
+			};
+		};
+
 		pdc: interrupt-controller@b220000 {
 			compatible = "qcom,sm8350-pdc", "qcom,pdc";
 			reg = <0 0x0b220000 0 0x30000>, <0 0x17c000f0 0 0x60>;
