@@ -95,6 +95,8 @@
 #define AW88395_TM_REG			(0x7C)
 
 enum aw88395_id {
+	AW88399_CHIP_ID = 0x2183,
+	AW882XX_CHIP_ID = 0x1852,
 	AW88395_CHIP_ID = 0x2049,
 };
 
