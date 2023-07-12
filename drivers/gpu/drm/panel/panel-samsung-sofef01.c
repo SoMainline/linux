@@ -15,25 +15,24 @@
 #include <drm/drm_panel.h>
 #include <drm/drm_probe_helper.h>
 
-#define WRITE_CONTROL_DISPLAY_AOD_LOW BIT(0)
-#define WRITE_CONTROL_DISPLAY_AOD_ON BIT(1)
-#define WRITE_CONTROL_DISPLAY_DIMMING BIT(3)
-#define WRITE_CONTROL_DISPLAY_LOCAL_HBM BIT(4)
-#define WRITE_CONTROL_DISPLAY_BACKLIGHT BIT(5)
-#define WRITE_CONTROL_DISPLAY_HBM GENMASK(6, 7)
-
 struct samsung_sofef01_m {
 	struct drm_panel panel;
 	struct mipi_dsi_device *dsi;
 	struct regulator *vddio, *vci;
 	struct gpio_desc *reset_gpio;
 	const struct drm_display_mode *mode;
+	bool prepared;
 };
 
-static inline struct samsung_sofef01_m *
-to_samsung_sofef01_m(struct drm_panel *panel)
+static inline struct samsung_sofef01_m *to_samsung_sofef01_m(struct drm_panel *panel)
 {
 	return container_of(panel, struct samsung_sofef01_m, panel);
+}
+
+static void samsung_sofef01_m_reset(struct samsung_sofef01_m *ctx)
+{
+	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
+	usleep_range(10000, 11000);
 }
 
 static int samsung_sofef01_m_on(struct samsung_sofef01_m *ctx)
@@ -62,107 +61,22 @@ static int samsung_sofef01_m_on(struct samsung_sofef01_m *ctx)
 	mipi_dsi_dcs_write_seq(dsi, 0xe0, 0x01);
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
 
-	// PDX213:
-	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
-	mipi_dsi_dcs_write_seq(dsi, 0xfc, 0x5a, 0x5a);
-	mipi_dsi_dcs_write_seq(dsi, 0xE1, 0x00, 0x00, 0x02, 0x00, 0x1C, 0x1C,
-			       0x00, 0x00, 0x20, 0x00, 0x00, 0x01, 0x19);
-	mipi_dsi_dcs_write_seq(dsi, 0xfc, 0xa5, 0xa5);
-	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
-
-	// PDX225 stock:
-	// https://github.com/sonyxperiadev/kernel-copyleft-dts/blob/65.1.A.4.xxx/qcom/dsi-panel-samsung-amoled-fhd-cmd.dtsi#L61
-	// mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
-	// mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x27, 0xf2);
-	// mipi_dsi_dcs_write_seq(dsi, 0xb0, 0xf2, 0x80);
-	// mipi_dsi_dcs_write_seq(dsi, 0xb0, 0xf7, 0x07);
-	// mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
-
-	// mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
-	// mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x02, 0x8f);
-	// mipi_dsi_dcs_write_seq(dsi, 0x8f, 0x27, 0x05);
-	// mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
-
-	// mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
-	// mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x92, 0x63);
-	// mipi_dsi_dcs_write_seq(dsi, 0x63, 0x05);
-	// mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
-
-	// TODO: This wasn't previously called but makes sense to be called now
-	ret = mipi_dsi_dcs_set_column_address(dsi, 0, 1080 - 1);
-	if (ret < 0) {
-		dev_err(dev, "Failed to set column address: %d\n", ret);
-		return ret;
-	}
-
-	ret = mipi_dsi_dcs_set_page_address(dsi, 0, 2520 - 1);
+	ret = mipi_dsi_dcs_set_page_address(dsi, 0x0000, 2520 - 1);
 	if (ret < 0) {
 		dev_err(dev, "Failed to set page address: %d\n", ret);
 		return ret;
 	}
 
-	// PDX213:
-	mipi_dsi_dcs_set_display_brightness_large(dsi, 0x119);
-
-	mipi_dsi_dcs_write_seq(dsi, MIPI_DCS_WRITE_CONTROL_DISPLAY,
-			       WRITE_CONTROL_DISPLAY_BACKLIGHT);
+	mipi_dsi_dcs_write_seq(dsi, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x20);
 	mipi_dsi_dcs_write_seq(dsi, MIPI_DCS_WRITE_POWER_SAVE, 0x00);
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
-	// mipi_dsi_dcs_write_seq(dsi, 0xbe, 0x92, 0x29);
-	// PDX213:
-	mipi_dsi_dcs_write_seq(dsi, 0xbe, 0x92, 0x09);
-	// mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
-	// mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
+	mipi_dsi_dcs_write_seq(dsi, 0xbe, 0x92, 0x29);
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
 	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0x06);
 	mipi_dsi_dcs_write_seq(dsi, 0xb6, 0x90);
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
 	msleep(110);
-
-	return 0;
-}
-
-static int samsung_sofef01_m_prepare(struct drm_panel *panel)
-{
-	struct samsung_sofef01_m *ctx = to_samsung_sofef01_m(panel);
-	struct device *dev = &ctx->dsi->dev;
-	int ret;
-
-	dev_err(dev, "%s\n", __func__);
-
-	ret = regulator_enable(ctx->vddio);
-	if (ret < 0) {
-		dev_err(dev, "Failed to enable vddio regulator: %d\n", ret);
-		return ret;
-	}
-
-	ret = regulator_enable(ctx->vci);
-	if (ret < 0) {
-		dev_err(dev, "Failed to enable vci regulator: %d\n", ret);
-		regulator_disable(ctx->vddio);
-		return ret;
-	}
-
-	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
-	usleep_range(10000, 11000);
-
-	ret = samsung_sofef01_m_on(ctx);
-	if (ret < 0) {
-		dev_err(dev, "Failed to send on command sequence: %d\n", ret);
-		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
-		regulator_disable(ctx->vci);
-		regulator_disable(ctx->vddio);
-		return ret;
-	}
-
-	return 0;
-}
-
-static int samsung_sofef01_m_enable(struct drm_panel *panel)
-{
-	struct samsung_sofef01_m *ctx = to_samsung_sofef01_m(panel);
-	struct mipi_dsi_device *dsi = ctx->dsi;
-	struct device *dev = &dsi->dev;
-	int ret;
 
 	ret = mipi_dsi_dcs_set_display_on(dsi);
 	if (ret < 0) {
@@ -173,14 +87,11 @@ static int samsung_sofef01_m_enable(struct drm_panel *panel)
 	return 0;
 }
 
-static int samsung_sofef01_m_disable(struct drm_panel *panel)
+static int samsung_sofef01_m_off(struct samsung_sofef01_m *ctx)
 {
-	struct samsung_sofef01_m *ctx = to_samsung_sofef01_m(panel);
 	struct mipi_dsi_device *dsi = ctx->dsi;
 	struct device *dev = &dsi->dev;
 	int ret;
-
-	dev_err(dev, "%s\n", __func__);
 
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
@@ -201,14 +112,61 @@ static int samsung_sofef01_m_disable(struct drm_panel *panel)
 	return 0;
 }
 
+static int samsung_sofef01_m_prepare(struct drm_panel *panel)
+{
+	struct samsung_sofef01_m *ctx = to_samsung_sofef01_m(panel);
+	struct device *dev = &ctx->dsi->dev;
+	int ret;
+
+	if (ctx->prepared)
+		return 0;
+
+	ret = regulator_enable(ctx->vddio);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable vddio regulator: %d\n", ret);
+		return ret;
+	}
+
+	ret = regulator_enable(ctx->vci);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable vci regulator: %d\n", ret);
+		regulator_disable(ctx->vddio);
+		return ret;
+	}
+
+	samsung_sofef01_m_reset(ctx);
+
+	ret = samsung_sofef01_m_on(ctx);
+	if (ret < 0) {
+		dev_err(dev, "Failed to initialize panel: %d\n", ret);
+		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+		regulator_disable(ctx->vci);
+		regulator_disable(ctx->vddio);
+		return ret;
+	}
+
+	ctx->prepared = true;
+	return 0;
+}
+
 static int samsung_sofef01_m_unprepare(struct drm_panel *panel)
 {
 	struct samsung_sofef01_m *ctx = to_samsung_sofef01_m(panel);
+	struct device *dev = &ctx->dsi->dev;
+	int ret;
+
+	if (!ctx->prepared)
+		return 0;
+
+	ret = samsung_sofef01_m_off(ctx);
+	if (ret < 0)
+		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
 
 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 	regulator_disable(ctx->vci);
 	regulator_disable(ctx->vddio);
 
+	ctx->prepared = false;
 	return 0;
 }
 
@@ -222,8 +180,6 @@ static int samsung_sofef01_m_get_modes(struct drm_panel *panel,
 
 static const struct drm_panel_funcs samsung_sofef01_m_panel_funcs = {
 	.prepare = samsung_sofef01_m_prepare,
-	.enable = samsung_sofef01_m_enable,
-	.disable = samsung_sofef01_m_disable,
 	.unprepare = samsung_sofef01_m_unprepare,
 	.get_modes = samsung_sofef01_m_get_modes,
 };
@@ -279,8 +235,7 @@ samsung_sofef01_m_create_backlight(struct mipi_dsi_device *dsi)
 	};
 
 	return devm_backlight_device_register(dev, dev_name(dev), dev, dsi,
-					      &samsung_sofef01_m_bl_ops,
-					      &props);
+					      &samsung_sofef01_m_bl_ops, &props);
 }
 
 static int samsung_sofef01_m_probe(struct mipi_dsi_device *dsi)
@@ -316,8 +271,6 @@ static int samsung_sofef01_m_probe(struct mipi_dsi_device *dsi)
 	dsi->format = MIPI_DSI_FMT_RGB888;
 	dsi->mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS;
 
-	ctx->panel.prepare_prev_first = true;
-
 	drm_panel_init(&ctx->panel, dev, &samsung_sofef01_m_panel_funcs,
 		       DRM_MODE_CONNECTOR_DSI);
 
@@ -350,64 +303,44 @@ static void samsung_sofef01_m_remove(struct mipi_dsi_device *dsi)
 	drm_panel_remove(&ctx->panel);
 }
 
-/*
- * drm/msm's DSI code does not calculate transfer time but instead relies on
- * fake porch values (which are not a thing in CMD mode) to represent the
- * transfer time.
- *
- * Use the following expressions based on qcom,mdss-dsi-panel-clockrate from
- * downstream DT to artificially bump the mode's clock
- */
-static const unsigned dsi_lanes = 4;
-static const unsigned bpp = 24;
-/* qcom,mdss-dsi-panel-clockrate from downstream DT */
-static const unsigned long bitclk_hz = 1132293600;
-static const unsigned long stable_clockrate = bitclk_hz * dsi_lanes / bpp;
-static const unsigned long fake_porch = stable_clockrate / (2520 * 60) - 1080;
-
-/* 61x142mm variant, Sony Xperia 5 */
-static const struct drm_display_mode samsung_sofef01_m_61_142_mode = {
-	.clock = (1080 + fake_porch) * 2520 * 60 / 1000,
+/* Sony Xperia 5 (kumano bahamut) */
+static const struct drm_display_mode samsung_sofef01_m_bahamut_mode = {
+	/*
+	 * WARNING: These massive porches are wrong/useless for CMDmode
+	 * (and not defined in downstream DTS) but necessary to bump dsi
+	 * clocks higher, so that we can achieve proper 60fps without tearing.
+	 */
+	.clock = (1080 + 156 + 8 + 8) * (2520 + 2393 + 8 + 8) * 60 / 1000,
 	.hdisplay = 1080,
-	.hsync_start = 1080 + fake_porch,
-	.hsync_end = 1080 + fake_porch,
-	.htotal = 1080 + fake_porch,
+	.hsync_start = 1080 + 156,
+	.hsync_end = 1080 + 156 + 8,
+	.htotal = 1080 + 156 + 8 + 8,
 	.vdisplay = 2520,
-	.vsync_start = 2520,
-	.vsync_end = 2520,
-	.vtotal = 2520,
+	.vsync_start = 2520 + 2393,
+	.vsync_end = 2520 + 2393 + 8,
+	.vtotal = 2520 + 2393 + 8 + 8,
 	.width_mm = 61,
 	.height_mm = 142,
 };
 
-/* 60x139mm variant, Sony Xperia 10 II, 10 III and 10 IV */
-static const struct drm_display_mode samsung_sofef01_m_60_139_mode = {
-	.clock = (1080 + fake_porch) * 2520 * 60 / 1000,
+/* Sony Xperia 10 II (seine pdx201) */
+static const struct drm_display_mode samsung_sofef01_m_pdx201_mode = {
+	.clock = (1080 + 8 + 8 + 8) * (2520 + 8 + 8 + 8) * 60 / 1000,
 	.hdisplay = 1080,
-	.hsync_start = 1080 + fake_porch,
-	.hsync_end = 1080 + fake_porch,
-	.htotal = 1080 + fake_porch,
+	.hsync_start = 1080 + 8,
+	.hsync_end = 1080 + 8 + 8,
+	.htotal = 1080 + 8 + 8 + 8,
 	.vdisplay = 2520,
-	.vsync_start = 2520,
-	.vsync_end = 2520,
-	.vtotal = 2520,
+	.vsync_start = 2520 + 8,
+	.vsync_end = 2520 + 8 + 8,
+	.vtotal = 2520 + 8 + 8 + 8,
 	.width_mm = 60,
 	.height_mm = 139,
 };
 
 static const struct of_device_id samsung_sofef01_m_of_match[] = {
-	/* Sony Xperia 5 */
-	{ .compatible = "samsung,sofef01-m-amb609tc01",
-	  .data = &samsung_sofef01_m_61_142_mode },
-	/* Sony Xperia 10 II */
-	{ .compatible = "samsung,sofef01-m-ams597ut01",
-	  .data = &samsung_sofef01_m_60_139_mode },
-	/* Sony Xperia 10 III */
-	{ .compatible = "samsung,sofef01-m-ams597ut04",
-	  .data = &samsung_sofef01_m_60_139_mode },
-	/* Sony Xperia 10 IV */
-	{ .compatible = "samsung,sofef01-m-ams597ut05",
-	  .data = &samsung_sofef01_m_60_139_mode },
+	{ .compatible = "samsung,sofef01-m-bahamut", .data = &samsung_sofef01_m_bahamut_mode },
+	{ .compatible = "samsung,sofef01-m-pdx201", .data = &samsung_sofef01_m_pdx201_mode },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, samsung_sofef01_m_of_match);
@@ -423,5 +356,5 @@ static struct mipi_dsi_driver samsung_sofef01_m_driver = {
 module_mipi_dsi_driver(samsung_sofef01_m_driver);
 
 MODULE_AUTHOR("Marijn Suijten <marijn.suijten@somainline.org>");
-MODULE_DESCRIPTION("DRM panel driver for Samsung SOFEF01-M Driver-IC panels");
+MODULE_DESCRIPTION("DRM panel driver for Samsung SOFEF01-M Display-IC panels");
 MODULE_LICENSE("GPL");
