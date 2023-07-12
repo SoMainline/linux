@@ -18,6 +18,28 @@
 		serial1 = &uart3;
 	};
 
+	wcd9370: audio-codec {
+		compatible = "qcom,wcd9370-codec";
+
+		reset-gpios = <&tlmm 82 GPIO_ACTIVE_LOW>;
+		pinctrl-0 = <&wcd_rst_active>;
+		pinctrl-1 = <&wcd_rst_sleep>;
+		pinctrl-names = "default", "sleep";
+
+		vdd-buck-supply = <&vreg_l9a_1p8>;
+		vdd-rxtx-supply = <&vreg_l9a_1p8>;
+		vdd-px-supply = <&vreg_l9a_1p8>;
+		vdd-mic-bias-supply = <&vdc_vbat_som>;
+
+		qcom,micbias1-microvolt = <1800000>;
+		qcom,micbias2-microvolt = <1800000>;
+		qcom,micbias3-microvolt = <1800000>;
+		qcom,rx-device = <&wcd_rx>;
+		qcom,tx-device = <&wcd_tx>;
+
+		#sound-dai-cells = <1>;
+	};
+
 	chosen {
 		stdout-path = "serial0:115200n8";
 	};
@@ -188,6 +210,12 @@
 	};
 };
 
+&i2c1 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+};
+
 &i2c2 {
 	clock-frequency = <400000>;
 	status = "okay";
@@ -263,6 +291,13 @@
 &pon_resin {
 	linux,code = <KEY_VOLUMEDOWN>;
 	status = "okay";
+};
+
+&q6afedai {
+	dai@16 {
+		reg = <PRIMARY_MI2S_RX>;
+		qcom,sd-lines = <0 1 2 3>;
+	};
 };
 
 &qupv3_id_0 {
@@ -493,6 +528,116 @@
 	clock-frequency = <32000>;
 };
 
+&sound {
+	compatible = "qcom,sm6115-sndcard";
+	model = "QRB4210-RB2";
+	audio-routing = "IN1_HPHL", "HPHL_OUT",
+			"IN2_HPHR", "HPHR_OUT",
+			"AMIC1", "MIC BIAS1",
+			"AMIC2", "MIC BIAS2",
+			"VA DMIC0", "MIC BIAS3",
+			"VA DMIC1", "MIC BIAS3",
+			"VA DMIC2", "MIC BIAS1",
+			"VA DMIC3", "MIC BIAS1",
+			"TX SWR_ADC0", "ADC1_OUTPUT",
+			"TX SWR_ADC1", "ADC2_OUTPUT",
+			"TX SWR_DMIC0", "MIC BIAS1",
+			"TX SWR_DMIC1", "MIC BIAS1",
+			"TX SWR_DMIC2", "MIC BIAS3",
+			"TX SWR_DMIC3", "MIC BIAS3",
+			"MM_DL1", "MultiMedia1 Playback",
+			"MM_DL2", "MultiMedia2 Playback",
+			"MultiMedia3 Capture", "MM_UL3";
+
+	mm1-dai-link {
+		link-name = "MultiMedia1";
+
+		cpu {
+			sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA1>;
+		};
+	};
+
+	mm2-dai-link {
+		link-name = "MultiMedia2";
+
+		cpu {
+			sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA2>;
+		};
+	};
+
+	mm3-dai-link {
+		link-name = "MultiMedia3";
+
+		cpu {
+			sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA3>;
+		};
+	};
+
+	wcd-playback-dai-link {
+		link-name = "WCD Playback";
+
+		cpu {
+			sound-dai = <&q6afedai RX_CODEC_DMA_RX_0>;
+		};
+
+		codec {
+			sound-dai = <&wcd9370 0>, <&swr1 0>, <&rxmacro 0>;
+		};
+
+		platform {
+			sound-dai = <&q6routing>;
+		};
+	};
+
+	wcd-capture-dai-link {
+		link-name = "WCD Capture";
+
+		cpu {
+			sound-dai = <&q6afedai TX_CODEC_DMA_TX_3>;
+		};
+
+		codec {
+			sound-dai = <&wcd9370 1>, <&swr0 0>, <&txmacro 0>;
+		};
+
+		platform {
+			sound-dai = <&q6routing>;
+		};
+	};
+
+	va-dai-link {
+		link-name = "VA Capture";
+
+		cpu {
+			sound-dai = <&q6afedai VA_CODEC_DMA_TX_0>;
+		};
+
+		codec {
+			sound-dai = <&vamacro 0>;
+		};
+
+		platform {
+			sound-dai = <&q6routing>;
+		};
+	};
+};
+
+&swr0 {
+	wcd_tx: wcd9370-tx@0,3 {
+		compatible = "sdw20217010a00";
+		reg = <0 3>;
+		qcom,tx-port-mapping = <1 1 2 3>;
+	};
+};
+
+&swr1 {
+	wcd_rx: wcd9370-rx@0,4 {
+		compatible = "sdw20217010a00";
+		reg = <0 4>;
+		qcom,rx-port-mapping = <1 2 3 4 5>;
+	};
+};
+
 &tlmm {
 	gpio-reserved-ranges = <43 2>, <49 1>, <54 1>,
 			       <56 3>, <61 2>, <64 1>,
@@ -571,11 +716,34 @@
 		bias-disable;
 	};
 
+	wcd_rst_active: wcd-rst-active-state {
+		pins = "gpio82";
+		function = "gpio";
+		drive-strength = <16>;
+		output-high;
+	};
+
+	wcd_rst_sleep: wcd-rst-sleep-state {
+		pins = "gpio82";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-disable;
+		output-low;
+	};
+
 	sdc2_card_det_n: sd-card-det-n-state {
 		pins = "gpio88";
 		function = "gpio";
 		drive-strength = <2>;
 		bias-pull-up;
+	};
+
+	wsa12_en_active: wsa-en-active-state {
+		pins = "gpio106";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		output-disable;
 	};
 };
 
@@ -623,6 +791,13 @@
 	vdda-phy-supply = <&vreg_l4a_0p9>;
 	vdda-pll-supply = <&vreg_l12a_1p8>;
 
+	status = "okay";
+};
+
+&vamacro {
+	pinctrl-0 = <&lpass_dmic01_active>, <&lpass_dmic23_active>;
+	pinctrl-names = "default";
+	qcom,dmic-sample-rate = <600000>;
 	status = "okay";
 };
 
