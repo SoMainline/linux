@@ -214,6 +214,37 @@
 	clock-frequency = <400000>;
 	status = "okay";
 
+	//TODO: figure out which wsa is which
+	wsa881x: codec@e {
+		compatible = "qcom,wsa881x";
+		reg = <0x0e>;
+		/* TODO: lpass tlmm isn't an irq_chip */
+		// interrupts-extended = <&lpass_tlmm 17 IRQ_TYPE_LEVEL_LOW>;
+		clocks = <&q6afecc LPASS_CLK_ID_MCLK_2 LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
+		powerdown-gpios = <&lpass_tlmm 16 GPIO_ACTIVE_LOW>;
+		mclk-gpios = <&lpass_tlmm 18 GPIO_ACTIVE_HIGH>;
+		ivsense-clk-gpios = <&lpass_tlmm 8 GPIO_ACTIVE_HIGH>;
+		ivsense-data-gpios = <&lpass_tlmm 9 GPIO_ACTIVE_HIGH>;
+		#thermal-sensor-cells = <0>;
+		sound-name-prefix = "SpkrLeft";
+		#sound-dai-cells = <0>;
+	};
+
+	wsa881x_r: codec@f {
+		compatible = "qcom,wsa881x";
+		reg = <0x0f>;
+		interrupts-extended = <&tlmm 31 IRQ_TYPE_LEVEL_LOW>;
+		clocks = <&q6afecc LPASS_CLK_ID_MCLK_2 LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
+		powerdown-gpios = <&lpass_tlmm 16 GPIO_ACTIVE_LOW>;
+		mclk-gpios = <&lpass_tlmm 18 GPIO_ACTIVE_HIGH>;
+		ivsense-clk-gpios = <&lpass_tlmm 10 GPIO_ACTIVE_HIGH>;
+		ivsense-data-gpios = <&lpass_tlmm 11 GPIO_ACTIVE_HIGH>;
+		#thermal-sensor-cells = <0>;
+		sound-name-prefix = "SpkrRight";
+		#sound-dai-cells = <0>;
+
+		status = "disabled";
+	};
 };
 
 &i2c2 {
@@ -581,7 +612,7 @@
 		};
 
 		codec {
-			sound-dai = <&wcd9370 0>, <&swr1 0>, <&rxmacro 0>;
+			sound-dai = <&wsa881x>, <&wcd9370 0>, <&swr1 0>, <&rxmacro 0>;
 		};
 
 		platform {
@@ -736,14 +767,6 @@
 		function = "gpio";
 		drive-strength = <2>;
 		bias-pull-up;
-	};
-
-	wsa12_en_active: wsa-en-active-state {
-		pins = "gpio106";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-pull-down;
-		output-disable;
 	};
 };
 
