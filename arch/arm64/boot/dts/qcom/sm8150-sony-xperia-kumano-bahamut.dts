@@ -18,3 +18,7 @@
 	height = <2520>;
 	stride = <(1080 * 4)>;
 };
+
+&panel {
+	compatible = "samsung,sofef01-m-amb609tc01";
+};
