@@ -411,6 +411,33 @@ static int qcom_icc_set(struct icc_node *src, struct icc_node *dst)
 		qp->bus_clk_rate[QCOM_SMD_RPM_SLEEP_STATE] = sleep_rate;
 	}
 
+	/* Handle the node-specific clock */
+	if (!src_qn->bus_clk_desc)
+		return 0;
+
+	active_rate = qcom_icc_calc_rate(qp, src_qn, QCOM_SMD_RPM_ACTIVE_STATE);
+	sleep_rate = qcom_icc_calc_rate(qp, src_qn, QCOM_SMD_RPM_SLEEP_STATE);
+
+	if (active_rate != src_qn->clk_data->bus_clk_rate[QCOM_SMD_RPM_ACTIVE_STATE]) {
+		ret = qcom_icc_rpm_set_bus_rate(src_qn->bus_clk_desc, QCOM_SMD_RPM_ACTIVE_STATE,
+						active_rate);
+		if (ret)
+			return ret;
+
+		/* Cache the rate after we've successfully commited it to RPM */
+		src_qn->clk_data->bus_clk_rate[QCOM_SMD_RPM_ACTIVE_STATE] = active_rate;
+	}
+
+	if (sleep_rate != src_qn->clk_data->bus_clk_rate[QCOM_SMD_RPM_SLEEP_STATE]) {
+		ret = qcom_icc_rpm_set_bus_rate(src_qn->bus_clk_desc, QCOM_SMD_RPM_SLEEP_STATE,
+						sleep_rate);
+		if (ret)
+			return ret;
+
+		/* Cache the rate after we've successfully commited it to RPM */
+		src_qn->clk_data->bus_clk_rate[QCOM_SMD_RPM_SLEEP_STATE] = sleep_rate;
+	}
+
 	return 0;
 }
 
@@ -531,24 +558,32 @@ regmap_done:
 		return ret;
 
 	for (i = 0; i < num_nodes; i++) {
+		struct qcom_icc_node *qn = qnodes[i];
 		size_t j;
 
-		node = icc_node_create(qnodes[i]->id);
+		if (qn->bus_clk_desc) {
+			qn->clk_data = devm_kzalloc(dev, sizeof(*qn->clk_data), GFP_KERNEL);
+			qn->clk_data->bus_clk_rate = devm_kcalloc(dev, QCOM_SMD_RPM_STATE_NUM,
+								  sizeof(*qn->clk_data->bus_clk_rate),
+								  GFP_KERNEL);
+		}
+
+		node = icc_node_create(qn->id);
 		if (IS_ERR(node)) {
 			ret = PTR_ERR(node);
 			goto err_remove_nodes;
 		}
 
-		node->name = qnodes[i]->name;
-		node->data = qnodes[i];
+		node->name = qn->name;
+		node->data = qn;
 		icc_node_add(node, provider);
 
-		for (j = 0; j < qnodes[i]->num_links; j++)
-			icc_link_create(node, qnodes[i]->links[j]);
+		for (j = 0; j < qn->num_links; j++)
+			icc_link_create(node, qn->links[j]);
 
 		/* Set QoS registers (we only need to do it once, generally) */
-		if (qnodes[i]->qos.ap_owned &&
-		    qnodes[i]->qos.qos_mode != NOC_QOS_MODE_INVALID) {
+		if (qn->qos.ap_owned &&
+		    qn->qos.qos_mode != NOC_QOS_MODE_INVALID) {
 			ret = qcom_icc_qos_set(node);
 			if (ret)
 				return ret;
