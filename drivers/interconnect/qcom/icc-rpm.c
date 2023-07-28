@@ -300,11 +300,15 @@ static u64 qcom_icc_calc_rate(struct qcom_icc_provider *qp, struct qcom_icc_node
 	else
 		agg_avg_rate = qn->sum_avg[ctx];
 
-	/* Check if the node has a specific coefficient first*/
-	if (qp->ab_coeff)
+	/* Check if the node has a specific coefficient first */
+	if (qn->ab_coeff)
+		agg_avg_rate = mult_frac(qn->ab_coeff, agg_avg_rate, 100);
+	else if (qp->ab_coeff)
 		agg_avg_rate = mult_frac(qp->ab_coeff, agg_avg_rate, 100);
 
-	if (qp->ib_coeff)
+	if (qn->ab_coeff)
+		agg_peak_rate = mult_frac(100, qn->max_peak[ctx], qn->ib_coeff);
+	else if (qp->ib_coeff)
 		agg_peak_rate = mult_frac(100, qn->max_peak[ctx], qp->ib_coeff);
 	else
 		agg_peak_rate = qn->max_peak[ctx];
@@ -418,24 +422,24 @@ static int qcom_icc_set(struct icc_node *src, struct icc_node *dst)
 	active_rate = qcom_icc_calc_rate(qp, src_qn, QCOM_SMD_RPM_ACTIVE_STATE);
 	sleep_rate = qcom_icc_calc_rate(qp, src_qn, QCOM_SMD_RPM_SLEEP_STATE);
 
-	if (active_rate != src_qn->clk_data->bus_clk_rate[QCOM_SMD_RPM_ACTIVE_STATE]) {
+	if (active_rate != src_qn->bus_clk_rate[QCOM_SMD_RPM_ACTIVE_STATE]) {
 		ret = qcom_icc_rpm_set_bus_rate(src_qn->bus_clk_desc, QCOM_SMD_RPM_ACTIVE_STATE,
 						active_rate);
 		if (ret)
 			return ret;
 
 		/* Cache the rate after we've successfully commited it to RPM */
-		src_qn->clk_data->bus_clk_rate[QCOM_SMD_RPM_ACTIVE_STATE] = active_rate;
+		src_qn->bus_clk_rate[QCOM_SMD_RPM_ACTIVE_STATE] = active_rate;
 	}
 
-	if (sleep_rate != src_qn->clk_data->bus_clk_rate[QCOM_SMD_RPM_SLEEP_STATE]) {
+	if (sleep_rate != src_qn->bus_clk_rate[QCOM_SMD_RPM_SLEEP_STATE]) {
 		ret = qcom_icc_rpm_set_bus_rate(src_qn->bus_clk_desc, QCOM_SMD_RPM_SLEEP_STATE,
 						sleep_rate);
 		if (ret)
 			return ret;
 
 		/* Cache the rate after we've successfully commited it to RPM */
-		src_qn->clk_data->bus_clk_rate[QCOM_SMD_RPM_SLEEP_STATE] = sleep_rate;
+		src_qn->bus_clk_rate[QCOM_SMD_RPM_SLEEP_STATE] = sleep_rate;
 	}
 
 	return 0;
@@ -562,10 +566,10 @@ regmap_done:
 		size_t j;
 
 		if (qn->bus_clk_desc) {
-			qn->clk_data = devm_kzalloc(dev, sizeof(*qn->clk_data), GFP_KERNEL);
-			qn->clk_data->bus_clk_rate = devm_kcalloc(dev, QCOM_SMD_RPM_STATE_NUM,
-								  sizeof(*qn->clk_data->bus_clk_rate),
-								  GFP_KERNEL);
+			qn = devm_kzalloc(dev, sizeof(*qn), GFP_KERNEL);
+			qn->bus_clk_rate = devm_kcalloc(dev, QCOM_SMD_RPM_STATE_NUM,
+							sizeof(*qn->bus_clk_rate),
+							GFP_KERNEL);
 		}
 
 		node = icc_node_create(qn->id);
