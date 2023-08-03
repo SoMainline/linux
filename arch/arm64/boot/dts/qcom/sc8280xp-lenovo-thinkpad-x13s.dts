@@ -24,6 +24,9 @@
 
 	aliases {
 		i2c4 = &i2c4;
+		i2c8 = &i2c8;
+		i2c10 = &i2c10;
+		i2c11 = &i2c11;
 		i2c21 = &i2c21;
 		serial1 = &uart2;
 	};
@@ -718,6 +721,63 @@
 	};
 };
 
+&i2c8 {
+	clock-frequency = <400000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c8_default>;
+
+	status = "okay";
+
+	/* EC @ 0x28 */
+};
+
+&i2c10 {
+	clock-frequency = <400000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c10_default>;
+
+	status = "okay";
+
+	/* Battery MCU @ 0xb */
+};
+
+&i2c11 {
+	clock-frequency = <400000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c11_default>;
+
+	status = "okay";
+
+	proximity@28 {
+		compatible = "semtech,sx9310";
+		reg = <0x28>;
+		interrupts-extended = <&tlmm 33 IRQ_TYPE_LEVEL_LOW>;
+		#io-channel-cells = <1>;
+
+		pinctrl-0 = <&sar0_int_n>;
+		pinctrl-names = "default";
+
+		vdd-supply = <&vreg_l12c>;
+		svdd-supply = <&vreg_l12c>;
+	};
+
+	proximity@2c {
+		compatible = "semtech,sx9310";
+		reg = <0x2c>;
+		interrupts-extended = <&tlmm 161 IRQ_TYPE_LEVEL_LOW>;
+		#io-channel-cells = <1>;
+
+		pinctrl-0 = <&sar1_int_n>;
+		pinctrl-names = "default";
+
+		vdd-supply = <&vreg_l12c>;
+		svdd-supply = <&vreg_l12c>;
+	};
+};
+
 &i2c21 {
 	clock-frequency = <400000>;
 
@@ -1392,6 +1452,27 @@
 		bias-disable;
 	};
 
+	i2c8_default: i2c8-default-state {
+		pins = "gpio43", "gpio44";
+		function = "qup8";
+		drive-strength = <16>;
+		bias-disable;
+	};
+
+	i2c10_default: i2c10-default-state {
+		pins = "gpio22", "gpio23";
+		function = "qup10";
+		drive-strength = <16>;
+		bias-disable;
+	};
+
+	i2c11_default: i2c11-default-state {
+		pins = "gpio18", "gpio19";
+		function = "qup11";
+		drive-strength = <16>;
+		bias-disable;
+	};
+
 	i2c21_default: i2c21-default-state {
 		pins = "gpio81", "gpio82";
 		function = "qup21";
@@ -1493,6 +1574,36 @@
 			drive-strength = <2>;
 			bias-pull-up;
 		};
+	};
+
+	pm8008_default: pm8008-default-state {
+		int-pins {
+			pins = "gpio41";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+
+		reset-n-pins {
+			pins = "gpio42";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-disable;
+		};
+	};
+
+	sar0_int_n: sar0-int-n-state {
+		pins = "gpio33";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	sar1_int_n: sar1-int-n-state {
+		pins = "gpio161";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
 	};
 
 	spkr_1_sd_n_default: spkr-1-sd-n-default-state {
