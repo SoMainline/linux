@@ -138,6 +138,12 @@
 			interrupt-controller;
 			#interrupt-cells = <2>;
 		};
+
+		pmc8280_1_flash: led-controller@ee00 {
+			compatible = "qcom,pm8350-flash-led", "qcom,spmi-flash-led";
+			reg = <0xee00>;
+			status = "disabled";
+		};
 	};
 
 	pmc8280c: pmic@2 {

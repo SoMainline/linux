@@ -847,7 +847,21 @@ pm8008_bus: &i2c11 {
 
 	status = "okay";
 };
+#if 0
+&pmc8280_1_flash {
+	status = "okay";
 
+	led-0 {
+		function = LED_FUNCTION_FLASH;
+		color = <LED_COLOR_ID_IR>;
+		led-sources = <1>, <4>;
+		led-max-microamp = <500000>;
+		flash-max-microamp = <2000000>;
+		flash-max-timeout-us = <1280000>;
+		function-enumerator = <0>;
+	};
+};
+#endif
 #include "pm8008.dtsi"
 
 &pm8008 {
