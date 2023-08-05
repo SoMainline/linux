@@ -1059,6 +1059,12 @@ pm8008_bus: &i2c11 {
 		label = "sys_therm4";
 	};
 
+	vph-pwr@18e {
+		reg = <PM8350_ADC7_VPH_PWR(1)>;
+		qcom,pre-scaling = <1 3>;
+		label = "pmc8280_1_vph_pwr";
+	};
+
 	pmic-die-temp@303 {
 		reg = <PM8350_ADC7_DIE_TEMP(3)>;
 		qcom,pre-scaling = <1 1>;
