@@ -654,7 +654,8 @@ static u32 *_parse_named_prop(struct dev_pm_opp *opp, struct device *dev,
 }
 
 static u32 *opp_parse_microvolt(struct dev_pm_opp *opp, struct device *dev,
-				struct opp_table *opp_table, bool *triplet)
+				struct opp_table *opp_table, bool *triplet,
+				bool get_uv_dynamically)
 {
 	u32 *microvolt;
 
@@ -668,8 +669,15 @@ static u32 *opp_parse_microvolt(struct dev_pm_opp *opp, struct device *dev,
 		 * entry is. This property isn't optional if regulator
 		 * information is provided. Check only for the first OPP, as
 		 * regulator_count may get initialized after that to a valid
-		 * value.
+		 * value, unless we have a driver explicitly managing that
+		 * (e.g. after reading back the per-unit values fused in hardware)
 		 */
+		if (get_uv_dynamically) {
+			microvolt = devm_kcalloc(dev, 3, sizeof(*microvolt), GFP_KERNEL);
+			microvolt[0] = microvolt[1] = microvolt[2] = 0;
+			return microvolt;
+		}
+
 		if (list_empty(&opp_table->opp_list) &&
 		    opp_table->regulator_count > 0) {
 			dev_err(dev, "%s: opp-microvolt missing although OPP managing regulators\n",
@@ -688,7 +696,8 @@ static int opp_parse_supplies(struct dev_pm_opp *opp, struct device *dev,
 	int ret = 0, i, j;
 	bool triplet;
 
-	microvolt = opp_parse_microvolt(opp, dev, opp_table, &triplet);
+	microvolt = opp_parse_microvolt(opp, dev, opp_table, &triplet,
+					1);
 	if (IS_ERR(microvolt))
 		return PTR_ERR(microvolt);
 
