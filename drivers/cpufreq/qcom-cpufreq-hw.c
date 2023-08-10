@@ -208,10 +208,21 @@ static int qcom_cpufreq_hw_read_lut(struct device *cpu_dev,
 	int ret;
 	struct qcom_cpufreq_data *drv_data = policy->driver_data;
 	const struct qcom_cpufreq_soc_data *soc_data = qcom_cpufreq.soc_data;
+	const char * const vreg_names[] = { "vdd-apc", NULL };
+	struct dev_pm_opp_config opp_config = {
+		.regulator_names = vreg_names,
+	};
 
 	table = kcalloc(LUT_MAX_ENTRIES + 1, sizeof(*table), GFP_KERNEL);
 	if (!table)
 		return -ENOMEM;
+
+	/* Hook up the voltage rail to make OPP APIs happy */
+	ret = dev_pm_opp_set_config(cpu_dev, &opp_config);
+	if (ret < 0) {
+		dev_err(cpu_dev, "Failed to set OPP config: %d\n", ret);
+		return ret;
+	}
 
 	ret = dev_pm_opp_of_add_table(cpu_dev);
 	if (!ret) {
