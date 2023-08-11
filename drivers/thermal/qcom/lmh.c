@@ -104,10 +104,30 @@ static int lmh_probe(struct platform_device *pdev)
 		return PTR_ERR(lmh_data->base);
 
 	cpu_node = of_parse_phandle(np, "cpus", 0);
-	if (!cpu_node)
-		return -EINVAL;
-	cpu_id = of_cpu_node_to_id(cpu_node);
-	of_node_put(cpu_node);
+	if (cpu_node) {
+		/* Kept for backwards compatibility */
+		cpu_id = of_cpu_node_to_id(cpu_node);
+		of_node_put(cpu_node);
+
+		if (cpu_id == 0)
+			node_id = LMH_CLUSTER0_NODE_ID;
+		else if (cpu_id == 4)
+			node_id = LMH_CLUSTER1_NODE_ID;
+		else
+			return dev_err_probe(dev, -EINVAL,
+					     "Wrong CPU id associated with LMh node\n");
+	} else {
+		ret = of_property_read_u32(np, "qcom,cluster-id", &cpu_id);
+		if (ret)
+			return dev_err_probe(dev, ret, "Failed to get qcom,cluster-id\n");
+
+		if (cpu_id == 0)
+			node_id = LMH_CLUSTER0_NODE_ID;
+		else if (cpu_id == 1)
+			node_id = LMH_CLUSTER1_NODE_ID;
+		else
+			return dev_err_probe(dev, -EINVAL, "Invalid cluster index\n");
+	}
 
 	ret = of_property_read_u32(np, "qcom,lmh-temp-high-millicelsius", &temp_high);
 	if (ret) {
@@ -125,20 +145,6 @@ static int lmh_probe(struct platform_device *pdev)
 	if (ret) {
 		dev_err(dev, "missing qcom,lmh-temp-arm-millicelsius property\n");
 		return ret;
-	}
-
-	/*
-	 * Only sdm845 has lmh hardware currently enabled from hlos. If this is needed
-	 * for other platforms, revisit this to check if the <cpu-id, node-id> should be part
-	 * of a dt match table.
-	 */
-	if (cpu_id == 0) {
-		node_id = LMH_CLUSTER0_NODE_ID;
-	} else if (cpu_id == 4) {
-		node_id = LMH_CLUSTER1_NODE_ID;
-	} else {
-		dev_err(dev, "Wrong CPU id associated with LMh node\n");
-		return -EINVAL;
 	}
 
 	if (!qcom_scm_lmh_dcvsh_available())
