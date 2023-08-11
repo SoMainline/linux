@@ -38,6 +38,13 @@ properties:
     description:
       phandle of the first cpu in the LMh cluster
     maxItems: 1
+    deprecated: true
+
+  qcom,cluster-id:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    enum: [0, 1]
+    description:
+      Index of the CPU cluster
 
   qcom,lmh-temp-arm-millicelsius:
     description:
@@ -60,12 +67,17 @@ required:
   - interrupts
   - '#interrupt-cells'
   - interrupt-controller
-  - cpus
   - qcom,lmh-temp-arm-millicelsius
   - qcom,lmh-temp-low-millicelsius
   - qcom,lmh-temp-high-millicelsius
 
-additionalProperties: false
+oneOf:
+  - required:
+      - cpus
+  - required:
+      - qcom,cluster-id
+
+unevaluatedProperties: false
 
 examples:
   - |
