@@ -4198,6 +4198,14 @@
 			mboxes = <&apss_shared 0>;
 
 			#clock-cells = <0>;
+
+			cx_cdev: cx {
+				#cooling-cells = <2>;
+			};
+
+			ebi_cdev: ebi {
+				#cooling-cells = <2>;
+			};
 		};
 
 		sram@c3f0000 {
