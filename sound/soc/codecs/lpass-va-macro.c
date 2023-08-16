@@ -475,6 +475,8 @@ static int va_macro_mclk_enable(struct va_macro *va, bool mclk_enable)
 {
 	struct regmap *regmap = va->regmap;
 
+	pr_err("VA_MACRO FSGEN CLOCK %s\n", mclk_enable ? "ENABLE" : "DISABLE");
+
 	if (mclk_enable) {
 		va_clk_rsc_fs_gen_request(va, true);
 		regcache_mark_dirty(regmap);
