@@ -230,7 +230,7 @@ static int lpi_config_set(struct pinctrl_dev *pctldev, unsigned int group,
 	const struct lpi_pingroup *g;
 	int i, ret;
 	u32 val;
-
+pr_err("setting state for LPI pin %d\n", group);
 	g = &pctrl->data->groups[group];
 	for (i = 0; i < nconfs; i++) {
 		param = pinconf_to_config_param(configs[i]);

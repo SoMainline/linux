@@ -452,6 +452,8 @@ static int q6afe_mi2s_set_sysclk(struct snd_soc_dai *dai,
 	struct q6afe_dai_data *dai_data = dev_get_drvdata(dai->dev);
 	struct q6afe_port *port = dai_data->port[dai->id];
 
+	pr_err("ID=%u: SETTING FREQ=%u DIR=%u\n", clk_id, freq, dir);
+
 	switch (clk_id) {
 	case LPAIF_DIG_CLK:
 		return q6afe_port_set_sysclk(port, clk_id, 0, 5, freq, dir);

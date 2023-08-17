@@ -221,6 +221,8 @@ static int msm_pinmux_set_mux(struct pinctrl_dev *pctldev,
 	raw_spin_lock_irqsave(&pctrl->lock, flags);
 
 	val = msm_readl_ctl(pctrl, g);
+	pr_err("setting func %u %s for TLMM pin %d\n", gpio_func, val & BIT(g->oe_bit) ? "OUT":"IN" ,group);
+
 
 	/*
 	 * If this is the first time muxing to GPIO and the direction is
@@ -642,6 +644,8 @@ static void msm_gpio_set(struct gpio_chip *chip, unsigned offset, int value)
 	struct msm_pinctrl *pctrl = gpiochip_get_data(chip);
 	unsigned long flags;
 	u32 val;
+
+	pr_err("setting state %u for TLMM gpio %d\n", value, offset);
 
 	g = &pctrl->soc->groups[offset];
 
