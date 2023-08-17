@@ -23,8 +23,8 @@
 
 		reset-gpios = <&tlmm 82 GPIO_ACTIVE_LOW>;
 		pinctrl-0 = <&wcd_rst_active>;
-		pinctrl-1 = <&wcd_rst_sleep>;
-		pinctrl-names = "default", "sleep";
+		// pinctrl-1 = <&wcd_rst_sleep>;
+		pinctrl-names = "default";//, "sleep";
 
 		vdd-buck-supply = <&vreg_l9a_1p8>;
 		vdd-rxtx-supply = <&vreg_l9a_1p8>;
@@ -426,7 +426,7 @@
 		vreg_l9a_1p8: l9 {
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
-			regulator-allow-set-load;
+			// TODO: confirm the reg handling in wcd937x is okay
 		};
 
 		vreg_l10a_1p8: l10 {
