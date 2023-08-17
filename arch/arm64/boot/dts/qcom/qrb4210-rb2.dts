@@ -604,6 +604,11 @@
 		};
 	};
 
+	/*
+	 * RX0: all other playback
+	 * RX1: WSA spkr playback
+	 */
+
 	wcd-playback-dai-link {
 		link-name = "WCD Playback";
 
@@ -620,6 +625,12 @@
 		};
 	};
 
+	/*
+	 * TX0: CAPTURE_VI_FEEDBACK
+	 * TX3: builtin/speaker/headset mic
+	 * TX4: voice/headset mic, RT loopback
+	 */
+
 	wcd-capture-dai-link {
 		link-name = "WCD Capture";
 
@@ -635,6 +646,8 @@
 			sound-dai = <&q6routing>;
 		};
 	};
+
+	/* VA012: nothing!?!? */
 
 	va-dai-link {
 		link-name = "VA Capture";
