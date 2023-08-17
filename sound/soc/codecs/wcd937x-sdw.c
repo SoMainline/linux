@@ -85,7 +85,7 @@ int wcd937x_sdw_hw_params(struct wcd937x_sdw_priv *wcd,
 			  struct snd_pcm_substream *substream,
 			  struct snd_pcm_hw_params *params,
 			  struct snd_soc_dai *dai)
-{
+{pr_err("%s\n", __func__);
 	struct sdw_port_config port_config[WCD937X_MAX_SWR_PORTS];
 	unsigned long ch_mask;
 	int i, j;
@@ -116,7 +116,7 @@ int wcd937x_sdw_hw_params(struct wcd937x_sdw_priv *wcd,
 EXPORT_SYMBOL_GPL(wcd937x_sdw_hw_params);
 
 static int wcd937x_update_status(struct sdw_slave *slave, enum sdw_slave_status status)
-{
+{pr_err("%s (status=%u)\n", __func__, status);
 	struct wcd937x_sdw_priv *wcd = dev_get_drvdata(&slave->dev);
 
 	if (wcd->regmap && (status == SDW_SLAVE_ATTACHED)) {
@@ -130,7 +130,7 @@ static int wcd937x_update_status(struct sdw_slave *slave, enum sdw_slave_status 
 
 static int wcd937x_interrupt_callback(struct sdw_slave *slave,
 				      struct sdw_slave_intr_status *status)
-{
+{pr_err("%s\n", __func__);
 	struct wcd937x_sdw_priv *wcd = dev_get_drvdata(&slave->dev);
 	struct irq_domain *slave_irq = wcd->slave_irq;
 	u32 sts1, sts2, sts3;
@@ -1032,7 +1032,7 @@ static const struct component_ops wcd937x_sdw_component_ops = {
 
 static int wcd937x_probe(struct sdw_slave *pdev,
 			 const struct sdw_device_id *id)
-{
+{pr_err("%s\n", __func__);
 	struct device *dev = &pdev->dev;
 	struct wcd937x_sdw_priv *wcd;
 	int ret;
@@ -1099,7 +1099,7 @@ static const struct sdw_device_id wcd937x_slave_id[] = {
 MODULE_DEVICE_TABLE(sdw, wcd937x_slave_id);
 
 static int wcd937x_sdw_runtime_suspend(struct device *dev)
-{
+{pr_err("%s\n", __func__);
 	struct wcd937x_sdw_priv *wcd = dev_get_drvdata(dev);
 
 	if (wcd->regmap) {
@@ -1111,7 +1111,7 @@ static int wcd937x_sdw_runtime_suspend(struct device *dev)
 }
 
 static int wcd937x_sdw_runtime_resume(struct device *dev)
-{
+{pr_err("%s\n", __func__);
 	struct wcd937x_sdw_priv *wcd = dev_get_drvdata(dev);
 
 	if (wcd->regmap) {

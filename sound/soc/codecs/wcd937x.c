@@ -144,7 +144,7 @@ static const struct regmap_irq wcd937x_irqs[WCD937X_NUM_IRQS] = {
 static int wcd937x_handle_post_irq(void *data)
 {
 	struct wcd937x_priv *wcd937x = data;
-
+pr_err("%s\n", __func__);
 	/* Clear the ACK registers. Qualcomm called this a "temporary workaround".. */
 	regmap_write(wcd937x->regmap, WCD937X_DIGITAL_INTR_CLEAR_0, 0);
 	regmap_write(wcd937x->regmap, WCD937X_DIGITAL_INTR_CLEAR_1, 0);
@@ -177,6 +177,7 @@ static struct regmap_irq_chip wcd937x_regmap_irq_chip = {
 
 static void wcd937x_reset(struct wcd937x_priv *wcd937x)
 {
+	pr_err("%s\n", __func__);
 	gpio_direction_output(wcd937x->reset_gpio, 0);
 	usleep_range(20, 30);
 
@@ -186,6 +187,7 @@ static void wcd937x_reset(struct wcd937x_priv *wcd937x)
 
 static void wcd937x_io_init(struct regmap *regmap)
 {
+	pr_err("%s\n", __func__);
 	regmap_update_bits(regmap, WCD937X_SLEEP_CTL, 0x0e, 0x0e);
 	regmap_update_bits(regmap, WCD937X_SLEEP_CTL, BIT(7), BIT(7));
 	usleep_range(1000, 1010);
@@ -208,6 +210,7 @@ static void wcd937x_io_init(struct regmap *regmap)
 
 static int wcd937x_rx_clk_enable(struct snd_soc_component *component)
 {
+	pr_err("%s\n", __func__);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 
 	if (atomic_read(&wcd937x->rx_clk_cnt))
@@ -228,6 +231,7 @@ static int wcd937x_rx_clk_enable(struct snd_soc_component *component)
 
 static int wcd937x_rx_clk_disable(struct snd_soc_component *component)
 {
+	pr_err("%s\n", __func__);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 
 	if (!atomic_read(&wcd937x->rx_clk_cnt)) {
@@ -248,6 +252,7 @@ static int wcd937x_codec_hphl_dac_event(struct snd_soc_dapm_widget *w,
 					struct snd_kcontrol *kcontrol,
 					int event)
 {
+	pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int hph_mode = wcd937x->hph_mode;
@@ -323,6 +328,7 @@ static int wcd937x_codec_hphr_dac_event(struct snd_soc_dapm_widget *w,
 					struct snd_kcontrol *kcontrol,
 					int event)
 {
+	pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int hph_mode = wcd937x->hph_mode;
@@ -388,7 +394,7 @@ static int wcd937x_codec_hphr_dac_event(struct snd_soc_dapm_widget *w,
 static int wcd937x_codec_ear_dac_event(struct snd_soc_dapm_widget *w,
 				       struct snd_kcontrol *kcontrol,
 				       int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int hph_mode = wcd937x->hph_mode;
@@ -445,7 +451,7 @@ static int wcd937x_codec_ear_dac_event(struct snd_soc_dapm_widget *w,
 static int wcd937x_codec_aux_dac_event(struct snd_soc_dapm_widget *w,
 				       struct snd_kcontrol *kcontrol,
 				       int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int hph_mode = wcd937x->hph_mode;
@@ -481,7 +487,7 @@ static int wcd937x_codec_aux_dac_event(struct snd_soc_dapm_widget *w,
 static int wcd937x_codec_enable_hphr_pa(struct snd_soc_dapm_widget *w,
 					struct snd_kcontrol *kcontrol,
 					int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int hph_mode = wcd937x->hph_mode;
@@ -548,7 +554,7 @@ static int wcd937x_codec_enable_hphr_pa(struct snd_soc_dapm_widget *w,
 static int wcd937x_codec_enable_hphl_pa(struct snd_soc_dapm_widget *w,
 					struct snd_kcontrol *kcontrol,
 					int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int hph_mode = wcd937x->hph_mode;
@@ -615,7 +621,7 @@ static int wcd937x_codec_enable_hphl_pa(struct snd_soc_dapm_widget *w,
 static int wcd937x_codec_enable_aux_pa(struct snd_soc_dapm_widget *w,
 				       struct snd_kcontrol *kcontrol,
 				       int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int hph_mode = wcd937x->hph_mode;
@@ -654,7 +660,7 @@ static int wcd937x_codec_enable_aux_pa(struct snd_soc_dapm_widget *w,
 static int wcd937x_codec_enable_ear_pa(struct snd_soc_dapm_widget *w,
 				       struct snd_kcontrol *kcontrol,
 				       int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int hph_mode = wcd937x->hph_mode;
@@ -727,7 +733,7 @@ static int wcd937x_codec_enable_ear_pa(struct snd_soc_dapm_widget *w,
 static int wcd937x_enable_rx1(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol,
 			      int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 
 	if (event == SND_SOC_DAPM_POST_PMD) {
@@ -742,7 +748,7 @@ static int wcd937x_enable_rx1(struct snd_soc_dapm_widget *w,
 
 static int wcd937x_enable_rx2(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol, int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 
 	if (event == SND_SOC_DAPM_POST_PMD) {
@@ -758,7 +764,7 @@ static int wcd937x_enable_rx2(struct snd_soc_dapm_widget *w,
 static int wcd937x_enable_rx3(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol,
 			      int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 
 	if (event == SND_SOC_DAPM_POST_PMD) {
@@ -774,7 +780,7 @@ static int wcd937x_enable_rx3(struct snd_soc_dapm_widget *w,
 static int wcd937x_codec_enable_dmic(struct snd_soc_dapm_widget *w,
 				     struct snd_kcontrol *kcontrol,
 				     int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	u16 dmic_clk_reg;
 
@@ -813,7 +819,7 @@ static int wcd937x_codec_enable_dmic(struct snd_soc_dapm_widget *w,
 }
 
 static int wcd937x_get_micb_vout_ctl_val(u32 micb_mv)
-{
+{pr_err("%s\n", __func__);
 	if (micb_mv < 1000 || micb_mv > 2850) {
 		pr_err("Unsupported micbias voltage (%u mV)\n", micb_mv);
 		return -EINVAL;
@@ -824,7 +830,7 @@ static int wcd937x_get_micb_vout_ctl_val(u32 micb_mv)
 
 int wcd937x_mbhc_micb_adjust_voltage(struct snd_soc_component *component,
 				   int req_volt, int micb_num)
-{
+{pr_err("%s\n", __func__);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int cur_vout_ctl, req_vout_ctl;
 	int micb_reg, micb_val;
@@ -876,7 +882,7 @@ EXPORT_SYMBOL(wcd937x_mbhc_micb_adjust_voltage);
 
 static int wcd937x_tx_swr_ctrl(struct snd_soc_dapm_widget *w,
 			       struct snd_kcontrol *kcontrol, int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	bool use_amic3 = snd_soc_component_read(component, WCD937X_TX_NEW_TX_CH2_SEL) & BIT(7);
@@ -893,7 +899,7 @@ static int wcd937x_tx_swr_ctrl(struct snd_soc_dapm_widget *w,
 static int wcd937x_codec_enable_adc(struct snd_soc_dapm_widget *w,
 				    struct snd_kcontrol *kcontrol,
 				    int event){
-
+pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int ret = 0;
@@ -922,7 +928,7 @@ static int wcd937x_codec_enable_adc(struct snd_soc_dapm_widget *w,
 
 static int wcd937x_enable_req(struct snd_soc_dapm_widget *w,
 			      struct snd_kcontrol *kcontrol, int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 
@@ -975,7 +981,7 @@ static int wcd937x_enable_req(struct snd_soc_dapm_widget *w,
 static int wcd937x_micbias_control(struct snd_soc_component *component,
 				int micb_num, int req, bool is_dapm)
 {
-
+pr_err("%s\n", __func__);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int pre_off_event = 0, post_off_event = 0;
 	int post_on_event = 0, post_dapm_off = 0;
@@ -1071,7 +1077,7 @@ static int wcd937x_micbias_control(struct snd_soc_component *component,
 
 static int __wcd937x_codec_enable_micbias(struct snd_soc_dapm_widget *w,
 					  int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	int micb_num;
 
@@ -1105,13 +1111,13 @@ static int __wcd937x_codec_enable_micbias(struct snd_soc_dapm_widget *w,
 static int wcd937x_codec_enable_micbias(struct snd_soc_dapm_widget *w,
 					struct snd_kcontrol *kcontrol,
 					int event)
-{
+{pr_err("%s\n", __func__);
 	return __wcd937x_codec_enable_micbias(w, event);
 }
 
 static int __wcd937x_codec_enable_micbias_pullup(struct snd_soc_dapm_widget *w,
 						 int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	int micb_num;
 
@@ -1143,13 +1149,13 @@ static int __wcd937x_codec_enable_micbias_pullup(struct snd_soc_dapm_widget *w,
 static int wcd937x_codec_enable_micbias_pullup(struct snd_soc_dapm_widget *w,
 					       struct snd_kcontrol *kcontrol,
 					       int event)
-{
+{pr_err("%s\n", __func__);
 	return __wcd937x_codec_enable_micbias_pullup(w, event);
 }
 
 static int wcd937x_rx_hph_mode_get(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 
@@ -1159,7 +1165,7 @@ static int wcd937x_rx_hph_mode_get(struct snd_kcontrol *kcontrol,
 
 static int wcd937x_rx_hph_mode_put(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component =
 				snd_soc_kcontrol_component(kcontrol);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
@@ -1178,7 +1184,7 @@ static int wcd937x_rx_hph_mode_put(struct snd_kcontrol *kcontrol,
 
 static int wcd937x_ear_pa_gain_get(struct snd_kcontrol *kcontrol,
 				   struct snd_ctl_elem_value *ucontrol)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
 	u8 ear_pa_gain;
 
@@ -1191,7 +1197,7 @@ static int wcd937x_ear_pa_gain_get(struct snd_kcontrol *kcontrol,
 
 static int wcd937x_ear_pa_gain_put(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	u8 ear_pa_gain = 0;
@@ -1208,7 +1214,7 @@ static int wcd937x_ear_pa_gain_put(struct snd_kcontrol *kcontrol,
 }
 
 static int wcd937x_connect_port(struct wcd937x_sdw_priv *wcd, u8 port_idx, u8 ch_id, bool enable)
-{
+{pr_err("%s\n", __func__);
 	struct sdw_port_config *port_config = &wcd->port_config[port_idx - 1];
 	struct wcd937x_sdw_ch_info *ch_info = &wcd->ch_info[ch_id];
 	u8 port_num = ch_info->port_num;
@@ -1226,7 +1232,7 @@ static int wcd937x_connect_port(struct wcd937x_sdw_priv *wcd, u8 port_idx, u8 ch
 
 static int wcd937x_get_compander(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	struct soc_mixer_control *mc;
@@ -1242,7 +1248,7 @@ static int wcd937x_get_compander(struct snd_kcontrol *kcontrol,
 
 static int wcd937x_set_compander(struct snd_kcontrol *kcontrol,
 				 struct snd_ctl_elem_value *ucontrol)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	struct wcd937x_sdw_priv *wcd = wcd937x->sdw_priv[AIF1_PB];
@@ -1269,7 +1275,7 @@ static int wcd937x_set_compander(struct snd_kcontrol *kcontrol,
 static int wcd937x_codec_enable_vdd_buck(struct snd_soc_dapm_widget *w,
 					 struct snd_kcontrol *kcontrol,
 					 int event)
-{
+{pr_err("%s\n", __func__);
 	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	int ret = 0;
@@ -1299,7 +1305,7 @@ static int wcd937x_codec_enable_vdd_buck(struct snd_soc_dapm_widget *w,
 
 static int wcd937x_get_swr_port(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_value *ucontrol)
-{
+{pr_err("%s\n", __func__);
 	struct soc_mixer_control *mixer = (struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_component *comp = snd_soc_kcontrol_component(kcontrol);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(comp);
@@ -1318,7 +1324,7 @@ static int wcd937x_get_swr_port(struct snd_kcontrol *kcontrol,
 
 static int wcd937x_set_swr_port(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_value *ucontrol)
-{
+{pr_err("%s\n", __func__);
 	struct soc_mixer_control *mixer = (struct soc_mixer_control *)kcontrol->private_value;
 	struct snd_soc_component *comp = snd_soc_kcontrol_component(kcontrol);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(comp);
@@ -1764,7 +1770,7 @@ static const struct snd_soc_dapm_route wcd9375_audio_map[] = {
 };
 
 static int wcd937x_set_micbias_data(struct wcd937x_priv *wcd937x)
-{
+{pr_err("%s\n", __func__);
 	int vout_ctl[3];
 
 	/* Set micbias voltage */
@@ -1793,6 +1799,7 @@ static struct irq_chip wcd_irq_chip = {
 static int wcd_irq_chip_map(struct irq_domain *irqd, unsigned int virq,
 			irq_hw_number_t hw)
 {
+	pr_err("%s\n", __func__);
 	irq_set_chip_and_handler(virq, &wcd_irq_chip, handle_simple_irq);
 	irq_set_nested_thread(virq, 1);
 	irq_set_noprobe(virq);
@@ -1806,6 +1813,7 @@ static const struct irq_domain_ops wcd_domain_ops = {
 
 static int wcd937x_irq_init(struct wcd937x_priv *wcd, struct device *dev)
 {
+	pr_err("%s\n", __func__);
 	wcd->virq = irq_domain_add_linear(NULL, 1, &wcd_domain_ops, NULL);
 	if (!(wcd->virq)) {
 		dev_err(dev, "%s: Failed to add IRQ domain\n", __func__);
@@ -1820,6 +1828,7 @@ static int wcd937x_irq_init(struct wcd937x_priv *wcd, struct device *dev)
 
 static int wcd937x_soc_codec_probe(struct snd_soc_component *component)
 {
+	pr_err("%s\n", __func__);
 	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(component);
 	struct wcd937x_priv *wcd937x = snd_soc_component_get_drvdata(component);
 	struct sdw_slave *tx_sdw_dev = wcd937x->tx_sdw_dev;
@@ -1924,6 +1933,7 @@ static const struct snd_soc_component_driver soc_codec_dev_wcd937x = {
 
 static void wcd937x_dt_parse_micbias_info(struct device *dev, struct wcd937x_priv *wcd)
 {
+	pr_err("%s\n", __func__);
 	struct device_node *np = dev->of_node;
 	u32 prop_val = 0;
 	int ret = 0;
@@ -1957,6 +1967,7 @@ static int wcd937x_codec_hw_params(struct snd_pcm_substream *substream,
 				   struct snd_pcm_hw_params *params,
 				   struct snd_soc_dai *dai)
 {
+	pr_err("%s\n", __func__);
 	struct wcd937x_priv *wcd937x = dev_get_drvdata(dai->dev);
 	struct wcd937x_sdw_priv *wcd = wcd937x->sdw_priv[dai->id];
 
@@ -1966,6 +1977,7 @@ static int wcd937x_codec_hw_params(struct snd_pcm_substream *substream,
 static int wcd937x_codec_free(struct snd_pcm_substream *substream,
 			      struct snd_soc_dai *dai)
 {
+	pr_err("%s\n", __func__);
 	struct wcd937x_priv *wcd937x = dev_get_drvdata(dai->dev);
 	struct wcd937x_sdw_priv *wcd = wcd937x->sdw_priv[dai->id];
 
@@ -1975,6 +1987,7 @@ static int wcd937x_codec_free(struct snd_pcm_substream *substream,
 static int wcd937x_codec_set_sdw_stream(struct snd_soc_dai *dai,
 					void *stream, int direction)
 {
+	pr_err("%s\n", __func__);
 	struct wcd937x_priv *wcd937x = dev_get_drvdata(dai->dev);
 	struct wcd937x_sdw_priv *wcd = wcd937x->sdw_priv[dai->id];
 
@@ -2020,6 +2033,7 @@ static struct snd_soc_dai_driver wcd937x_dais[] = {
 
 static int wcd937x_bind(struct device *dev)
 {
+	pr_err("%s\n", __func__);
 	struct wcd937x_priv *wcd937x = dev_get_drvdata(dev);
 	int ret;
 
@@ -2108,6 +2122,7 @@ static int wcd937x_bind(struct device *dev)
 
 static void wcd937x_unbind(struct device *dev)
 {
+	pr_err("%s\n", __func__);
 	struct wcd937x_priv *wcd937x = dev_get_drvdata(dev);
 
 	device_link_remove(dev, wcd937x->txdev);
@@ -2132,6 +2147,7 @@ static int wcd937x_add_slave_components(struct wcd937x_priv *wcd937x,
 					struct device *dev,
 					struct component_match **matchptr)
 {
+	pr_err("%s\n", __func__);
 	struct device_node *np = dev->of_node;
 
 	wcd937x->rxnode = of_parse_phandle(np, "qcom,rx-device", 0);
@@ -2162,7 +2178,7 @@ static int wcd937x_probe(struct platform_device *pdev)
 	struct wcd937x_priv *wcd937x;
 	struct wcd_mbhc_config *cfg;
 	int ret;
-
+pr_err("%s\n", __func__);
 	wcd937x = devm_kzalloc(dev, sizeof(*wcd937x), GFP_KERNEL);
 	if (!wcd937x)
 		return -ENOMEM;
@@ -2234,6 +2250,7 @@ static int wcd937x_probe(struct platform_device *pdev)
 
 static void wcd937x_remove(struct platform_device *pdev)
 {
+	pr_err("%s\n", __func__);
 	component_master_del(&pdev->dev, &wcd937x_comp_ops);
 	dev_set_drvdata(&pdev->dev, NULL);
 }
