@@ -70,6 +70,9 @@ int qcom_snd_sdw_prepare(struct snd_pcm_substream *substream,
 	case TX_CODEC_DMA_TX_1:
 	case TX_CODEC_DMA_TX_2:
 	case TX_CODEC_DMA_TX_3:
+	case VA_CODEC_DMA_TX_0:
+	case VA_CODEC_DMA_TX_1:
+	case VA_CODEC_DMA_TX_2:
 		break;
 	default:
 		return 0;
@@ -119,6 +122,9 @@ int qcom_snd_sdw_hw_params(struct snd_pcm_substream *substream,
 	case TX_CODEC_DMA_TX_1:
 	case TX_CODEC_DMA_TX_2:
 	case TX_CODEC_DMA_TX_3:
+	case VA_CODEC_DMA_TX_0:
+	case VA_CODEC_DMA_TX_1:
+	case VA_CODEC_DMA_TX_2:
 		for_each_rtd_codec_dais(rtd, i, codec_dai) {
 			sruntime = snd_soc_dai_get_stream(codec_dai, substream->stream);
 			if (sruntime != ERR_PTR(-ENOTSUPP))
@@ -147,6 +153,9 @@ int qcom_snd_sdw_hw_free(struct snd_pcm_substream *substream,
 	case TX_CODEC_DMA_TX_1:
 	case TX_CODEC_DMA_TX_2:
 	case TX_CODEC_DMA_TX_3:
+	case VA_CODEC_DMA_TX_0:
+	case VA_CODEC_DMA_TX_1:
+	case VA_CODEC_DMA_TX_2:
 		if (sruntime && *stream_prepared) {
 			sdw_disable_stream(sruntime);
 			sdw_deprepare_stream(sruntime);
