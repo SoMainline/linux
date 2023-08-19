@@ -181,6 +181,15 @@ config QCOM_APCS_IPC
 	  providing an interface for invoking the inter-process communication
 	  signals from the application processor to other masters.
 
+config QCOM_RIMPS
+	tristate "Qualcomm RIMPS mailbox driver"
+	depends on MAILBOX
+	help
+	  The Qualcomm RIMPS driver is used for communication between the
+	  Application Processor and the RIMPS subsystem. It's necessary
+	  for e.g. enabling the use of SCMI on some Qualcomm platforms.
+	  If unsure, say N.
+
 config TEGRA_HSP_MBOX
 	bool "Tegra HSP (Hardware Synchronization Primitives) Driver"
 	depends on ARCH_TEGRA
