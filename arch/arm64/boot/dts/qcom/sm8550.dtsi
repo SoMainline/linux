@@ -337,6 +337,39 @@
 			qcom,dload-mode = <&tcsr 0x19000>;
 			interconnects = <&aggre2_noc MASTER_CRYPTO 0 &mc_virt SLAVE_EBI1 0>;
 		};
+
+		scmi {
+			compatible = "arm,scmi";
+			mboxes = <&rimps_mbox>;
+			mbox-names = "tx";
+			shmem = <&cpu_scp_shmem>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			// MEMLAT
+			protocol@80 {
+				reg = <0x80>;
+				#clock-cells = <1>;
+			};
+
+			// PLH (?)
+			protocol@81 {
+				reg = <0x81>;
+				#clock-cells = <1>;
+			};
+
+			// PMU
+			protocol@86 {
+				reg = <0x86>;
+				#clock-cells = <1>;
+			};
+
+			// C1DCVS
+			protocol@87 {
+				reg = <0x87>;
+				#clock-cells = <1>;
+			};
+		};
 	};
 
 	clk_virt: interconnect-0 {
@@ -3967,6 +4000,14 @@
 			};
 		};
 
+		rimps_mbox: mailbox@17400000 {
+			compatible = "qcom,rimps-mbox";
+			reg = <0 0x17400000 0 0x10>,
+			      <0 0x17d90000 0 0x1000>;
+			interrupts = <GIC_SPI 62 IRQ_TYPE_LEVEL_HIGH>;
+			#mbox-cells = <0>;
+		};
+
 		timer@17420000 {
 			compatible = "arm,armv7-timer-mem";
 			reg = <0 0x17420000 0 0x1000>;
@@ -4138,6 +4179,19 @@
 			interrupt-names = "dcvsh-irq-0", "dcvsh-irq-1", "dcvsh-irq-2";
 			#freq-domain-cells = <1>;
 			#clock-cells = <1>;
+		};
+
+		sram@17d09400 {
+			compatible = "mmio-sram";
+			reg = <0 0x17d09400 0 0x400>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges = <0 0 0x17d09400 0x400>;
+
+			cpu_scp_shmem: sram@0 {
+				compatible = "arm,scmi-shmem";
+				reg = <0x0 0x400>;
+			};
 		};
 
 		pmu@24091000 {
