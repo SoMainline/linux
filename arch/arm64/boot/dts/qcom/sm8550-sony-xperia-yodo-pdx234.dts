@@ -76,13 +76,48 @@
 		};
 	};
 
-	// pmic-glink {
-	// 	compatible = "qcom,sm8550-pmic-glink", "qcom,pmic-glink";
-	// 	#address-cells = <1>;
-	// 	#size-cells = <0>;
+	pmic-glink {
+		compatible = "qcom,sm8550-pmic-glink", "qcom,pmic-glink";
+		orientation-gpios = <&tlmm 11 GPIO_ACTIVE_HIGH>;
+		#address-cells = <1>;
+		#size-cells = <0>;
 
-	// 	/* TODO: USB-C */
-	// };
+		connector@0 {
+			compatible = "usb-c-connector";
+			reg = <0>;
+			power-role = "dual";
+			data-role = "dual";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+
+					pmic_glink_hs_in: endpoint {
+						remote-endpoint = <&usb_1_dwc3_hs>;
+					};
+				};
+
+				port@1 {
+					reg = <1>;
+
+					pmic_glink_ss_in: endpoint {
+						remote-endpoint = <&usb_dp_qmpphy_out>;
+					};
+				};
+
+				port@2 {
+					reg = <2>;
+
+					pmic_glink_sbu: endpoint {
+						remote-endpoint = <&usb_sbu_mux>;
+					};
+				};
+			};
+		};
+	};
 
 	reserved-memory {
 		mpss_mem: mpss-region@89800000 {
@@ -121,6 +156,25 @@
 		rdtag-store-region@ffdc0000 {
 			reg = <0x0 0xffdc0000 0x0 0x40000>;
 			no-map;
+		};
+	};
+
+	usb-sbu-mux {
+		compatible = "gpio-sbu-mux";
+
+		enable-gpios = <&tlmm 50 GPIO_ACTIVE_HIGH>;
+		select-gpios = <&tlmm 51 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-0 = <&usb_sbu_default>;
+		pinctrl-names = "default";
+
+		orientation-switch;
+		mode-switch;
+
+		port {
+			usb_sbu_mux: endpoint {
+				remote-endpoint = <&pmic_glink_sbu>;
+			};
 		};
 	};
 
@@ -556,6 +610,19 @@
 	};
 };
 
+&mdss {
+	status = "okay";
+};
+
+&mdss_dp0 {
+	status = "okay";
+};
+
+&mdss_dp0_out {
+	data-lanes = <0 1>;
+	remote-endpoint = <&usb_dp_qmpphy_dp_in>;
+};
+
 &pcie0 {
 	wake-gpios = <&tlmm 96 GPIO_ACTIVE_HIGH>;
 	perst-gpios = <&tlmm 94 GPIO_ACTIVE_LOW>;
@@ -711,6 +778,24 @@
 
 &tlmm {
 	gpio-reserved-ranges = <32 8>;
+
+	usb_sbu_default: usb-sbu-state {
+		sbu-sw-oe-pins {
+			pins = "gpio50";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-disable;
+			output-low;
+		};
+
+		sbu-sw-sel-pins {
+			pins = "gpio51";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-disable;
+			output-low;
+		};
+	};
 };
 
 &uart7 {
@@ -722,8 +807,16 @@
 };
 
 &usb_1_dwc3 {
-	dr_mode = "peripheral";
-	// usb-role-switch;
+	dr_mode = "otg";
+	usb-role-switch;
+};
+
+&usb_1_dwc3_hs {
+	remote-endpoint = <&pmic_glink_hs_in>;
+};
+
+&usb_1_dwc3_ss {
+	remote-endpoint = <&usb_dp_qmpphy_usb_ss_in>;
 };
 
 &usb_1_hsphy {
@@ -740,6 +833,18 @@
 	orientation-switch;
 
 	status = "okay";
+};
+
+&usb_dp_qmpphy_dp_in {
+	remote-endpoint = <&mdss_dp0_out>;
+};
+
+&usb_dp_qmpphy_out {
+	remote-endpoint = <&pmic_glink_ss_in>;
+};
+
+&usb_dp_qmpphy_usb_ss_in {
+	remote-endpoint = <&usb_1_dwc3_ss>;
 };
 
 &xo_board {
