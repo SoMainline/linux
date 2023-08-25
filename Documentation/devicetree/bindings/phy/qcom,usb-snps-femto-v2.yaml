@@ -53,6 +53,9 @@ properties:
     items:
       - description: PHY core reset
 
+  refgen-supply:
+    description: phandle to the REFGEN regulator node
+
   vdda-pll-supply:
     description: phandle to the regulator VDD supply node.
 
