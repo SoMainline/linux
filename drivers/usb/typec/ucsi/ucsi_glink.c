@@ -290,6 +290,7 @@ static void pmic_glink_ucsi_pdr_notify(void *priv, int state)
 static void pmic_glink_ucsi_destroy(void *data)
 {
 	struct pmic_glink_ucsi *ucsi = data;
+return;
 
 	/* Protect to make sure we're not in a middle of a transaction from a glink callback */
 	mutex_lock(&ucsi->lock);
