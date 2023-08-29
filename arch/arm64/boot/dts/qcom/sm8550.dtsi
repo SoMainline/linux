@@ -337,7 +337,7 @@
 
 		scmi {
 			compatible = "arm,scmi";
-			mboxes = <&rimps_mbox 0>;
+			mboxes = <&rimps_mbox>;
 			mbox-names = "tx";
 			shmem = <&cpu_scp_shmem>;
 			#address-cells = <1>;
@@ -3724,9 +3724,9 @@
 		rimps_mbox: mailbox@17400000 {
 			compatible = "qcom,rimps-mbox";
 			reg = <0 0x17400000 0 0x10>,
-			      <0 0x17d90000 0 0x2000>;
+			      <0 0x17d90000 0 0x1000>;
 			interrupts = <GIC_SPI 62 IRQ_TYPE_LEVEL_HIGH>;
-			#mbox-cells = <1>;
+			#mbox-cells = <0>;
 		};
 
 		timer@17420000 {
