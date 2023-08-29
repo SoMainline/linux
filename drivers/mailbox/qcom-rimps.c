@@ -20,22 +20,13 @@
 #define RIMPS_STATUS_IRQ_OFFSET		0x30C
  #define RIMPS_STATUS_IRQ_VAL		BIT(3)
 
-#define RIMPS_CLOCK_DOMAIN_OFFSET	0x1000
-
-//todo: remove log or move this to bindings
-enum {
-	RIMPS_IPC_CHAN_SCMI,
-	RIMPS_IPC_CHAN_LOG,
-	RIMPS_IPC_CHAN_NUM,
-};
-
 /**
  * struct rimps_mbox - RIMPS driver data
  * @dev: Device associated with this instance
  * @tx_base: Base of the TX region
  * @rx_base: Base of the RX region
  * @mbox: The mailbox controller
- * @chans: The mailbox channels array
+ * @channel: The mailbox channel
  * @irq: RIMPS-to-HLOS irq
  */
 struct qcom_rimps_mbox {
@@ -43,7 +34,7 @@ struct qcom_rimps_mbox {
 	void __iomem *tx_base;
 	void __iomem *rx_base;
 	struct mbox_controller mbox;
-	struct mbox_chan chans[RIMPS_IPC_CHAN_NUM];
+	struct mbox_chan channel;
 	int irq;
 };
 
@@ -52,25 +43,20 @@ static irqreturn_t qcom_rimps_mbox_rx_interrupt(int irq, void *data)
 	struct qcom_rimps_mbox *rimps_mbox = data;
 	void __iomem *base = rimps_mbox->rx_base;
 	unsigned long flags;
-	u32 cd_off, val;
-	int i;
+	u32 val;
 
-	for (i = 0; i < RIMPS_IPC_CHAN_NUM; i++) {
-		cd_off = (i * RIMPS_CLOCK_DOMAIN_OFFSET);
+	val = readl(base + RIMPS_STATUS_IRQ_OFFSET);
+	if (val & RIMPS_STATUS_IRQ_VAL) {
+		writel(RIMPS_CLEAR_IRQ_VAL, base + RIMPS_CLEAR_IRQ_OFFSET);
+		/* Make sure register write is complete before proceeding */
+		mb();
 
-		val = readl(base + cd_off + RIMPS_STATUS_IRQ_OFFSET);
-		if (val & RIMPS_STATUS_IRQ_VAL) {
-			writel(RIMPS_CLEAR_IRQ_VAL, base + cd_off + RIMPS_CLEAR_IRQ_OFFSET);
-			/* Make sure register write is complete before proceeding */
-			mb();
+		spin_lock_irqsave(&rimps_mbox->channel.lock, flags);
 
-			spin_lock_irqsave(&rimps_mbox->chans[i].lock, flags);
+		if (rimps_mbox->channel.con_priv)
+			mbox_chan_received_data(&rimps_mbox->channel, NULL);
 
-			if (rimps_mbox->chans[i].con_priv)
-				mbox_chan_received_data(&rimps_mbox->chans[i], NULL);
-
-			spin_unlock_irqrestore(&rimps_mbox->chans[i].lock, flags);
-		}
+		spin_unlock_irqrestore(&rimps_mbox->channel.lock, flags);
 	}
 
 	return IRQ_HANDLED;
@@ -98,20 +84,16 @@ static struct mbox_chan *qcom_rimps_mbox_xlate(struct mbox_controller *mbox,
 					       const struct of_phandle_args *sp)
 {
 	struct qcom_rimps_mbox *rimps_mbox = container_of(mbox, struct qcom_rimps_mbox, mbox);
-	unsigned long idx = sp->args[0];
 
-	if (sp->args_count != 1)
+	if (sp->args_count)
 		return ERR_PTR(-EINVAL);
 
-	if (idx >= RIMPS_IPC_CHAN_NUM)
-		return ERR_PTR(-EINVAL);
-
-	if (mbox->chans[idx].con_priv)
+	if (mbox->chans[0].con_priv)
 		return ERR_PTR(-EBUSY);
 
-	mbox->chans[idx].con_priv = rimps_mbox;
+	mbox->chans[0].con_priv = rimps_mbox;
 
-	return &mbox->chans[idx];
+	return &mbox->chans[0];
 }
 
 static const struct mbox_chan_ops rimps_mbox_chan_ops = {
@@ -124,7 +106,7 @@ static int qcom_rimps_mbox_probe(struct platform_device *pdev)
 	struct qcom_rimps_mbox *rimps_mbox;
 	struct device *dev = &pdev->dev;
 	struct mbox_controller *mbox;
-	int i, ret;
+	int ret;
 
 	rimps_mbox = devm_kzalloc(dev, sizeof(*rimps_mbox), GFP_KERNEL);
 	if (!rimps_mbox)
@@ -144,14 +126,13 @@ static int qcom_rimps_mbox_probe(struct platform_device *pdev)
 	if (rimps_mbox->irq < 0)
 		return dev_err_probe(dev, rimps_mbox->irq, "Failed to get the IRQ\n");
 
-	/* Initialize channel identifiers */
-	for (i = 0; i < RIMPS_IPC_CHAN_NUM; i++)
-		rimps_mbox->chans[i].con_priv = NULL;
+	/* Initialize channel identifier */
+	rimps_mbox->channel.con_priv = NULL;
 
 	mbox = &rimps_mbox->mbox;
 	mbox->dev = dev;
-	mbox->num_chans = RIMPS_IPC_CHAN_NUM;
-	mbox->chans = rimps_mbox->chans;
+	mbox->num_chans = 1;
+	mbox->chans = &rimps_mbox->channel;
 	mbox->ops = &rimps_mbox_chan_ops;
 	mbox->of_xlate = qcom_rimps_mbox_xlate;
 	mbox->txdone_irq = false;
