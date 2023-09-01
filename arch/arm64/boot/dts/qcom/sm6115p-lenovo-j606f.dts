@@ -19,6 +19,7 @@
 
 	aliases {
 		mmc0 = &sdhc_2;
+		serial1 = &uart3;
 	};
 
 	chosen {
@@ -303,6 +304,7 @@
 		pm6125_l9: l9 {
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <2000000>;
+			regulator-allow-set-load;
 		};
 
 		pm6125_l10: l10 {
@@ -338,11 +340,13 @@
 		pm6125_l16: l16 {
 			regulator-min-microvolt = <1704000>;
 			regulator-max-microvolt = <1904000>;
+			regulator-allow-set-load;
 		};
 
 		pm6125_l17: l17 {
-			regulator-min-microvolt = <1152000>;
+			regulator-min-microvolt = <1304000>;
 			regulator-max-microvolt = <1384000>;
+			regulator-allow-set-load;
 		};
 
 		pm6125_l18: l18 {
@@ -378,6 +382,7 @@
 		pm6125_l23: l23 {
 			regulator-min-microvolt = <3200000>;
 			regulator-max-microvolt = <3400000>;
+			regulator-allow-set-load;
 		};
 
 		pm6125_l24: l24 {
@@ -412,6 +417,61 @@
 &tlmm {
 	gpio-reserved-ranges = <14 4>;
 
+	uart3_default: uart3-default-state {
+		cts-pins {
+			pins = "gpio8";
+			function = "qup3";
+			bias-bus-hold;
+		};
+
+		rts-pins {
+			pins = "gpio9";
+			function = "qup3";
+			drive-strength = <2>;
+			bias-disable;
+		};
+
+		tx-pins {
+			pins = "gpio10";
+			function = "qup3";
+			drive-strength = <2>;
+			bias-disable;
+		};
+
+		rx-pins {
+			pins = "gpio11";
+			function = "qup3";
+			drive-strength = <2>;
+			bias-pull-up;
+		};
+	};
+
+	uart3_sleep: uart3-sleep-state {
+		cts-pins {
+			pins = "gpio8";
+			function = "gpio";
+			bias-bus-hold;
+		};
+
+		rts-pins {
+			pins = "gpio9";
+			function = "gpio";
+			bias-pull-down;
+		};
+
+		tx-pins {
+			pins = "gpio10";
+			function = "gpio";
+			bias-pull-up;
+		};
+
+		rx-pins {
+			pins = "gpio11";
+			function = "gpio";
+			bias-pull-up;
+		};
+	};
+
 	/*
 	 * This is a wholly undocumented pin (other than a single vague "pwr-gpios" reference)
 	 * that needs to be toggled for the SD Card slot to work properly..
@@ -444,6 +504,27 @@
 		drive-strength = <2>;
 		bias-pull-up;
 		input-enable;
+	};
+};
+
+&uart3 {
+	/delete-property/ interrupts;
+	interrupts-extended = <&intc GIC_SPI 330 IRQ_TYPE_LEVEL_HIGH>,
+			      <&tlmm 11 IRQ_TYPE_LEVEL_HIGH>;
+	pinctrl-0 = <&uart3_default>;
+	pinctrl-1 = <&uart3_sleep>;
+	pinctrl-names = "default", "sleep";
+	status = "okay";
+
+	bluetooth {
+		compatible = "qcom,wcn3988-bt";
+
+		vddio-supply = <&pm6125_l9>;
+		vddxo-supply = <&pm6125_l16>;
+		vddrf-supply = <&pm6125_l17>;
+		vddch0-supply = <&pm6125_l23>;
+		enable-gpios = <&tlmm 87 GPIO_ACTIVE_HIGH>;
+		max-speed = <3200000>;
 	};
 };
 
