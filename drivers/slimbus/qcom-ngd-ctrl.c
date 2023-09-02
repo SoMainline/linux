@@ -1192,6 +1192,7 @@ static int qcom_slim_ngd_power_up(struct qcom_slim_ngd_ctrl *ctrl)
 	ctrl->ver >>= 16;
 
 	laddr = readl_relaxed(ngd->base + NGD_STATUS);
+	pr_err("SLIM controller expects BAM channels: RX=%u TX=%u\n", FIELD_GET(GENMASK(9, 2), laddr), FIELD_GET(GENMASK(9, 2), laddr)+1);
 	if (laddr & NGD_LADDR) {
 		/*
 		 * external MDM restart case where ADSP itself was active framer
