@@ -10,6 +10,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
+#include <linux/arm-smccc.h>
 #include <linux/cpu.h>
 #include <linux/module.h>
 #include <linux/nvmem-consumer.h>
@@ -29,6 +30,54 @@ struct sunxi_cpufreq_soc_data {
 };
 
 static struct platform_device *cpufreq_dt_pdev, *sun50i_cpufreq_pdev;
+
+static int sun50i_h616_efuse_xlate(u32 *versions, u32 *efuse, char *name, size_t len)
+{
+	int value = 0;
+	u32 speedgrade = 0;
+	u32 i;
+	int ver_bits = arm_smccc_get_soc_id_revision();
+
+	if (len > 4) {
+		pr_err("Invalid nvmem cell length\n");
+		return -EINVAL;
+	}
+
+	for (i = 0; i < len; i++)
+		speedgrade |= (efuse[i] << (i * 8));
+
+	switch (speedgrade) {
+	case 0x2000:
+		value = 0;
+		break;
+	case 0x2400:
+	case 0x7400:
+	case 0x2c00:
+	case 0x7c00:
+		if (ver_bits <= 1) {
+			/* ic version A/B */
+			value = 1;
+		} else {
+			/* ic version C and later version */
+			value = 2;
+		}
+		break;
+	case 0x5000:
+	case 0x5400:
+	case 0x6000:
+		value = 3;
+		break;
+	case 0x5c00:
+		value = 4;
+		break;
+	case 0x5d00:
+	default:
+		value = 0;
+	}
+	*versions = (1 << value);
+	snprintf(name, MAX_NAME_LEN, "speed%d", value);
+	return 0;
+}
 
 static int sun50i_h6_efuse_xlate(u32 *versions, u32 *efuse, char *name, size_t len)
 {
@@ -204,12 +253,18 @@ static struct platform_driver sun50i_cpufreq_driver = {
 	},
 };
 
+static const struct sunxi_cpufreq_soc_data sun50i_h616_data = {
+	.efuse_xlate = sun50i_h616_efuse_xlate,
+	.ver_freq_limit = true,
+};
+
 static const struct sunxi_cpufreq_soc_data sun50i_h6_data = {
 	.efuse_xlate = sun50i_h6_efuse_xlate,
 };
 
 static const struct of_device_id sun50i_cpufreq_match_list[] = {
 	{ .compatible = "allwinner,sun50i-h6", .data = &sun50i_h6_data },
+	{ .compatible = "allwinner,sun50i-h616", .data = &sun50i_h616_data },
 	{}
 };
 MODULE_DEVICE_TABLE(of, sun50i_cpufreq_match_list);
