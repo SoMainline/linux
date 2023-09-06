@@ -47,15 +47,15 @@ patternProperties:
     properties:
       opp-hz: true
       clock-latency-ns: true
+      opp-supported-hw:
+        description: |
+          A single 32 bit bitmap value, representing compatible HW.
 
     patternProperties:
       "^opp-microvolt-speed[0-9]$": true
 
     required:
       - opp-hz
-      - opp-microvolt-speed0
-      - opp-microvolt-speed1
-      - opp-microvolt-speed2
 
     unevaluatedProperties: false
 
