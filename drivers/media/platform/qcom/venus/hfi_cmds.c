@@ -6,6 +6,7 @@
 #include <linux/overflow.h>
 #include <linux/errno.h>
 #include <linux/hash.h>
+#include <linux/soc/qcom/llcc-qcom.h>
 
 #include "hfi_cmds.h"
 
@@ -90,6 +91,40 @@ int pkt_sys_set_resource(struct hfi_sys_set_resource_pkt *pkt, u32 id, u32 size,
 	default:
 		return -ENOTSUPP;
 	}
+
+	return 0;
+}
+
+int pkt_sys_set_llcc_resource(struct hfi_sys_set_resource_pkt *pkt, u32 *slice_ids,
+			      u8 slice_num, void *cookie)
+{
+	struct hfi_resource_syscache_info *res =
+		(struct hfi_resource_syscache_info *)&pkt->resource_data;
+	struct llcc_slice_desc *slice;
+	int i;
+
+	pkt->hdr.size = sizeof(*pkt);
+	pkt->hdr.pkt_type = HFI_CMD_SYS_SET_RESOURCE;
+	pkt->resource_handle = hash32_ptr(cookie);
+	pkt->resource_type = HFI_RESOURCE_SYSCACHE;
+
+	res->num_entries = slice_num;
+
+	for (i = 0; i < slice_num; i++) {
+		slice = llcc_slice_getd(slice_ids[i]);
+		if (IS_ERR(slice))
+			return PTR_ERR(slice);
+
+		res->type[i].size = llcc_get_slice_size(slice);
+		if (WARN_ON(res->type[i].size == 0))
+			return -EINVAL;
+
+		llcc_slice_putd(slice);
+
+		res->type[i].slice_id = slice_ids[i];
+	}
+
+	pkt->hdr.size += sizeof(*res);
 
 	return 0;
 }
