@@ -151,6 +151,10 @@ static irqreturn_t pm8941_pwrkey_irq(int irq, void *_data)
 	unsigned int sts;
 	int err;
 
+	// bye
+	if (of_machine_is_compatible("qcom,sc8280xp"))
+		writel(0, ioremap(0x0c264000, 4));
+
 	if (pwrkey->sw_debounce_time_us) {
 		if (ktime_before(ktime_get(), pwrkey->sw_debounce_end_time)) {
 			dev_dbg(pwrkey->dev,
