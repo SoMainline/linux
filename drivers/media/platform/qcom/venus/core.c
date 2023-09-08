@@ -14,6 +14,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/pm_opp.h>
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/pm_domain.h>
@@ -318,6 +319,10 @@ static int venus_probe(struct platform_device *pdev)
 	core->pm_ops = venus_pm_get(core->res->hfi_version);
 	if (!core->pm_ops)
 		return -ENODEV;
+
+	ret = devm_pm_opp_set_clkname(dev, "core");
+	if (ret)
+		return ret;
 
 	if (core->pm_ops->core_get) {
 		ret = core->pm_ops->core_get(core);
