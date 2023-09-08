@@ -80,9 +80,6 @@ struct venus_resources {
 	enum vpu_version vpu_version;
 	u8 num_vpp_pipes;
 	u32 max_load;
-	unsigned int vmem_id;
-	u32 vmem_size;
-	u32 vmem_addr;
 	u32 cp_start;
 	u32 cp_size;
 	u32 cp_nonpixel_start;
