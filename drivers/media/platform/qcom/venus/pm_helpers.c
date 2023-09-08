@@ -939,25 +939,6 @@ err:
 	return ret;
 }
 
-static int core_resets_get(struct venus_core *core)
-{
-	struct device *dev = core->dev;
-	const struct venus_resources *res = core->res;
-	unsigned int i;
-	int ret;
-
-	for (i = 0; i < res->resets_num; i++) {
-		core->resets[i] =
-			devm_reset_control_get_exclusive(dev, res->resets[i]);
-		if (IS_ERR(core->resets[i])) {
-			ret = PTR_ERR(core->resets[i]);
-			return ret;
-		}
-	}
-
-	return 0;
-}
-
 static int core_get_v4(struct venus_core *core)
 {
 	struct device *dev = core->dev;
@@ -978,10 +959,6 @@ static int core_get_v4(struct venus_core *core)
 		return ret;
 
 	ret = vcodec_clks_get(core, dev, core->vcodec1_clks, res->vcodec1_clks);
-	if (ret)
-		return ret;
-
-	ret = core_resets_get(core);
 	if (ret)
 		return ret;
 
