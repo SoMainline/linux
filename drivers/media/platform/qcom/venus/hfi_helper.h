@@ -1093,6 +1093,18 @@ struct hfi_resource_ocmem_requirement_info {
 	struct hfi_resource_ocmem_requirement requirements[1];
 };
 
+#define HFI_RESOURCE_SYSCACHE	0x2
+
+struct hfi_resource_syscache {
+	u32 size;
+	u32 slice_id;
+};
+
+struct hfi_resource_syscache_info {
+	u32 num_entries;
+	struct hfi_resource_syscache type[];
+};
+
 struct hfi_property_sys_image_version_info_type {
 	u32 string_size;
 	u8  str_image_version[1];
