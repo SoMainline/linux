@@ -110,67 +110,74 @@ static void core_clks_disable(struct venus_core *core)
 
 static int core_clks_set_rate(struct venus_core *core, unsigned long freq)
 {
-	int ret;
+	int i, ret;
 
 	ret = dev_pm_opp_set_rate(core->dev, freq);
 	if (ret)
 		return ret;
 
-	ret = clk_set_rate(core->vcodec0_clks[0], freq);
-	if (ret)
-		return ret;
-
-	ret = clk_set_rate(core->vcodec1_clks[0], freq);
-	if (ret)
-		return ret;
-
-	return 0;
-}
-
-static int vcodec_clks_get(struct venus_core *core, struct device *dev,
-			   struct clk **clks, const char * const *id)
-{
-	const struct venus_resources *res = core->res;
-	unsigned int i;
-
-	for (i = 0; i < res->vcodec_clks_num; i++) {
-		if (!id[i])
-			continue;
-		clks[i] = devm_clk_get(dev, id[i]);
-		if (IS_ERR(clks[i]))
-			return PTR_ERR(clks[i]);
+	for (i = 0; i < MAX_NUM_VCODECS; i++) {
+		ret = clk_set_rate(core->vcodec_core_clks[i], freq);
+		if (ret)
+			return ret;
 	}
 
 	return 0;
 }
 
-static int vcodec_clks_enable(struct venus_core *core, struct clk **clks)
+static int vcodec_clks_get(struct venus_core *core, struct device *dev, u8 id)
 {
-	const struct venus_resources *res = core->res;
-	unsigned int i;
+	char buf[13] = { 0 }; /* vcodecX_core\0 */
+
+	/* Best we can do is 2 cores */
+	if (id > MAX_NUM_VCODECS - 1) {
+		dev_err(dev, "Got impossible vcodec id %u\n", id);
+		return -EINVAL;
+	};
+
+	snprintf(buf, sizeof(buf), "vcodec%u_core", id);
+
+	/* First try the non-legacy name */
+	core->vcodec_core_clks[id] = devm_clk_get_optional(dev, buf);
+	if (IS_ERR(core->vcodec_core_clks[id])) {
+		/* Try again, with the legacy name */
+		core->vcodec_core_clks[id] = devm_clk_get_optional(dev, "core");
+		if (IS_ERR(core->vcodec_core_clks[id]))
+			return PTR_ERR(core->vcodec_core_clks[id]);
+	}
+
+	memset(buf, 0, sizeof(buf));
+	snprintf(buf, sizeof(buf), "vcodec%u_bus", id);
+
+	core->vcodec_bus_clks[id] = devm_clk_get_optional(dev, buf);
+	if (IS_ERR(core->vcodec_bus_clks[id])) {
+		core->vcodec_bus_clks[id] = devm_clk_get_optional(dev, "bus");
+		if (IS_ERR(core->vcodec_bus_clks[id]))
+			return PTR_ERR(core->vcodec_bus_clks[id]);
+	}
+
+	return 0;
+}
+
+static int vcodec_clks_enable(struct venus_core *core, u8 id)
+{
 	int ret;
 
-	for (i = 0; i < res->vcodec_clks_num; i++) {
-		ret = clk_prepare_enable(clks[i]);
-		if (ret)
-			goto err;
-	}
+	ret = clk_prepare_enable(core->vcodec_core_clks[id]);
+	if (ret)
+		return ret;
 
-	return 0;
-err:
-	while (i--)
-		clk_disable_unprepare(clks[i]);
+	ret = clk_prepare_enable(core->vcodec_bus_clks[id]);
+	if (ret)
+		clk_disable_unprepare(core->vcodec_core_clks[id]);
 
 	return ret;
 }
 
-static void vcodec_clks_disable(struct venus_core *core, struct clk **clks)
+static void vcodec_clks_disable(struct venus_core *core, u8 id)
 {
-	const struct venus_resources *res = core->res;
-	unsigned int i = res->vcodec_clks_num;
-
-	while (i--)
-		clk_disable_unprepare(clks[i]);
+	clk_disable_unprepare(core->vcodec_bus_clks[id]);
+	clk_disable_unprepare(core->vcodec_core_clks[id]);
 }
 
 static u32 load_per_instance(struct venus_inst *inst)
@@ -343,8 +350,7 @@ static int vdec_get_v3(struct device *dev)
 {
 	struct venus_core *core = dev_get_drvdata(dev);
 
-	return vcodec_clks_get(core, dev, core->vcodec0_clks,
-			       core->res->vcodec0_clks);
+	return vcodec_clks_get(core, dev, 0);
 }
 
 static int vdec_power_v3(struct device *dev, int on)
@@ -355,9 +361,9 @@ static int vdec_power_v3(struct device *dev, int on)
 	vcodec_control_v3(core, VIDC_SESSION_TYPE_DEC, true);
 
 	if (on == POWER_ON)
-		ret = vcodec_clks_enable(core, core->vcodec0_clks);
+		ret = vcodec_clks_enable(core, 0);
 	else
-		vcodec_clks_disable(core, core->vcodec0_clks);
+		vcodec_clks_disable(core, 0);
 
 	vcodec_control_v3(core, VIDC_SESSION_TYPE_DEC, false);
 
@@ -368,8 +374,7 @@ static int venc_get_v3(struct device *dev)
 {
 	struct venus_core *core = dev_get_drvdata(dev);
 
-	return vcodec_clks_get(core, dev, core->vcodec1_clks,
-			       core->res->vcodec1_clks);
+	return vcodec_clks_get(core, dev, 1);
 }
 
 static int venc_power_v3(struct device *dev, int on)
@@ -380,9 +385,9 @@ static int venc_power_v3(struct device *dev, int on)
 	vcodec_control_v3(core, VIDC_SESSION_TYPE_ENC, true);
 
 	if (on == POWER_ON)
-		ret = vcodec_clks_enable(core, core->vcodec1_clks);
+		ret = vcodec_clks_enable(core, 1);
 	else
-		vcodec_clks_disable(core, core->vcodec1_clks);
+		vcodec_clks_disable(core, 1);
 
 	vcodec_control_v3(core, VIDC_SESSION_TYPE_ENC, false);
 
@@ -441,7 +446,7 @@ static int poweroff_coreid(struct venus_core *core, unsigned int coreid_mask)
 		if (ret)
 			return ret;
 
-		vcodec_clks_disable(core, core->vcodec0_clks);
+		vcodec_clks_disable(core, 0);
 
 		ret = vcodec_control_v4(core, VIDC_CORE_ID_1, false);
 		if (ret)
@@ -457,7 +462,7 @@ static int poweroff_coreid(struct venus_core *core, unsigned int coreid_mask)
 		if (ret)
 			return ret;
 
-		vcodec_clks_disable(core, core->vcodec1_clks);
+		vcodec_clks_disable(core, 1);
 
 		ret = vcodec_control_v4(core, VIDC_CORE_ID_2, false);
 		if (ret)
@@ -484,7 +489,7 @@ static int poweron_coreid(struct venus_core *core, unsigned int coreid_mask)
 		if (ret)
 			return ret;
 
-		ret = vcodec_clks_enable(core, core->vcodec0_clks);
+		ret = vcodec_clks_enable(core, 0);
 		if (ret)
 			return ret;
 
@@ -502,7 +507,7 @@ static int poweron_coreid(struct venus_core *core, unsigned int coreid_mask)
 		if (ret)
 			return ret;
 
-		ret = vcodec_clks_enable(core, core->vcodec1_clks);
+		ret = vcodec_clks_enable(core, 1);
 		if (ret)
 			return ret;
 
@@ -763,20 +768,18 @@ static int vdec_get_v4(struct device *dev)
 	if (!legacy_binding)
 		return 0;
 
-	return vcodec_clks_get(core, dev, core->vcodec0_clks,
-			       core->res->vcodec0_clks);
+	return vcodec_clks_get(core, dev, 0);
 }
 
 static void vdec_put_v4(struct device *dev)
 {
 	struct venus_core *core = dev_get_drvdata(dev);
-	unsigned int i;
 
 	if (!legacy_binding)
 		return;
 
-	for (i = 0; i < core->res->vcodec_clks_num; i++)
-		core->vcodec0_clks[i] = NULL;
+	core->vcodec_core_clks[0] = NULL;
+	core->vcodec_bus_clks[0] = NULL;
 }
 
 static int vdec_power_v4(struct device *dev, int on)
@@ -792,9 +795,9 @@ static int vdec_power_v4(struct device *dev, int on)
 		return ret;
 
 	if (on == POWER_ON)
-		ret = vcodec_clks_enable(core, core->vcodec0_clks);
+		ret = vcodec_clks_enable(core, 0);
 	else
-		vcodec_clks_disable(core, core->vcodec0_clks);
+		vcodec_clks_disable(core, 0);
 
 	vcodec_control_v4(core, VIDC_CORE_ID_1, false);
 
@@ -808,20 +811,18 @@ static int venc_get_v4(struct device *dev)
 	if (!legacy_binding)
 		return 0;
 
-	return vcodec_clks_get(core, dev, core->vcodec1_clks,
-			       core->res->vcodec1_clks);
+	return vcodec_clks_get(core, dev, 1);
 }
 
 static void venc_put_v4(struct device *dev)
 {
 	struct venus_core *core = dev_get_drvdata(dev);
-	unsigned int i;
 
 	if (!legacy_binding)
 		return;
 
-	for (i = 0; i < core->res->vcodec_clks_num; i++)
-		core->vcodec1_clks[i] = NULL;
+	core->vcodec_core_clks[1] = NULL;
+	core->vcodec_bus_clks[1] = NULL;
 }
 
 static int venc_power_v4(struct device *dev, int on)
@@ -837,9 +838,9 @@ static int venc_power_v4(struct device *dev, int on)
 		return ret;
 
 	if (on == POWER_ON)
-		ret = vcodec_clks_enable(core, core->vcodec1_clks);
+		ret = vcodec_clks_enable(core, 1);
 	else
-		vcodec_clks_disable(core, core->vcodec1_clks);
+		vcodec_clks_disable(core, 1);
 
 	vcodec_control_v4(core, VIDC_CORE_ID_2, false);
 
@@ -934,11 +935,11 @@ static int core_get_v4(struct venus_core *core)
 
 	dev_info(dev, "%s legacy binding\n", legacy_binding ? "" : "non");
 
-	ret = vcodec_clks_get(core, dev, core->vcodec0_clks, res->vcodec0_clks);
+	ret = vcodec_clks_get(core, dev, 0);
 	if (ret)
 		return ret;
 
-	ret = vcodec_clks_get(core, dev, core->vcodec1_clks, res->vcodec1_clks);
+	ret = vcodec_clks_get(core, dev, 1);
 	if (ret)
 		return ret;
 
