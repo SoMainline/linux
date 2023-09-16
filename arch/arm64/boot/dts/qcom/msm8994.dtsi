@@ -1141,7 +1141,86 @@
 					       <960000000>,
 					       <600000000>;
 		};
+#if 0
+		mdss: display-subsystem@fd900000 {
+			// compatible = "qcom,msm8994-mdss";
+			reg = <0xfd900000 0x1000>;
+			reg-names = "mdss";
 
+			interrupts = <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-controller;
+			#interrupt-cells = <1>;
+
+			clocks = <&mmcc MDSS_AHB_CLK>,
+				 <&mmcc MDSS_AXI_CLK>,
+				 <&mmcc MDSS_MDP_CLK>;
+			clock-names = "iface", "bus", "core";
+
+			power-domains = <&mmcc MDSS_GDSC>;
+
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+
+			// status = "disabled";
+
+			mdp: display-controller@901000 {
+				// compatible = "qcom,msm8994-dpu";
+				status = "disabled";
+				reg = <0xfd901000 0x90000>,
+				      <0xfd9c8000 0x4d4>;
+				reg-names = "mdp",
+					    "vbif";
+
+				interrupt-parent = <&mdss>;
+				interrupts = <0>;
+
+				clocks = <&mmcc MDSS_AHB_CLK>,
+					 <&mmcc MDSS_AXI_CLK>,
+					 <&mmcc MDSS_MDP_CLK>,
+					 <&mmcc MDSS_VSYNC_CLK>;
+				clock-names = "iface",
+					      "bus",
+					      "core",
+					      "vsync";
+
+				assigned-clocks = <&mmcc MDSS_VSYNC_CLK>;
+				assigned-clock-rates = <19200000>;
+
+				operating-points-v2 = <&mdp_opp_table>;
+				power-domains = <&rpmpd MSM8994_VDDCX>;
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+				};
+
+				mdp_opp_table: mdp-opp-table {
+					compatible = "operating-points-v2";
+
+					opp-85710000 {
+						opp-hz = /bits/ 64 <85710000>;
+						required-opps = <&rpmpd_opp_svs_krait>;
+					};
+
+					opp-171430000 {
+						opp-hz = /bits/ 64 <171430000>;
+						required-opps = <&rpmpd_opp_svs_soc>;
+					};
+
+					opp-320000000 {
+						opp-hz = /bits/ 64 <320000000>;
+						required-opps = <&rpmpd_opp_nom>;
+					};
+
+					opp-400000000 {
+						opp-hz = /bits/ 64 <400000000>;
+						required-opps = <&rpmpd_opp_turbo>;
+					};
+				};
+			};
+		};
+#endif
 		ocmem: sram@fdd00000 {
 			compatible = "qcom,msm8974-ocmem";
 			reg = <0xfdd00000 0x2000>,
