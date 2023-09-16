@@ -679,6 +679,9 @@ static const struct dpu_qos_lut_entry sc7180_qos_nrt[] = {
  * Hardware catalog
  *************************************************************/
 
+#include "catalog/dpu_1_7_msm8996.h"
+#include "catalog/dpu_1_9_msm8994.h"
+
 #include "catalog/dpu_3_0_msm8998.h"
 
 #include "catalog/dpu_4_0_sdm845.h"
