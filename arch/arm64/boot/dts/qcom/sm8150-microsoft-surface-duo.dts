@@ -430,6 +430,46 @@
 	/* MAX34417 @ 0x1e */
 };
 
+&mdss {
+	status = "okay";
+};
+
+&mdss_dsi0 {
+	vdda-supply = <&vreg_l3c_1p2>;
+	status = "okay";
+
+	panel@0 {
+		compatible = "microsoft,epsilon-sw43408a-lge-left";
+		reg = <0>;
+
+		reset-gpios = <&tlmm 5 GPIO_ACTIVE_LOW>;
+		/* VCI supply hooked up to AON vreg_s4a_1p8 */
+		vci-supply = <&vreg_s4a_1p8>;
+		// vdd-supply = <&vreg_l11b_1p2>;
+		// vddio-supply = <&vreg_l12b_1p8>;
+
+		pinctrl-0 = <&disp_left_reset_n>, <&te_left_active>;
+		// pinctrl-1 = <&sde_dsi_suspend>, <&sde_te_suspend>;
+		pinctrl-names = "default";//, "sleep";
+
+		port {
+			panel0_in: endpoint {
+				remote-endpoint = <&mdss_dsi0_out>;
+			};
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	remote-endpoint = <&panel0_in>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi0_phy {
+	vdda-supply = <&vreg_l3c_1p2>;
+	status = "okay";
+};
+
 &pon_pwrkey {
 	status = "okay";
 };
@@ -474,6 +514,20 @@
 
 &tlmm {
 	gpio-reserved-ranges = <126 4>;
+
+	disp_left_reset_n: disp-left-reset-n-state {
+		pins = "gpio5";
+		function = "gpio";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	te_left_active: te-left-active-state {
+		pins = "gpio8";
+		function = "mdp_vsync";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
 
 	da7280_intr_default: da7280-intr-default-state {
 		pins = "gpio42";
