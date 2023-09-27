@@ -200,8 +200,9 @@ static int rm692e5_on(struct rm692e5_panel *ctx)
 	return 0;
 }
 
-static int rm692e5_off(struct rm692e5_panel *ctx)
+static int rm692e5_disable(struct drm_panel *panel)
 {
+	struct rm692e5_panel *ctx = to_rm692e5_panel(panel);
 	struct mipi_dsi_device *dsi = ctx->dsi;
 	struct device *dev = &dsi->dev;
 	int ret;
@@ -288,15 +289,9 @@ static int rm692e5_prepare(struct drm_panel *panel)
 static int rm692e5_unprepare(struct drm_panel *panel)
 {
 	struct rm692e5_panel *ctx = to_rm692e5_panel(panel);
-	struct device *dev = &ctx->dsi->dev;
-	int ret;
 
 	if (!ctx->prepared)
 		return 0;
-
-	ret = rm692e5_off(ctx);
-	if (ret < 0)
-		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
 
 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 	regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
@@ -341,6 +336,7 @@ static int rm692e5_get_modes(struct drm_panel *panel,
 static const struct drm_panel_funcs rm692e5_panel_funcs = {
 	.prepare = rm692e5_prepare,
 	.unprepare = rm692e5_unprepare,
+	.disable = rm692e5_disable,
 	.get_modes = rm692e5_get_modes,
 };
 
