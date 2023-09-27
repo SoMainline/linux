@@ -766,8 +766,8 @@ static void dsi_ctrl_enable(struct msm_dsi_host *msm_host,
 		if (cfg_hnd->major == MSM_DSI_VER_MAJOR_6G) {
 			data = dsi_read(msm_host, REG_DSI_CMD_MODE_MDP_CTRL2);
 
-			if (cfg_hnd->minor >= MSM_DSI_6G_VER_MINOR_V1_3)
-				data |= DSI_CMD_MODE_MDP_CTRL2_BURST_MODE;
+			// if (cfg_hnd->minor >= MSM_DSI_6G_VER_MINOR_V1_3)
+			// 	data |= DSI_CMD_MODE_MDP_CTRL2_BURST_MODE;
 
 			/* TODO: Allow for video-mode support once tested/fixed */
 			if (msm_dsi_host_is_wide_bus_enabled(&msm_host->base))
@@ -1015,6 +1015,12 @@ static void dsi_timing_setup(struct msm_dsi_host *msm_host, bool is_bonded_dsi)
 			DSI_CMD_MDP_STREAM0_TOTAL_H_TOTAL(hdisplay) |
 			DSI_CMD_MDP_STREAM0_TOTAL_V_TOTAL(mode->vdisplay));
 	}
+	/*
+	 * Write length and enable fileds in DSI_0_COMMAND_MODE_MDP_IDLE_CTRL register Set LP11 delay.
+	 * length = 9:0 bits (length in pclock cycles).
+	 * Enable = 14:12 bits
+	 */
+	dsi_write(msm_host, 0x0194 /* DSI_COMMAND_MODE_MDP_IDLE_CTRL */, BIT(0) | BIT(12));
 }
 
 static void dsi_sw_reset(struct msm_dsi_host *msm_host)
