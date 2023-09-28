@@ -276,7 +276,7 @@
 
 			SYSTEM_PC: system-sleep {
 				compatible = "domain-idle-state";
-				arm,psci-suspend-param = <0x41000343>;
+				arm,psci-suspend-param = <0x42000343>;
 				entry-latency-us = <10831>;
 				exit-latency-us = <4506>;
 				min-residency-us = <15338>;
