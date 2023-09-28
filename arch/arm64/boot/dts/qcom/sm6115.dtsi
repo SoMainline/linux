@@ -273,6 +273,14 @@
 				exit-latency-us = <1654>;
 				min-residency-us = <8094>;
 			};
+
+			SYSTEM_PC: system-sleep {
+				compatible = "domain-idle-state";
+				arm,psci-suspend-param = <0x41000343>;
+				entry-latency-us = <10831>;
+				exit-latency-us = <4506>;
+				min-residency-us = <15338>;
+			};
 		};
 	};
 
@@ -369,12 +377,16 @@
 
 		CLUSTER_0_PD: power-domain-cpu-cluster0 {
 			#power-domain-cells = <0>;
-			domain-idle-states = <&CLUSTER_0_SLEEP_0>, <&CLUSTER_0_SLEEP_1>;
+			domain-idle-states = <&CLUSTER_0_SLEEP_0>,
+					     <&CLUSTER_0_SLEEP_1>,
+					     <&SYSTEM_PC>;
 		};
 
 		CLUSTER_1_PD: power-domain-cpu-cluster1 {
 			#power-domain-cells = <0>;
-			domain-idle-states = <&CLUSTER_1_SLEEP_0>, <&CLUSTER_1_SLEEP_1>;
+			domain-idle-states = <&CLUSTER_1_SLEEP_0>,
+					     <&CLUSTER_1_SLEEP_1>,
+					     <&SYSTEM_PC>;
 		};
 	};
 
