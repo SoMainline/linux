@@ -172,7 +172,7 @@ static int panel_sw43408a_prepare(struct drm_panel *panel)
 		return ret;
 	}
 
-	msleep(28); /* TODO: Is this panel-dependent? */
+	msleep(150); /* TODO: Is this panel-dependent? */
 
 	ctx->prepared = true;
 	return 0;
@@ -329,8 +329,8 @@ static int panel_sw43408a_probe(struct mipi_dsi_device *dsi)
 	/* This panel only supports DSC; unconditionally enable it */
 	dsi->dsc = &ctx->dsc;
 
-	ctx->dsc.dsc_version_major = 17;
-	ctx->dsc.dsc_version_minor = 0;
+	ctx->dsc.dsc_version_major = 1;
+	ctx->dsc.dsc_version_minor = 1;
 
 	// TODO: Pass slice_per_pkt = 2
 	ctx->dsc.slice_height = 900;
