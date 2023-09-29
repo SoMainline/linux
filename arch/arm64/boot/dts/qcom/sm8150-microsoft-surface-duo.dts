@@ -466,7 +466,7 @@
 };
 
 &mdss_dsi0_phy {
-	vdda-supply = <&vreg_l3c_1p2>;
+	vdda-supply = <&vreg_l5a_0p875>;
 	status = "okay";
 };
 
