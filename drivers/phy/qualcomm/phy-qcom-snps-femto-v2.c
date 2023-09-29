@@ -442,6 +442,18 @@ static int qcom_snps_hsphy_init(struct phy *phy)
 	}
 
 	qcom_snps_hsphy_write_mask(hsphy->base,
+				   USB2_PHY_USB_PHY_HS_PHY_OVERRIDE_X0,
+				   0x63, 0xff);
+
+	qcom_snps_hsphy_write_mask(hsphy->base,
+				   USB2_PHY_USB_PHY_HS_PHY_OVERRIDE_X1,
+				   0xc8, 0xff);
+
+	qcom_snps_hsphy_write_mask(hsphy->base,
+				   USB2_PHY_USB_PHY_HS_PHY_OVERRIDE_X2,
+				   0x17, 0xff);
+
+	qcom_snps_hsphy_write_mask(hsphy->base,
 					USB2_PHY_USB_PHY_HS_PHY_CTRL_COMMON2,
 					VREGBYPASS, VREGBYPASS);
 
