@@ -3687,6 +3687,8 @@ static int qmp_pcie_probe(struct platform_device *pdev)
 
 	qmp->mode = PHY_MODE_PCIE_RC;
 
+	pm_runtime_enable(dev);
+
 	qmp->phy = devm_phy_create(dev, np, &qmp_pcie_phy_ops);
 	if (IS_ERR(qmp->phy)) {
 		ret = PTR_ERR(qmp->phy);
