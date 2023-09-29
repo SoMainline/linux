@@ -53,6 +53,7 @@ static int panel_sw43408a_on(struct panel_sw43408a *ctx)
 		return ret;
 	}
 
+	mipi_dsi_dcs_write_seq(dsi, 0x11, 0x00);
 	mipi_dsi_generic_write_seq(dsi, 0x11,
 				   0x00, 0x00, 0x89, 0x30, 0x80, 0x07, 0x08,
 				   0x05, 0x46, 0x03, 0x84, 0x02, 0xa3, 0x02,
@@ -85,21 +86,10 @@ static int panel_sw43408a_on(struct panel_sw43408a *ctx)
 	mipi_dsi_dcs_write_seq(dsi, 0xee, 0x24);
 	mipi_dsi_dcs_write_seq(dsi, 0xfb, 0xac);
 	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0xca);
-
-	ret = mipi_dsi_dcs_exit_sleep_mode(dsi);
-	if (ret < 0) {
-		dev_err(dev, "Failed to exit sleep mode: %d\n", ret);
-		return ret;
-	}
+	mipi_dsi_dcs_write_seq(dsi, 0x11, 0x00);
 	msleep(90);
-
-	ret = mipi_dsi_dcs_set_display_on(dsi);
-	if (ret < 0) {
-		dev_err(dev, "Failed to set display on: %d\n", ret);
-		return ret;
-	}
+	mipi_dsi_dcs_write_seq(dsi, 0x29, 0x00);
 	msleep(50);
-
 	mipi_dsi_dcs_write_seq(dsi, 0xb0, 0xac);
 	mipi_dsi_dcs_write_seq(dsi, 0xe9,
 			       0x32, 0x32, 0x55, 0x06, 0x00, 0x1c, 0x00, 0x00,
@@ -117,23 +107,12 @@ static int panel_sw43408a_on(struct panel_sw43408a *ctx)
 static int panel_sw43408a_off(struct panel_sw43408a *ctx)
 {
 	struct mipi_dsi_device *dsi = ctx->dsi;
-	struct device *dev = &dsi->dev;
-	int ret;
 
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
-	ret = mipi_dsi_dcs_set_display_off(dsi);
-	if (ret < 0) {
-		dev_err(dev, "Failed to set display off: %d\n", ret);
-		return ret;
-	}
+	mipi_dsi_dcs_write_seq(dsi, 0x28, 0x00);
 	usleep_range(1000, 2000);
-
-	ret = mipi_dsi_dcs_enter_sleep_mode(dsi);
-	if (ret < 0) {
-		dev_err(dev, "Failed to enter sleep mode: %d\n", ret);
-		return ret;
-	}
+	mipi_dsi_dcs_write_seq(dsi, 0x10, 0x00);
 	msleep(120);
 
 	return 0;
