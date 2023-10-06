@@ -139,11 +139,11 @@ static int panel_sw43408a_prepare(struct drm_panel *panel)
 
 	drm_dsc_pps_payload_pack(&pps, &ctx->dsc);
 
-	ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
-	if (ret < 0) {
-		dev_err(panel->dev, "failed to transmit PPS: %d\n", ret);
-		return ret;
-	}
+//	ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
+//	if (ret < 0) {
+//		dev_err(panel->dev, "failed to transmit PPS: %d\n", ret);
+//		return ret;
+//	}
 
 	ret = mipi_dsi_compression_mode(ctx->dsi, true);
 	if (ret < 0) {
