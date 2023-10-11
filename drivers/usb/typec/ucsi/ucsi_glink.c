@@ -255,8 +255,6 @@ static void pmic_glink_ucsi_callback(const void *data, size_t len, void *priv)
 		schedule_work(&ucsi->notify_work);
 		break;
 	};
-
-	pr_err("got ucsi cb opcode = 0x%x, len = %u\n", le32_to_cpu(hdr->opcode), len);
 }
 
 static void pmic_glink_ucsi_pdr_notify(void *priv, int state)

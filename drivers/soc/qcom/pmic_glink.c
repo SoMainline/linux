@@ -19,7 +19,7 @@ enum {
 };
 
 #define PMIC_GLINK_CLIENT_DEFAULT	(BIT(PMIC_GLINK_CLIENT_BATT) |	\
-					 BIT(PMIC_GLINK_CLIENT_ALTMODE) | BIT(PMIC_GLINK_CLIENT_UCSI))
+					 BIT(PMIC_GLINK_CLIENT_ALTMODE))
 
 struct pmic_glink {
 	struct device *dev;
