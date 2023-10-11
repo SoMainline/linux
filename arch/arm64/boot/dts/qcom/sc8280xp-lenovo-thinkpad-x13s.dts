@@ -1224,7 +1224,7 @@ pm8008_bus: &i2c11 {
 };
 
 &usb_0_dwc3 {
-	dr_mode = "host";
+	dr_mode = "otg";
 };
 
 &usb_0_hsphy {
@@ -1261,7 +1261,7 @@ pm8008_bus: &i2c11 {
 };
 
 &usb_1_dwc3 {
-	dr_mode = "host";
+	dr_mode = "otg";
 };
 
 &usb_1_hsphy {
