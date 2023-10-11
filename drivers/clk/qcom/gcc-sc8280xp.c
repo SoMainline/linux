@@ -3054,21 +3054,6 @@ static struct clk_branch gcc_ddrss_pcie_sf_tbu_clk = {
 	},
 };
 
-static struct clk_branch gcc_disp1_ahb_clk = {
-	.halt_reg = 0xbb004,
-	.halt_check = BRANCH_HALT_VOTED,
-	.hwcg_reg = 0xbb004,
-	.hwcg_bit = 1,
-	.clkr = {
-		.enable_reg = 0xbb004,
-		.enable_mask = BIT(0),
-		.hw.init = &(struct clk_init_data){
-			.name = "gcc_disp1_ahb_clk",
-			.ops = &clk_branch2_ops,
-		},
-	},
-};
-
 static struct clk_branch gcc_disp1_hf_axi_clk = {
 	.halt_reg = 0xbb010,
 	.halt_check = BRANCH_HALT_SKIP,
@@ -3124,21 +3109,6 @@ static struct clk_branch gcc_disp1_throttle_rt_axi_clk = {
 		.enable_mask = BIT(0),
 		.hw.init = &(const struct clk_init_data) {
 			.name = "gcc_disp1_throttle_rt_axi_clk",
-			.ops = &clk_branch2_ops,
-		},
-	},
-};
-
-static struct clk_branch gcc_disp_ahb_clk = {
-	.halt_reg = 0x27004,
-	.halt_check = BRANCH_HALT_VOTED,
-	.hwcg_reg = 0x27004,
-	.hwcg_bit = 1,
-	.clkr = {
-		.enable_reg = 0x27004,
-		.enable_mask = BIT(0),
-		.hw.init = &(struct clk_init_data){
-			.name = "gcc_disp_ahb_clk",
 			.ops = &clk_branch2_ops,
 		},
 	},
@@ -7050,12 +7020,10 @@ static struct clk_regmap *gcc_sc8280xp_clocks[] = {
 	[GCC_CNOC_PCIE4_QX_CLK] = &gcc_cnoc_pcie4_qx_clk.clkr,
 	[GCC_DDRSS_GPU_AXI_CLK] = &gcc_ddrss_gpu_axi_clk.clkr,
 	[GCC_DDRSS_PCIE_SF_TBU_CLK] = &gcc_ddrss_pcie_sf_tbu_clk.clkr,
-	[GCC_DISP1_AHB_CLK] = &gcc_disp1_ahb_clk.clkr,
 	[GCC_DISP1_HF_AXI_CLK] = &gcc_disp1_hf_axi_clk.clkr,
 	[GCC_DISP1_SF_AXI_CLK] = &gcc_disp1_sf_axi_clk.clkr,
 	[GCC_DISP1_THROTTLE_NRT_AXI_CLK] = &gcc_disp1_throttle_nrt_axi_clk.clkr,
 	[GCC_DISP1_THROTTLE_RT_AXI_CLK] = &gcc_disp1_throttle_rt_axi_clk.clkr,
-	[GCC_DISP_AHB_CLK] = &gcc_disp_ahb_clk.clkr,
 	[GCC_DISP_HF_AXI_CLK] = &gcc_disp_hf_axi_clk.clkr,
 	[GCC_DISP_SF_AXI_CLK] = &gcc_disp_sf_axi_clk.clkr,
 	[GCC_DISP_THROTTLE_NRT_AXI_CLK] = &gcc_disp_throttle_nrt_axi_clk.clkr,
