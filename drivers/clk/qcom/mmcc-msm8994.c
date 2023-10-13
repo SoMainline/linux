@@ -2305,7 +2305,7 @@ static struct gdsc mdss_gdsc = {
 	.pd = {
 		.name = "mdss_gdsc",
 	},
-	.pwrsts = PWRSTS_OFF_ON,// | ALWAYS_ON,
+	.pwrsts = PWRSTS_OFF_ON,
 };
 
 static struct gdsc camss_top_gdsc = {
