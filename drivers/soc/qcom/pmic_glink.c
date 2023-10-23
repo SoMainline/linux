@@ -115,6 +115,8 @@ static int pmic_glink_rpmsg_callback(struct rpmsg_device *rpdev, void *data,
 
 	hdr = data;
 
+	pr_info("HERE got message %x %x %x\n", hdr->owner, hdr->type, hdr->opcode);
+
 	list_for_each_entry(client, &pg->clients, node) {
 		if (client->id == le32_to_cpu(hdr->owner))
 			client->cb(data, len, client->priv);
