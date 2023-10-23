@@ -212,11 +212,6 @@ struct adreno_platform_config {
 
 static inline uint8_t adreno_patchid(const struct adreno_gpu *gpu)
 {
-	/* It is probably ok to assume legacy "adreno_rev" format
-	 * for all a6xx devices, but probably best to limit this
-	 * to older things.
-	 */
-	WARN_ON_ONCE(gpu->info->family >= ADRENO_6XX_GEN1);
 	return gpu->chip_id & 0xff;
 }
 
