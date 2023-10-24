@@ -33,7 +33,7 @@ struct ucsi_read_buf_req_msg {
 struct ucsi_read_buf_resp_msg {
 	struct pmic_glink_hdr   hdr;
 	u8                      buf[UCSI_BUF_SIZE];
-	u32                     ret_code;
+	__le32                  ret_code;
 };
 
 struct ucsi_write_buf_req_msg {
@@ -44,13 +44,13 @@ struct ucsi_write_buf_req_msg {
 
 struct ucsi_write_buf_resp_msg {
 	struct pmic_glink_hdr   hdr;
-	u32                     ret_code;
+	__le32                  ret_code;
 };
 
 struct ucsi_notify_ind_msg {
 	struct pmic_glink_hdr   hdr;
-	u32                     notification;
-	u32                     receiver;
+	__le32                  notification;
+	__le32                  receiver;
 	u32                     reserved;
 };
 
@@ -210,7 +210,7 @@ static void pmic_glink_ucsi_write_ack(struct pmic_glink_ucsi *ucsi, const void *
 	if (resp->ret_code)
 		return;
 
-	ucsi->sync_val = resp->ret_code;
+	ucsi->sync_val = le32_to_cpu(resp->ret_code);
 	complete(&ucsi->write_ack);
 }
 
