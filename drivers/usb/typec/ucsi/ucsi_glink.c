@@ -60,6 +60,8 @@ struct pmic_glink_ucsi {
 	struct gpio_desc *port_orientation[PMIC_GLINK_MAX_PORTS];
 	struct typec_switch *port_switch[PMIC_GLINK_MAX_PORTS];
 
+	bool sc8180x_glink;
+
 	struct pmic_glink_client *client;
 
 	struct ucsi *ucsi;
@@ -232,10 +234,40 @@ static void pmic_glink_ucsi_write_ack(struct pmic_glink_ucsi *ucsi, const void *
 	complete(&ucsi->write_ack);
 }
 
+static void pmic_glink_ucsi_notify_handle(struct pmic_glink_ucsi *ucsi, u32 cci)
+{
+	unsigned int con_num;
+
+	if (ucsi->sync_pending && cci & UCSI_CCI_BUSY) {
+		ucsi->sync_val = -EBUSY;
+		complete(&ucsi->sync_ack);
+	} else if (ucsi->sync_pending &&
+		   (cci & (UCSI_CCI_ACK_COMPLETE | UCSI_CCI_COMMAND_COMPLETE))) {
+		complete(&ucsi->sync_ack);
+	}
+
+	con_num = UCSI_CCI_CONNECTOR(cci);
+	if (con_num)
+		ucsi_connector_change(ucsi->ucsi, con_num);
+}
+
+static void pmic_glink_ucsi_notify_ind(struct pmic_glink_ucsi *ucsi, const void *data, size_t len)
+{
+	const struct ucsi_notify_ind_msg *msg;
+
+	if (len != sizeof (*msg)) {
+		dev_warn_once(ucsi->dev, "Unexpected notification struct size %zd\n", len);
+		schedule_work(&ucsi->notify_work);
+	}
+
+	msg = data;
+
+	pmic_glink_ucsi_notify_handle(ucsi, le32_to_cpu(msg->cci));
+}
+
 static void pmic_glink_ucsi_notify(struct work_struct *work)
 {
 	struct pmic_glink_ucsi *ucsi = container_of(work, struct pmic_glink_ucsi, notify_work);
-	unsigned int con_num;
 	u32 cci;
 	int ret;
 
@@ -245,17 +277,7 @@ static void pmic_glink_ucsi_notify(struct work_struct *work)
 		return;
 	}
 
-	con_num = UCSI_CCI_CONNECTOR(cci);
-	if (con_num)
-		ucsi_connector_change(ucsi->ucsi, con_num);
-
-	if (ucsi->sync_pending && cci & UCSI_CCI_BUSY) {
-		ucsi->sync_val = -EBUSY;
-		complete(&ucsi->sync_ack);
-	} else if (ucsi->sync_pending &&
-		   (cci & (UCSI_CCI_ACK_COMPLETE | UCSI_CCI_COMMAND_COMPLETE))) {
-		complete(&ucsi->sync_ack);
-	}
+	pmic_glink_ucsi_notify_handle(ucsi, cci);
 }
 
 static void pmic_glink_ucsi_register(struct work_struct *work)
@@ -278,7 +300,10 @@ static void pmic_glink_ucsi_callback(const void *data, size_t len, void *priv)
 		pmic_glink_ucsi_write_ack(ucsi, data, len);
 		break;
 	case UC_UCSI_USBC_NOTIFY_IND:
-		schedule_work(&ucsi->notify_work);
+		if (ucsi->sc8180x_glink)
+			schedule_work(&ucsi->notify_work);
+		else
+			pmic_glink_ucsi_notify_ind(ucsi, data, len);
 		break;
 	};
 }
@@ -345,6 +370,9 @@ static int pmic_glink_ucsi_probe(struct auxiliary_device *adev,
 	match = of_match_device(pmic_glink_ucsi_of_quirks, dev->parent);
 	if (match)
 		ucsi->ucsi->quirks = (unsigned long)match->data;
+
+	ucsi->sc8180x_glink = of_device_is_compatible(dev->parent->of_node,
+						      "qcom,sc8180x-pmic-glink");
 
 	ucsi_set_drvdata(ucsi->ucsi, ucsi);
 
