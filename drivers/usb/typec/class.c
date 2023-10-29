@@ -2087,13 +2087,20 @@ EXPORT_SYMBOL_GPL(typec_get_orientation);
  * @mode: Accessory Mode, USB Operation or Safe State
  *
  * Configure @port for Accessory Mode @mode. This function will configure the
- * muxes needed for @mode.
+ * muxes and retimeres needed for @mode.
  */
 int typec_set_mode(struct typec_port *port, int mode)
 {
+	struct typec_retimer_state retimer_state = { };
 	struct typec_mux_state state = { };
+	int ret;
 
+	retimer_state.mode = mode;
 	state.mode = mode;
+
+	ret = typec_retimer_set(port->retimer, &retimer_state);
+	if (ret)
+		return ret;
 
 	return typec_mux_set(port->mux, &state);
 }
