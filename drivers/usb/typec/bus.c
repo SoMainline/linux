@@ -67,6 +67,40 @@ static int typec_altmode_set_state(struct typec_altmode *adev,
 	return typec_altmode_set_switches(port_altmode, conf, data);
 }
 
+/**
+ * typec_altmode_set_port - set the altmode configuration
+ * @conf: Alternate mode specific configuration value
+ * @dVata: Alternate mode specific data
+ *
+ * This function allows configuring muxes and retimer for the selected altmode.
+ * This function may only be used by the special case drivers, which handle
+ * the altmode negotiation by the alternative means and thus have no
+ * corresponding typec_altmode instance for the parnter.
+ */
+int typec_altmode_set_port(struct typec_altmode *adev,
+			   unsigned long conf, void *data)
+{
+	bool is_port;
+	struct altmode *altmode;
+	int ret;
+
+	if (!adev)
+		return 0;
+
+	altmode = to_altmode(adev);
+	is_port = is_typec_port(adev->dev.parent);
+
+	if (altmode->partner || !is_port)
+		return -EINVAL;
+
+	ret = typec_altmode_set_switches(altmode, conf, data);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(typec_altmode_set_port);
+
 /* -------------------------------------------------------------------------- */
 /* Common API */
 
