@@ -28,7 +28,7 @@ TRACE_EVENT(pmic_pdcharger_ulog_msg,
 /* This part must be outside protection */
 
 #undef TRACE_INCLUDE_PATH
-#define TRACE_INCLUDE_PATH .
+#define TRACE_INCLUDE_PATH ../../drivers/soc/qcom
 
 #undef TRACE_INCLUDE_FILE
 #define TRACE_INCLUDE_FILE pmic_pdcharger_ulog
