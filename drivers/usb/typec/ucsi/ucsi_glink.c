@@ -262,7 +262,7 @@ static void pmic_glink_ucsi_notify_ind(struct pmic_glink_ucsi *ucsi, const void 
 
 	msg = data;
 
-	pmic_glink_ucsi_notify_handle(ucsi, le32_to_cpu(msg->cci));
+	pmic_glink_ucsi_notify_handle(ucsi, le32_to_cpu(msg->notification));
 }
 
 static void pmic_glink_ucsi_notify(struct work_struct *work)
