@@ -53,7 +53,8 @@ static int panel_sw43408a_on(struct panel_sw43408a *ctx)
 		return ret;
 	}
 
-	mipi_dsi_dcs_write_seq(dsi, 0x11, 0x00);
+	mipi_dsi_dcs_exit_sleep_mode(dsi);
+	/* This fat command sends out-of-spec DSC PPS data */
 	mipi_dsi_generic_write_seq(dsi, 0x11,
 				   0x00, 0x00, 0x89, 0x30, 0x80, 0x07, 0x08,
 				   0x05, 0x46, 0x03, 0x84, 0x02, 0xa3, 0x02,
