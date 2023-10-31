@@ -123,7 +123,6 @@ static int panel_sw43408a_prepare(struct drm_panel *panel)
 {
 	struct panel_sw43408a *ctx = to_panel_sw43408a(panel);
 	struct device *dev = &ctx->dsi->dev;
-	struct drm_dsc_picture_parameter_set pps;
 	int ret;
 
 	if (ctx->prepared)
@@ -137,14 +136,6 @@ static int panel_sw43408a_prepare(struct drm_panel *panel)
 		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 		return ret;
 	}
-
-	drm_dsc_pps_payload_pack(&pps, &ctx->dsc);
-
-//	ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
-//	if (ret < 0) {
-//		dev_err(panel->dev, "failed to transmit PPS: %d\n", ret);
-//		return ret;
-//	}
 
 	ret = mipi_dsi_compression_mode(ctx->dsi, true);
 	if (ret < 0) {
@@ -315,11 +306,6 @@ static int panel_sw43408a_probe(struct mipi_dsi_device *dsi)
 	// TODO: Pass slice_per_pkt = 2
 	ctx->dsc.slice_height = 900;
 	ctx->dsc.slice_width = 675;
-	/*
-	 * hdisplay should be read from the selected mode once
-	 * it is passed back to drm_panel (in prepare?)
-	 */
-	WARN_ON(1350 % ctx->dsc.slice_width);
 	ctx->dsc.slice_count = 1350 / ctx->dsc.slice_width;
 	ctx->dsc.bits_per_component = 8;
 	ctx->dsc.bits_per_pixel = 8 << 4; /* 4 fractional bits */
