@@ -309,7 +309,6 @@ static int panel_sw43408a_probe(struct mipi_dsi_device *dsi)
 	ctx->dsc.slice_count = 1350 / ctx->dsc.slice_width;
 	ctx->dsc.bits_per_component = 8;
 	ctx->dsc.bits_per_pixel = 8 << 4; /* 4 fractional bits */
-	ctx->dsc.block_pred_enable = true;
 
 	ret = mipi_dsi_attach(dsi);
 	if (ret < 0) {
