@@ -180,7 +180,7 @@ struct __drm_crtcs_state {
 	u64 last_vblank_count;
 };
 
-struct __drm_connnectors_state {
+struct __drm_connectors_state {
 	struct drm_connector *ptr;
 	struct drm_connector_state *state, *old_state, *new_state;
 	/**
@@ -454,7 +454,7 @@ struct drm_atomic_state {
 	 * Pointer to array of @drm_connector and @drm_connector_state part of
 	 * this update.
 	 */
-	struct __drm_connnectors_state *connectors;
+	struct __drm_connectors_state *connectors;
 
 	/**
 	 * @num_private_objs: size of the @private_objs array
