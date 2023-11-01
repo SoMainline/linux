@@ -180,7 +180,7 @@ struct __drm_crtcs_state {
 	u64 last_vblank_count;
 };
 
-struct __drm_connnectors_state {
+struct __drm_connectors_state {
 	struct drm_connector *ptr;
 	struct drm_connector_state *state, *old_state, *new_state;
 	/**
@@ -401,7 +401,7 @@ struct drm_atomic_state {
 	struct __drm_planes_state *planes;
 	struct __drm_crtcs_state *crtcs;
 	int num_connector;
-	struct __drm_connnectors_state *connectors;
+	struct __drm_connectors_state *connectors;
 	int num_private_objs;
 	struct __drm_private_objs_state *private_objs;
 

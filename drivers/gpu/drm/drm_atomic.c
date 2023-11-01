@@ -1086,7 +1086,7 @@ drm_atomic_get_connector_state(struct drm_atomic_state *state,
 	index = drm_connector_index(connector);
 
 	if (index >= state->num_connector) {
-		struct __drm_connnectors_state *c;
+		struct __drm_connectors_state *c;
 		int alloc = max(index + 1, config->num_connector);
 
 		c = krealloc_array(state->connectors, alloc,
