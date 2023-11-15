@@ -470,6 +470,42 @@
 	status = "okay";
 };
 
+&mdss_dsi1 {
+	vdda-supply = <&vreg_l3c_1p2>;
+	status = "okay";
+
+	panel@0 {
+		compatible = "microsoft,epsilon-sw43408a-lge-left";
+		reg = <0>;
+
+		reset-gpios = <&tlmm 6 GPIO_ACTIVE_LOW>;
+		/* VCI supply hooked up to AON vreg_s4a_1p8 */
+		vci-supply = <&vreg_s4a_1p8>;
+		// vdd-supply = <&vreg_l11b_1p2>;
+		// vddio-supply = <&vreg_l12b_1p8>;
+
+		pinctrl-0 = <&disp_right_reset_n>, <&te_right_active>;
+		// pinctrl-1 = <&sde_dsi_suspend>, <&sde_te_suspend>;
+		pinctrl-names = "default";//, "sleep";
+
+		port {
+			panel1_in: endpoint {
+				remote-endpoint = <&mdss_dsi1_out>;
+			};
+		};
+	};
+};
+
+&mdss_dsi1_out {
+	remote-endpoint = <&panel1_in>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi1_phy {
+	vdda-supply = <&vreg_l5a_0p875>;
+	status = "okay";
+};
+
 &pon_pwrkey {
 	status = "okay";
 };
@@ -522,8 +558,22 @@
 		bias-disable;
 	};
 
+	disp_right_reset_n: disp-right-reset-n-state {
+		pins = "gpio6";
+		function = "gpio";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
 	te_left_active: te-left-active-state {
 		pins = "gpio8";
+		function = "mdp_vsync";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	te_right_active: te-right-active-state {
+		pins = "gpio9";
 		function = "mdp_vsync";
 		drive-strength = <2>;
 		bias-pull-down;
