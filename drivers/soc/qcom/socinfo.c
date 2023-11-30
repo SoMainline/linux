@@ -881,6 +881,17 @@ static int qcom_socinfo_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, qs);
 	__qs = qs;
 
+	if (SOCINFO_MINOR(le32_to_cpu(info->ver) >= 16)) {
+		struct qcom_socinfo_gpuinfo *gi = qcom_socinfo_get_part(SOCINFO_PART_GPU);
+		if (IS_ERR(gi))
+			return PTR_ERR(gi);
+
+		if (gi->gpu_chip_id) {
+			pr_err("chipid=0x%x, vulkid=0x%x, partname=%s\n",
+				gi->gpu_chip_id, gi->vulkan_id, gi->part_name);
+		}
+	}
+
 	return 0;
 }
 
