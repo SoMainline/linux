@@ -154,6 +154,7 @@ struct socinfo_params {
 	u32 nmodem_supported;
 	u32 feature_code;
 	u32 pcode;
+	u32 npartnamemap_offset;
 	u32 oem_variant;
 	u32 num_func_clusters;
 	u32 boot_cluster;
@@ -166,16 +167,29 @@ struct smem_image_version {
 	char pad;
 	char oem[SMEM_IMAGE_VERSION_OEM_SIZE];
 };
+
 #endif /* CONFIG_DEBUG_FS */
+
+struct socinfo_partinfo {
+	__le32 part_type; /* 4-byte, LE members of enum partinfo_part_type */
+	union {
+		struct qcom_socinfo_gpuinfo gpu_info;
+	};
+};
 
 struct qcom_socinfo {
 	struct soc_device *soc_dev;
 	struct soc_device_attribute attr;
+	struct socinfo_partinfo *partinfo;
+	u32 partinfo_num; /* nnum_partname_mapping moved here for !CONFIG_DEBUG_FS */
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *dbg_root;
 	struct socinfo_params info;
 #endif /* CONFIG_DEBUG_FS */
 };
+
+/* Pointer to the only qcom_socinfo instance */
+static struct qcom_socinfo *__qs;
 
 struct soc_id {
 	unsigned int id;
@@ -615,11 +629,17 @@ static void socinfo_debugfs_init(struct qcom_socinfo *qcom_socinfo,
 	case SOCINFO_VERSION(0, 16):
 		qcom_socinfo->info.feature_code = __le32_to_cpu(info->feature_code);
 		qcom_socinfo->info.pcode = __le32_to_cpu(info->pcode);
+		qcom_socinfo->info.npartnamemap_offset = __le32_to_cpu(info->npartnamemap_offset);
+		qcom_socinfo->partinfo_num = __le32_to_cpu(info->nnum_partname_mapping);
 
 		debugfs_create_u32("feature_code", 0444, qcom_socinfo->dbg_root,
 				   &qcom_socinfo->info.feature_code);
 		debugfs_create_u32("pcode", 0444, qcom_socinfo->dbg_root,
 				   &qcom_socinfo->info.pcode);
+		debugfs_create_u32("npartnamemap_offset", 0444, qcom_socinfo->dbg_root,
+				   &qcom_socinfo->info.npartnamemap_offset);
+		debugfs_create_u32("nnum_partname_mapping", 0444, qcom_socinfo->dbg_root,
+				   &qcom_socinfo->partinfo_num);
 		fallthrough;
 	case SOCINFO_VERSION(0, 15):
 		qcom_socinfo->info.nmodem_supported = __le32_to_cpu(info->nmodem_supported);
@@ -756,6 +776,65 @@ static void socinfo_debugfs_init(struct qcom_socinfo *qcom_socinfo,
 static void socinfo_debugfs_exit(struct qcom_socinfo *qcom_socinfo) {  }
 #endif /* CONFIG_DEBUG_FS */
 
+static void socinfo_populate_partinfo(struct device *dev, struct qcom_socinfo *qs, struct socinfo *info)
+{
+	u32 npartnamemap_offset = __le32_to_cpu(info->npartnamemap_offset);
+	qs->partinfo_num = __le32_to_cpu(info->nnum_partname_mapping);
+	void __iomem *ptr = info + npartnamemap_offset;
+	int i;
+
+	if (qs->partinfo_num > SOCINFO_NUM_PARTS_MAX) {
+		dev_warn(dev, "%u partinfo entries exceeds the maximum of %u, truncating\n",
+			 qs->partinfo_num, SOCINFO_NUM_PARTS_MAX);
+		qs->partinfo_num = SOCINFO_NUM_PARTS_MAX;
+	}
+
+	qs->partinfo = devm_kcalloc(dev, qs->partinfo_num, sizeof(*qs->partinfo), GFP_KERNEL);
+
+	for (i = 0; i < qs->partinfo_num; i++) {
+		struct socinfo_partinfo *partinfo = &qs->partinfo[i];
+
+		partinfo->part_type = get_unaligned_le32(ptr);
+		ptr += sizeof(partinfo->part_type);
+
+		switch (partinfo->part_type) {
+			case SOCINFO_PART_GPU:
+				partinfo->gpu_info.gpu_chip_id = get_unaligned_le32(ptr);
+				ptr += sizeof(partinfo->gpu_info.gpu_chip_id);
+
+				partinfo->gpu_info.vulkan_id = get_unaligned_le32(ptr);
+				ptr += sizeof(partinfo->gpu_info.vulkan_id);
+
+				strscpy(partinfo->gpu_info.part_name, ptr, PART_NAME_SIZE);
+				ptr += PART_NAME_SIZE;
+				break;
+			default:
+				dev_err(dev, "Unknown part type: %u\n", partinfo->part_type);
+				break;
+		}
+	}
+}
+
+/**
+ * qcom_socinfo_get_part() - get part info for a given subsystem
+ * @part: part identifier
+ *
+ * Return:
+ *  A pointer to part_info for the requested part on success, EPROBE_DEFER
+ *  if socinfo hasn't probed yet and -EINVAL if invalid part is requested.
+*/
+void *qcom_socinfo_get_part(enum partinfo_part_type part)
+{
+	if (!__qs)
+		return ERR_PTR(-EPROBE_DEFER);
+
+	if (part >= __qs->partinfo_num)
+		return ERR_PTR(-EINVAL);
+
+	return &__qs->partinfo[part];
+}
+EXPORT_SYMBOL_GPL(qcom_socinfo_get_part);
+
 static int qcom_socinfo_probe(struct platform_device *pdev)
 {
 	struct qcom_socinfo *qs;
@@ -790,12 +869,17 @@ static int qcom_socinfo_probe(struct platform_device *pdev)
 	if (IS_ERR(qs->soc_dev))
 		return PTR_ERR(qs->soc_dev);
 
+
+	if (info->npartnamemap_offset)
+		socinfo_populate_partinfo(&pdev->dev, qs, info);
+
 	socinfo_debugfs_init(qs, info, item_size);
 
 	/* Feed the soc specific unique data into entropy pool */
 	add_device_randomness(info, item_size);
 
 	platform_set_drvdata(pdev, qs);
+	__qs = qs;
 
 	return 0;
 }
