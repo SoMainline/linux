@@ -74,4 +74,32 @@ struct socinfo {
 	__le32 boot_core;
 };
 
+enum partinfo_part_type {
+	SOCINFO_PART_UNKNOWN,
+	SOCINFO_PART_GPU,
+	SOCINFO_PART_VIDEO,
+	SOCINFO_PART_CAMERA,
+	SOCINFO_PART_DISPLAY,
+	SOCINFO_PART_AUDIO,
+	SOCINFO_PART_MODEM,
+	SOCINFO_PART_WLAN,
+	SOCINFO_PART_COMP,
+	SOCINFO_PART_SENSORS,
+	SOCINFO_PART_NPU,
+	SOCINFO_PART_SPSS,
+	SOCINFO_PART_NAV,
+	SOCINFO_PART_COMP1,
+	SOCINFO_PART_DISPLAY1,
+	SOCINFO_NUM_PARTS_MAX,
+};
+
+#define PART_NAME_SIZE			32
+struct qcom_socinfo_gpuinfo {
+	__le32 gpu_chip_id;
+	__le32 vulkan_id;
+	char part_name[PART_NAME_SIZE];
+};
+
+void *qcom_socinfo_get_part(enum partinfo_part_type part);
+
 #endif
