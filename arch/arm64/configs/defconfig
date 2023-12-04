@@ -42,7 +42,7 @@ CONFIG_CRASH_DUMP=y
 CONFIG_COMPAT=y
 CONFIG_RANDOMIZE_BASE=y
 # msm.rd_full=1 drm.debug=0x3 fw_devlink=permissive
-CONFIG_CMDLINE="root=/dev/mmcblk0"
+CONFIG_CMDLINE="root=/dev/mmcblk0 clk_ignore_unused fb.lockless_register_fb=1"
 CONFIG_CMDLINE_FORCE=y
 # CONFIG_EFI is not set
 CONFIG_HIBERNATION=y
