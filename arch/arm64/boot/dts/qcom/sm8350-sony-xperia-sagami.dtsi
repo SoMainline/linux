@@ -28,22 +28,22 @@
 		#size-cells = <2>;
 		ranges;
 
-		framebuffer: framebuffer@e1000000 {
-			compatible = "simple-framebuffer";
-			reg = <0 0xe1000000 0 0x2300000>;
+		// framebuffer: framebuffer@e1000000 {
+		// 	compatible = "simple-framebuffer";
+		// 	reg = <0 0xe1000000 0 0x2300000>;
 
-			/* The display, even though it's 4K, initializes at 1080-ish p */
-			width = <1096>;
-			height = <2560>;
-			stride = <(1096 * 4)>;
-			format = "a8r8g8b8";
-			/*
-			 * That's (going to be) a lot of clocks, but it's necessary due
-			 * to unused clk cleanup & no panel driver yet
-			 */
-			clocks = <&gcc GCC_DISP_HF_AXI_CLK>,
-				 <&gcc GCC_DISP_SF_AXI_CLK>;
-		};
+		// 	/* The display, even though it's 4K, initializes at 1080-ish p */
+		// 	width = <1096>;
+		// 	height = <2560>;
+		// 	stride = <(1096 * 4)>;
+		// 	format = "a8r8g8b8";
+		// 	/*
+		// 	 * That's (going to be) a lot of clocks, but it's necessary due
+		// 	 * to unused clk cleanup & no panel driver yet
+		// 	 */
+		// 	clocks = <&gcc GCC_DISP_HF_AXI_CLK>,
+		// 		 <&gcc GCC_DISP_SF_AXI_CLK>;
+		// };
 	};
 
 	gpio-keys {
@@ -102,6 +102,20 @@
 			record-size = <0x1000>;
 			no-map;
 		};
+	};
+
+	vreg_vddr: vddr-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vddr";
+		/* Unknown voltage ranges.. :( */
+		/* Bootloader splash mandates it's on at boot */
+		regulator-boot-on;
+
+		gpio = <&tlmm 154 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+
+		pinctrl-0 = <&disp_vddr_en>;
+		pinctrl-names = "default";
 	};
 
 	vph_pwr: vph-pwr-regulator {
@@ -473,6 +487,10 @@
 	firmware-name = "qcom/sm8350/Sony/sagami/cdsp.mbn";
 };
 
+&dispcc {
+	status = "okay";
+};
+
 &i2c1 {
 	status = "okay";
 	clock-frequency = <1000000>;
@@ -556,6 +574,58 @@
 	qcom,gsi-loader = "self";
 	memory-region = <&pil_ipa_fw_mem>;
 	firmware-name = "qcom/sm8350/Sony/sagami/ipa_fws.mbn";
+	status = "okay";
+};
+
+&mdss {
+	status = "okay";
+};
+
+&mdss_dsi0 {
+	vdda-supply = <&pm8350_l6>;
+	status = "okay";
+
+	panel: panel@0 {
+		reg = <0>;
+
+		reset-gpios = <&tlmm 24 GPIO_ACTIVE_LOW>;
+
+		vci-supply = <&pm8350c_l13>;
+		// tsvddh-supply = <&pm8350c_l3>;
+		tsio-supply = <&pm8350c_l2>;
+		vddio-supply = <&pm8350c_l12>;
+		vddr-supply = <&vreg_vddr>;
+		// ab-supply = <&ab>;
+		// ibb-supply = <&ibb>;
+
+		pinctrl-0 = <&disp_reset_n &disp_vsync_active>;
+		pinctrl-names = "default";
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		panel_ports: ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				panel_in_0: endpoint {
+					remote-endpoint = <&mdss_dsi0_out>;
+				};
+			};
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	remote-endpoint = <&panel_in_0>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi0_phy {
+	vdds-supply = <&pm8350_l5>;
 	status = "okay";
 };
 
@@ -879,6 +949,21 @@
 		bias-disable;
 	};
 
+	disp_reset_n: disp-reset-n-state {
+		pins = "gpio24";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-high;
+	};
+
+	disp_vsync_active: disp-vsync-active-state {
+		pins = "gpio82";
+		function = "mdp_vsync";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
 	sdc2_card_det_active: sd-card-det-active-state {
 		pins = "gpio92";
 		function = "gpio";
@@ -891,6 +976,14 @@
 		function = "gpio";
 		drive-strength = <2>;
 		bias-disable;
+	};
+
+	disp_vddr_en: disp-vddr-en-state {
+		pins = "gpio154";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-high;
 	};
 };
 

@@ -12,10 +12,14 @@
 	compatible = "sony,pdx214-generic", "qcom,sm8350";
 };
 
-&framebuffer {
-	width = <1080>;
-	height = <2520>;
-	stride = <(1080 * 4)>;
+// &framebuffer {
+// 	width = <1080>;
+// 	height = <2520>;
+// 	stride = <(1080 * 4)>;
+// };
+
+&panel {
+	compatible = "samsung,sofef03-m-amb609vp01";
 };
 
 &pm8350b_gpios {
