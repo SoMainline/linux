@@ -108,9 +108,12 @@ static struct msm_dsi *dsi_init(struct platform_device *pdev)
 	if (ret)
 		goto destroy_dsi;
 
+	pr_err("%s Returning\n", __func__);
+
 	return msm_dsi;
 
 destroy_dsi:
+	pr_err("%s fail\n", __func__);
 	dsi_destroy(msm_dsi);
 	return ERR_PTR(ret);
 }
