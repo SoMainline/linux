@@ -1732,16 +1732,14 @@
 				 <&gcc GCC_PCIE_0_MSTR_AXI_CLK>,
 				 <&gcc GCC_PCIE_0_SLV_AXI_CLK>,
 				 <&gcc GCC_PCIE_0_SLV_Q2A_AXI_CLK>,
-				 <&gcc GCC_PCIE_0_CLKREF_CLK>,
-				 <&gcc GCC_AGGRE_NOC_PCIE_TBU_CLK>;
+				 <&gcc GCC_PCIE_0_CLKREF_CLK>;
 			clock-names = "pipe",
 				      "aux",
 				      "cfg",
 				      "bus_master",
 				      "bus_slave",
 				      "slave_q2a",
-				      "ref",
-				      "tbu";
+				      "ref";
 
 			assigned-clocks = <&gcc GCC_PCIE_0_AUX_CLK>;
 			assigned-clock-rates = <19200000>;
@@ -1829,16 +1827,14 @@
 				 <&gcc GCC_PCIE_3_MSTR_AXI_CLK>,
 				 <&gcc GCC_PCIE_3_SLV_AXI_CLK>,
 				 <&gcc GCC_PCIE_3_SLV_Q2A_AXI_CLK>,
-				 <&gcc GCC_PCIE_3_CLKREF_CLK>,
-				 <&gcc GCC_AGGRE_NOC_PCIE_TBU_CLK>;
+				 <&gcc GCC_PCIE_3_CLKREF_CLK>;
 			clock-names = "pipe",
 				      "aux",
 				      "cfg",
 				      "bus_master",
 				      "bus_slave",
 				      "slave_q2a",
-				      "ref",
-				      "tbu";
+				      "ref";
 
 			assigned-clocks = <&gcc GCC_PCIE_3_AUX_CLK>;
 			assigned-clock-rates = <19200000>;
@@ -1927,16 +1923,14 @@
 				 <&gcc GCC_PCIE_1_MSTR_AXI_CLK>,
 				 <&gcc GCC_PCIE_1_SLV_AXI_CLK>,
 				 <&gcc GCC_PCIE_1_SLV_Q2A_AXI_CLK>,
-				 <&gcc GCC_PCIE_1_CLKREF_CLK>,
-				 <&gcc GCC_AGGRE_NOC_PCIE_TBU_CLK>;
+				 <&gcc GCC_PCIE_1_CLKREF_CLK>;
 			clock-names = "pipe",
 				      "aux",
 				      "cfg",
 				      "bus_master",
 				      "bus_slave",
 				      "slave_q2a",
-				      "ref",
-				      "tbu";
+				      "ref";
 
 			assigned-clocks = <&gcc GCC_PCIE_1_AUX_CLK>;
 			assigned-clock-rates = <19200000>;
@@ -2025,16 +2019,14 @@
 				 <&gcc GCC_PCIE_2_MSTR_AXI_CLK>,
 				 <&gcc GCC_PCIE_2_SLV_AXI_CLK>,
 				 <&gcc GCC_PCIE_2_SLV_Q2A_AXI_CLK>,
-				 <&gcc GCC_PCIE_2_CLKREF_CLK>,
-				 <&gcc GCC_AGGRE_NOC_PCIE_TBU_CLK>;
+				 <&gcc GCC_PCIE_2_CLKREF_CLK>;
 			clock-names = "pipe",
 				      "aux",
 				      "cfg",
 				      "bus_master",
 				      "bus_slave",
 				      "slave_q2a",
-				      "ref",
-				      "tbu";
+				      "ref";
 
 			assigned-clocks = <&gcc GCC_PCIE_2_AUX_CLK>;
 			assigned-clock-rates = <19200000>;
