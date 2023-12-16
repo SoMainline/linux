@@ -2265,12 +2265,6 @@ static const struct cpr_acc_desc sdm630_cpr_acc_desc = {
 	.cpr_desc = &sdm630_cpr_desc,
 };
 
-static unsigned int cpr_get_performance_state(struct generic_pm_domain *pmdomain,
-					      struct dev_pm_opp *opp)
-{
-	return dev_pm_opp_get_level(opp);
-}
-
 static int cpr_power_off(struct generic_pm_domain *domain)
 {
 	struct cpr_thread *thread = container_of(domain, struct cpr_thread, pd);
@@ -2565,7 +2559,6 @@ static int cpr_thread_init(struct cpr_drv *drv, int tid)
 
 	thread->pd.power_off = cpr_power_off;
 	thread->pd.power_on = cpr_power_on;
-	thread->pd.opp_to_performance_state = cpr_get_performance_state;
 	thread->pd.attach_dev = cpr_pd_attach_dev;
 	thread->pd.detach_dev = cpr_pd_detach_dev;
 
