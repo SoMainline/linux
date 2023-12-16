@@ -2602,6 +2602,7 @@ F:	drivers/extcon/extcon-qcom*
 F:	drivers/i2c/busses/i2c-qcom-geni.c
 F:	drivers/i2c/busses/i2c-qup.c
 F:	drivers/iommu/msm*
+F:	drivers/interconnect/qcom/
 F:	drivers/mfd/ssbi.c
 F:	drivers/mmc/host/mmci_qcom*
 F:	drivers/mmc/host/sdhci-msm.c
