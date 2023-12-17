@@ -33,7 +33,7 @@
 			compatible = "fixed-clock";
 			#clock-cells = <0>;
 			clock-frequency = <19200000>;
-			clock-output-names = "xo_board";
+			// clock-output-names = "xo_board";
 		};
 
 		sleep_clk: sleep-clk {
@@ -399,6 +399,8 @@
 				rpmcc: clock-controller {
 					compatible = "qcom,rpmcc-sdm660", "qcom,rpmcc";
 					#clock-cells = <1>;
+					clocks = <&xo_board>;
+					clock-names = "xo";
 				};
 
 				rpmpd: power-controller {
