@@ -2200,7 +2200,7 @@
 		};
 
 		ipa: ipa@3f40000 {
-			compatible = "qcom,sm8550-ipa";
+		//	compatible = "qcom,sm8550-ipa";
 
 			iommus = <&apps_smmu 0x4a0 0x0>,
 				 <&apps_smmu 0x4a2 0x0>;
