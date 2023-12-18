@@ -120,7 +120,7 @@ static int gdsc_update_collapse_bit(struct gdsc *sc, bool val)
 {
 	u32 reg, mask;
 	int ret;
-
+	pr_err("updating %s collapse bit to %d\n", sc->pd.name, val);
 	if (sc->collapse_mask) {
 		reg = sc->collapse_ctrl;
 		mask = sc->collapse_mask;
@@ -132,6 +132,9 @@ static int gdsc_update_collapse_bit(struct gdsc *sc, bool val)
 	ret = regmap_update_bits(sc->regmap, reg, mask, val ? mask : 0);
 	if (ret)
 		return ret;
+
+	/* Read back the register to make sure the writes have arrived */
+	regmap_read(sc->regmap, reg, &ret);
 
 	return 0;
 }
