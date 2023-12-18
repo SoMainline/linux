@@ -111,6 +111,9 @@ static void bcm_aggregate(struct qcom_icc_bcm *bcm)
 		bcm->vote_y[QCOM_ICC_BUCKET_AMC] = 1;
 		bcm->vote_y[QCOM_ICC_BUCKET_WAKE] = 1;
 	}
+
+	// if (!strcmp("MC0", bcm->name))
+		// bcm->vote_y[QCOM_ICC_BUCKET_WAKE] = 0xfeedbeef;
 }
 
 static inline void tcs_cmd_gen(struct tcs_cmd *cmd, u64 vote_x, u64 vote_y,
