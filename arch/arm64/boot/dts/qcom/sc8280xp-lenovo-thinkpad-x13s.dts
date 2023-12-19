@@ -730,6 +730,15 @@
 	status = "okay";
 
 	/* EC @ 0x28 */
+	embedded-controller@28 {
+		//compatible = "lenovo,thinkpad-ec-x13s";
+		reg = <0x28>;
+		interrupts = <&tlmm 46 /* ??? */>, /* EC_PM_INT_N, fires on resume? */
+			     <&tlmm 176 /* ???*/ >; /* EC_INT */
+	};
+
+	/* GPIO72 - low? if GLANCE hw present */
+	/* GPIO174 - high? if camera is shut down */
 };
 
 &i2c10 {
