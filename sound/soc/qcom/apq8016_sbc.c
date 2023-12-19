@@ -337,6 +337,7 @@ static struct platform_driver apq8016_sbc_platform_driver = {
 	.driver = {
 		.name = "qcom-apq8016-sbc",
 		.of_match_table = of_match_ptr(apq8016_sbc_device_id),
+		.pm = &snd_soc_pm_ops,
 	},
 	.probe = apq8016_sbc_platform_probe,
 };
