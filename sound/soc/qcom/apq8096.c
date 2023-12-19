@@ -137,6 +137,7 @@ static struct platform_driver msm_snd_apq8096_driver = {
 	.driver = {
 		.name = "msm-snd-apq8096",
 		.of_match_table = msm_snd_apq8096_dt_match,
+		.pm = &snd_soc_pm_ops,
 	},
 };
 module_platform_driver(msm_snd_apq8096_driver);
