@@ -209,6 +209,7 @@ static struct platform_driver snd_sm6115_driver = {
 	.driver = {
 		.name = "snd-sm6115",
 		.of_match_table = snd_sm6115_dt_match,
+		.pm = &snd_soc_pm_ops,
 	},
 };
 module_platform_driver(snd_sm6115_driver);
