@@ -177,6 +177,7 @@ static struct platform_driver snd_sm8250_driver = {
 	.driver = {
 		.name = "snd-sm8250",
 		.of_match_table = snd_sm8250_dt_match,
+		.pm = &snd_soc_pm_ops,
 	},
 };
 module_platform_driver(snd_sm8250_driver);
