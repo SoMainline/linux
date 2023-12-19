@@ -159,6 +159,7 @@ static struct platform_driver snd_x1e80100_driver = {
 	.driver = {
 		.name = "snd-x1e80100",
 		.of_match_table = snd_x1e80100_dt_match,
+		.pm = &snd_soc_pm_ops,
 	},
 };
 module_platform_driver(snd_x1e80100_driver);
