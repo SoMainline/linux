@@ -620,6 +620,7 @@ static struct platform_driver sdm845_snd_driver = {
 	.driver = {
 		.name = "msm-snd-sdm845",
 		.of_match_table = sdm845_snd_device_id,
+		.pm = &snd_soc_pm_ops,
 	},
 };
 module_platform_driver(sdm845_snd_driver);
