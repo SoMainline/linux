@@ -183,6 +183,7 @@ static struct platform_driver snd_sc8280xp_driver = {
 	.driver = {
 		.name = "snd-sc8280xp",
 		.of_match_table = snd_sc8280xp_dt_match,
+		.pm = &snd_soc_pm_ops,
 	},
 };
 module_platform_driver(snd_sc8280xp_driver);
