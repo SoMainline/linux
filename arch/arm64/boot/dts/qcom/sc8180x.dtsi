@@ -1751,7 +1751,7 @@
 			phy-names = "pciephy";
 			dma-coherent;
 
-			status = "disabled";
+			//status = "disabled";
 		};
 
 		pcie0_phy: phy@1c06000 {
@@ -1777,7 +1777,7 @@
 			assigned-clocks = <&gcc GCC_PCIE0_PHY_REFGEN_CLK>;
 			assigned-clock-rates = <100000000>;
 
-			status = "disabled";
+			//status = "disabled";
 		};
 
 		pcie3: pcie@1c08000 {
@@ -1846,7 +1846,7 @@
 			phy-names = "pciephy";
 			dma-coherent;
 
-			status = "disabled";
+			//status = "disabled";
 		};
 
 		pcie3_phy: phy@1c0c000 {
@@ -1873,7 +1873,7 @@
 			assigned-clocks = <&gcc GCC_PCIE3_PHY_REFGEN_CLK>;
 			assigned-clock-rates = <100000000>;
 
-			status = "disabled";
+			//status = "disabled";
 		};
 
 		pcie1: pcie@1c10000 {
@@ -1942,7 +1942,7 @@
 			phy-names = "pciephy";
 			dma-coherent;
 
-			status = "disabled";
+			//status = "disabled";
 		};
 
 		pcie1_phy: phy@1c16000 {
@@ -1969,7 +1969,7 @@
 			assigned-clocks = <&gcc GCC_PCIE1_PHY_REFGEN_CLK>;
 			assigned-clock-rates = <100000000>;
 
-			status = "disabled";
+			//status = "disabled";
 		};
 
 		pcie2: pcie@1c18000 {
@@ -2038,7 +2038,7 @@
 			phy-names = "pciephy";
 			dma-coherent;
 
-			status = "disabled";
+			//status = "disabled";
 		};
 
 		pcie2_phy: phy@1c1c000 {
@@ -2065,7 +2065,7 @@
 			assigned-clocks = <&gcc GCC_PCIE2_PHY_REFGEN_CLK>;
 			assigned-clock-rates = <100000000>;
 
-			status = "disabled";
+			//status = "disabled";
 		};
 
 		ufs_mem_hc: ufshc@1d84000 {
