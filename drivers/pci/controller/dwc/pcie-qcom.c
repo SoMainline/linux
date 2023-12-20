@@ -30,13 +30,18 @@
 #include <linux/reset.h>
 #include <linux/slab.h>
 #include <linux/types.h>
+#include <soc/qcom/cmd-db.h>
 
 #include "../../pci.h"
 #include "pcie-designware.h"
 
+#include <dt-bindings/interconnect/qcom,icc.h>
+#include <dt-bindings/interconnect/qcom,rpm-icc.h>
+
 /* PARF registers */
 #define PARF_SYS_CTRL				0x00
 #define PARF_PM_CTRL				0x20
+#define PARF_PM_STTS				0x24
 #define PARF_PCS_DEEMPH				0x34
 #define PARF_PCS_SWING				0x38
 #define PARF_PHY_CTRL				0x40
@@ -80,7 +85,10 @@
 #define L1_CLK_RMV_DIS				BIT(1)
 
 /* PARF_PM_CTRL register fields */
-#define REQ_NOT_ENTR_L1				BIT(5)
+#define REQ_NOT_ENTR_L1				BIT(5) /* "Prevent L0->L1" */
+
+/* PARF_PM_STTS register fields */
+#define PM_ENTER_L23				BIT(5)
 
 /* PARF_PCS_DEEMPH register fields */
 #define PCS_DEEMPH_TX_DEEMPH_GEN1(x)		FIELD_PREP(GENMASK(21, 16), x)
@@ -122,6 +130,7 @@
 
 /* ELBI_SYS_CTRL register fields */
 #define ELBI_SYS_CTRL_LT_ENABLE			BIT(0)
+#define ELBI_SYS_CTRL_PME_TURNOFF_MSG		BIT(4)
 
 /* AXI_MSTR_RESP_COMP_CTRL0 register fields */
 #define CFG_REMOTE_RD_REQ_BRIDGE_SIZE_2K	0x4
@@ -243,6 +252,7 @@ struct qcom_pcie {
 	const struct qcom_pcie_cfg *cfg;
 	struct dentry *debugfs;
 	bool suspended;
+	bool soc_is_rpmh;
 };
 
 #define to_qcom_pcie(x)		dev_get_drvdata((x)->dev)
@@ -268,6 +278,24 @@ static int qcom_pcie_start_link(struct dw_pcie *pci)
 	/* Enable Link Training state machine */
 	if (pcie->cfg->ops->ltssm_enable)
 		pcie->cfg->ops->ltssm_enable(pcie);
+
+	return 0;
+}
+
+static int qcom_pcie_stop_link(struct dw_pcie *pci)
+{
+	struct qcom_pcie *pcie = to_qcom_pcie(pci);
+	u32 ret_l23, val;
+
+	writel(ELBI_SYS_CTRL_PME_TURNOFF_MSG, pcie->elbi + ELBI_SYS_CTRL);
+	readl(pcie->elbi + ELBI_SYS_CTRL);
+
+	ret_l23 = readl_poll_timeout(pcie->parf + PARF_PM_STTS, val,
+				     val & PM_ENTER_L23, 10000, 100000);
+	if (ret_l23) {
+		dev_err(pci->dev, "Failed to enter L2/L3\n");
+		return -ETIMEDOUT;
+	}
 
 	return 0;
 }
@@ -987,8 +1015,18 @@ static void qcom_pcie_host_post_init_2_7_0(struct qcom_pcie *pcie)
 static void qcom_pcie_deinit_2_7_0(struct qcom_pcie *pcie)
 {
 	struct qcom_pcie_resources_2_7_0 *res = &pcie->res.v2_7_0;
+	u32 val;
+
+	/* Disable PCIe clocks and resets */
+	val = readl(pcie->parf + PARF_PHY_CTRL);
+	val |= PHY_TEST_PWR_DOWN;
+	writel(val, pcie->parf + PARF_PHY_CTRL);
+	readl(pcie->parf + PARF_PHY_CTRL);
 
 	clk_bulk_disable_unprepare(res->num_clks, res->clks);
+
+	reset_control_assert(res->rst);
+	usleep_range(2000, 2500);
 
 	regulator_bulk_disable(ARRAY_SIZE(res->supplies), res->supplies);
 }
@@ -1545,6 +1583,9 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 		goto err_phy_exit;
 	}
 
+	/* If the soc features RPMh, cmd_db must have been prepared by now */
+	pcie->soc_is_rpmh = !cmd_db_ready();
+
 	qcom_pcie_icc_update(pcie);
 
 	if (pcie->mhi)
@@ -1561,58 +1602,108 @@ err_pm_runtime_put:
 	return ret;
 }
 
-static int qcom_pcie_suspend_noirq(struct device *dev)
-{
-	struct qcom_pcie *pcie = dev_get_drvdata(dev);
-	int ret;
-
-	/*
-	 * Set minimum bandwidth required to keep data path functional during
-	 * suspend.
-	 */
-	ret = icc_set_bw(pcie->icc_mem, 0, kBps_to_icc(1));
-	if (ret) {
-		dev_err(dev, "Failed to set interconnect bandwidth: %d\n", ret);
-		return ret;
-	}
-
-	/*
-	 * Turn OFF the resources only for controllers without active PCIe
-	 * devices. For controllers with active devices, the resources are kept
-	 * ON and the link is expected to be in L0/L1 (sub)states.
-	 *
-	 * Turning OFF the resources for controllers with active PCIe devices
-	 * will trigger access violation during the end of the suspend cycle,
-	 * as kernel tries to access the PCIe devices config space for masking
-	 * MSIs.
-	 *
-	 * Also, it is not desirable to put the link into L2/L3 state as that
-	 * implies VDD supply will be removed and the devices may go into
-	 * powerdown state. This will affect the lifetime of the storage devices
-	 * like NVMe.
-	 */
-	if (!dw_pcie_link_up(pcie->pci)) {
-		qcom_pcie_host_deinit(&pcie->pci->pp);
-		pcie->suspended = true;
-	}
-
-	return 0;
-}
-
 static int qcom_pcie_resume_noirq(struct device *dev)
 {
 	struct qcom_pcie *pcie = dev_get_drvdata(dev);
 	int ret;
 
-	if (pcie->suspended) {
-		ret = qcom_pcie_host_init(&pcie->pci->pp);
-		if (ret)
-			return ret;
+	if (pcie->soc_is_rpmh) {
+		/*
+		 * Undo the tag change from qcom_pcie_suspend_noirq first in
+		 * case RPMh spontaneously decides to power collapse the
+		 * platform based on other inputs.
+		 */
+		icc_set_tag(pcie->icc_mem, QCOM_ICC_TAG_ALWAYS);
 
-		pcie->suspended = false;
+		/* Flush the tag change */
+		ret = icc_enable(pcie->icc_mem);
+		if (ret) {
+			dev_err(pcie->pci->dev, "failed to icc_enable: %d", ret);
+			return ret;
+		}
 	}
 
+	/* Only check this now to make sure the icc tag has been set. */
+	if (!pcie->suspended)
+		return 0;
+
+	ret = qcom_pcie_host_init(&pcie->pci->pp);
+	if (ret)
+		goto revert_icc_tag;
+
+	dw_pcie_setup_rc(&pcie->pci->pp);
+
+	ret = qcom_pcie_start_link(pcie->pci);
+	if (ret)
+		goto deinit_host;
+
+	/* Ignore the retval, the devices may come up later. */
+	dw_pcie_wait_for_link(pcie->pci);
+
 	qcom_pcie_icc_update(pcie);
+
+	pcie->suspended = false;
+
+	return 0;
+
+deinit_host:
+	qcom_pcie_host_deinit(&pcie->pci->pp);
+revert_icc_tag:
+	if (pcie->soc_is_rpmh) {
+		icc_set_tag(pcie->icc_mem, QCOM_ICC_TAG_WAKE);
+
+		/* Ignore the retval, failing here would be tragic anyway.. */
+		icc_enable(pcie->icc_mem);
+	}
+
+	return ret;
+}
+
+static int qcom_pcie_suspend_noirq(struct device *dev)
+{
+	struct qcom_pcie *pcie = dev_get_drvdata(dev);
+	int ret;
+
+	if (pcie->suspended)
+		return 0;
+
+	if (dw_pcie_link_up(pcie->pci)) {
+		ret = qcom_pcie_stop_link(pcie->pci);
+		if (ret)
+			return ret;
+	}
+
+	qcom_pcie_host_deinit(&pcie->pci->pp);
+
+	if (pcie->soc_is_rpmh) {
+		/*
+		 * The PCIe RC may be covertly accessed by the secure firmware
+		 * on sleep exit. Use the WAKE bucket to let RPMh pull the plug
+		 * on PCIe in sleep, but guarantee it comes back up for resume.
+		 */
+		icc_set_tag(pcie->icc_mem, QCOM_ICC_TAG_WAKE);
+
+		/* Flush the tag change */
+		ret = icc_enable(pcie->icc_mem);
+		if (ret) {
+			dev_err(pcie->pci->dev, "failed to icc_enable %d\n", ret);
+
+			/* Revert everything and pray icc calls succeed */
+			return qcom_pcie_resume_noirq(dev);
+		}
+	} else {
+		/*
+		 * Set minimum bandwidth required to keep data path functional
+		 * during suspend.
+		 */
+		ret = icc_set_bw(pcie->icc_mem, 0, kBps_to_icc(1));
+		if (ret) {
+			dev_err(dev, "Failed to set interconnect bandwidth: %d\n", ret);
+			return ret;
+		}
+	}
+
+	pcie->suspended = true;
 
 	return 0;
 }
