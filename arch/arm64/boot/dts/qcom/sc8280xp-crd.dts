@@ -475,7 +475,7 @@
 	status = "okay";
 
 	touchscreen@10 {
-		compatible = "hid-over-i2c";
+		//compatible = "hid-over-i2c";
 		reg = <0x10>;
 
 		hid-descr-addr = <0x1>;
