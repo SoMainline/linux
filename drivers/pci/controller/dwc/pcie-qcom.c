@@ -34,6 +34,8 @@
 #include "../../pci.h"
 #include "pcie-designware.h"
 
+#include <dt-bindings/interconnect/qcom,icc.h>
+
 /* PARF registers */
 #define PARF_SYS_CTRL				0x00
 #define PARF_PM_CTRL				0x20
@@ -240,6 +242,7 @@ struct qcom_pcie {
 	struct phy *phy;
 	struct gpio_desc *reset;
 	struct icc_path *icc_mem;
+	u32 last_bw;
 	const struct qcom_pcie_cfg *cfg;
 	struct dentry *debugfs;
 	bool suspended;
@@ -1387,6 +1390,8 @@ static int qcom_pcie_icc_init(struct qcom_pcie *pcie)
 		return ret;
 	}
 
+	pcie->last_bw = QCOM_PCIE_LINK_SPEED_TO_BW(1);
+
 	return 0;
 }
 
@@ -1415,6 +1420,8 @@ static void qcom_pcie_icc_update(struct qcom_pcie *pcie)
 		dev_err(pci->dev, "failed to set interconnect bandwidth: %d\n",
 			ret);
 	}
+
+	pcie->last_bw = width * QCOM_PCIE_LINK_SPEED_TO_BW(speed);
 }
 
 static int qcom_pcie_link_transition_count(struct seq_file *s, void *data)
@@ -1569,34 +1576,31 @@ static int qcom_pcie_suspend_noirq(struct device *dev)
 	int ret;
 
 	/*
-	 * Set minimum bandwidth required to keep data path functional during
-	 * suspend.
+	 * The PCIe bus can only be shut down if all child devices are down.
+	 * Retaining the RC state through power collapse is not possible
+	 * due to suboptimal hardware design.
 	 */
-	ret = icc_set_bw(pcie->icc_mem, 0, kBps_to_icc(1));
-	if (ret) {
-		dev_err(dev, "Failed to set interconnect bandwidth: %d\n", ret);
-		return ret;
-	}
+	if (pcie->suspended || dw_pcie_link_up(pcie->pci))
+		return 0;
+
+	pr_err("DEBUG woop woop managed to start kicking pcie\n");
+	qcom_pcie_host_deinit(&pcie->pci->pp);
 
 	/*
-	 * Turn OFF the resources only for controllers without active PCIe
-	 * devices. For controllers with active devices, the resources are kept
-	 * ON and the link is expected to be in L0/L1 (sub)states.
-	 *
-	 * Turning OFF the resources for controllers with active PCIe devices
-	 * will trigger access violation during the end of the suspend cycle,
-	 * as kernel tries to access the PCIe devices config space for masking
-	 * MSIs.
-	 *
-	 * Also, it is not desirable to put the link into L2/L3 state as that
-	 * implies VDD supply will be removed and the devices may go into
-	 * powerdown state. This will affect the lifetime of the storage devices
-	 * like NVMe.
+	 * The PCIe RC may be covertly accessed by the secure firmware on sleep exit.
+	 * Use the ACTIVE_ONLY tag to let RPMh pull the plug on PCIe in sleep,
+	 * but guarantee it comes back for resume.
 	 */
-	if (!dw_pcie_link_up(pcie->pci)) {
-		qcom_pcie_host_deinit(&pcie->pci->pp);
-		pcie->suspended = true;
+	icc_set_tag(pcie->icc_mem, QCOM_ICC_TAG_ACTIVE_ONLY);
+	/* Flush the tag change */
+	ret = icc_set_bw(pcie->icc_mem, 0, pcie->last_bw);
+	if (ret) {
+		dev_err(pcie->pci->dev, "failed to set interconnect bandwidth: %d\n", ret);
+		icc_set_tag(pcie->icc_mem, QCOM_ICC_TAG_ALWAYS);
+		return qcom_pcie_host_init(&pcie->pci->pp);
 	}
+
+	pcie->suspended = true;
 
 	return 0;
 }
@@ -1605,6 +1609,23 @@ static int qcom_pcie_resume_noirq(struct device *dev)
 {
 	struct qcom_pcie *pcie = dev_get_drvdata(dev);
 	int ret;
+
+	/*
+	 * Undo the tag change from qcom_pcie_suspend_noirq, in case RPMh
+	 * spontaneously decides to power collapse the platform based on
+	 * other inputs.
+	 */
+	icc_set_tag(pcie->icc_mem, QCOM_ICC_TAG_ALWAYS);
+	/* Flush the tag change */
+	ret = icc_set_bw(pcie->icc_mem, 0, pcie->last_bw);
+	if (ret) {
+		dev_err(pcie->pci->dev, "failed to set interconnect bandwidth: %d\n", ret);
+		/*
+		 * This is a very inconvenient place for things to break,
+		 * hence don't roll back to TAG_ACTIVE_ONLY here.
+		 */
+		return ret;
+	}
 
 	if (pcie->suspended) {
 		ret = qcom_pcie_host_init(&pcie->pci->pp);
