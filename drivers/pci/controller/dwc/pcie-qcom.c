@@ -85,6 +85,9 @@
 /* PARF_PM_CTRL register fields */
 #define REQ_NOT_ENTR_L1				BIT(5) /* "Prevent L0->L1" */
 
+/* PARF_PM_STTS register fields */
+#define PM_ENTER_L23				BIT(5)
+
 /* PARF_PCS_DEEMPH register fields */
 #define PCS_DEEMPH_TX_DEEMPH_GEN1(x)		FIELD_PREP(GENMASK(21, 16), x)
 #define PCS_DEEMPH_TX_DEEMPH_GEN2_3_5DB(x)	FIELD_PREP(GENMASK(13, 8), x)
@@ -291,7 +294,7 @@ static void qcom_pcie_stop_link(struct dw_pcie *pci)
 	readl(pcie->elbi + ELBI_SYS_CTRL);
 
 	ret_l23 = readl_poll_timeout((pcie->parf + PARF_PM_STTS), val,
-				     val & BIT(5), 10000, 100000);
+				     val & PM_ENTER_L23, 10000, 100000);
 
 	/* Check readiness for L23 */
 	dev_info(pci->dev, " > L23 enter %sok\n", ret_l23 ? "NOT " : "");
