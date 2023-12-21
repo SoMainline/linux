@@ -225,7 +225,7 @@ struct qcom_pcie_ops {
 	int (*post_init)(struct qcom_pcie *pcie);
 	void (*host_post_init)(struct qcom_pcie *pcie);
 	void (*deinit)(struct qcom_pcie *pcie);
-	void (*ltssm_enable)(struct qcom_pcie *pcie);
+	void (*ltssm_enable)(struct qcom_pcie *pcie, bool en);
 	int (*config_sid)(struct qcom_pcie *pcie);
 };
 
@@ -270,9 +270,18 @@ static int qcom_pcie_start_link(struct dw_pcie *pci)
 
 	/* Enable Link Training state machine */
 	if (pcie->cfg->ops->ltssm_enable)
-		pcie->cfg->ops->ltssm_enable(pcie);
+		pcie->cfg->ops->ltssm_enable(pcie, true);
 
 	return 0;
+}
+
+static void qcom_pcie_stop_link(struct dw_pcie *pci)
+{
+	struct qcom_pcie *pcie = to_qcom_pcie(pci);
+
+	/* Disable Link Training state machine */
+	if (pcie->cfg->ops->ltssm_enable)
+		pcie->cfg->ops->ltssm_enable(pcie, false);
 }
 
 static void qcom_pcie_clear_hpc(struct dw_pcie *pci)
@@ -289,13 +298,16 @@ static void qcom_pcie_clear_hpc(struct dw_pcie *pci)
 	dw_pcie_dbi_ro_wr_dis(pci);
 }
 
-static void qcom_pcie_2_1_0_ltssm_enable(struct qcom_pcie *pcie)
+static void qcom_pcie_2_1_0_ltssm_enable(struct qcom_pcie *pcie, bool en)
 {
 	u32 val;
 
 	/* enable link training */
 	val = readl(pcie->elbi + ELBI_SYS_CTRL);
-	val |= ELBI_SYS_CTRL_LT_ENABLE;
+	if (en)
+		val |= ELBI_SYS_CTRL_LT_ENABLE;
+	else
+		val &= ~ELBI_SYS_CTRL_LT_ENABLE;
 	writel(val, pcie->elbi + ELBI_SYS_CTRL);
 }
 
@@ -534,13 +546,16 @@ static int qcom_pcie_post_init_1_0_0(struct qcom_pcie *pcie)
 	return 0;
 }
 
-static void qcom_pcie_2_3_2_ltssm_enable(struct qcom_pcie *pcie)
+static void qcom_pcie_2_3_2_ltssm_enable(struct qcom_pcie *pcie, bool en)
 {
 	u32 val;
 
 	/* enable link training */
 	val = readl(pcie->parf + PARF_LTSSM);
-	val |= LTSSM_EN;
+	if (en)
+		val |= LTSSM_EN;
+	else
+		val &= ~LTSSM_EN;
 	writel(val, pcie->parf + PARF_LTSSM);
 }
 
@@ -1235,9 +1250,16 @@ static void qcom_pcie_host_deinit(struct dw_pcie_rp *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct qcom_pcie *pcie = to_qcom_pcie(pci);
+	u32 val;
 
 	qcom_ep_reset_assert(pcie);
 	phy_power_off(pcie->phy);
+
+	/* Disable PCIe clocks and resets */
+	val = readl(pcie->parf + PARF_PHY_CTRL);
+	val |= PHY_TEST_PWR_DOWN;
+	writel(val, pcie->parf + PARF_PHY_CTRL);
+
 	pcie->cfg->ops->deinit(pcie);
 }
 
@@ -1580,8 +1602,11 @@ static int qcom_pcie_suspend_noirq(struct device *dev)
 	 * Retaining the RC state through power collapse is not possible
 	 * due to suboptimal hardware design.
 	 */
-	if (pcie->suspended || dw_pcie_link_up(pcie->pci))
+	if (pcie->suspended)
 		return 0;
+
+	if (dw_pcie_link_up(pcie->pci))
+		qcom_pcie_stop_link(pcie->pci);
 
 	pr_err("DEBUG woop woop managed to start kicking pcie\n");
 	qcom_pcie_host_deinit(&pcie->pci->pp);
