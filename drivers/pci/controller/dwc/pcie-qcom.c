@@ -286,10 +286,6 @@ static void qcom_pcie_stop_link(struct dw_pcie *pci)
 	struct qcom_pcie *pcie = to_qcom_pcie(pci);
 	u32 ret_l23, val;
 
-	// /* Disable Link Training state machine */
-	// if (pcie->cfg->ops->ltssm_enable)
-	// 	pcie->cfg->ops->ltssm_enable(pcie, false);
-
 	writel(ELBI_SYS_CTRL_PME_TURNOFF_MSG, pcie->elbi + ELBI_SYS_CTRL);
 	readl(pcie->elbi + ELBI_SYS_CTRL);
 
@@ -968,9 +964,9 @@ static int qcom_pcie_init_2_7_0(struct qcom_pcie *pcie)
 	writel(0, pcie->parf + PARF_DBI_BASE_ADDR);
 
 	/* MAC PHY_POWERDOWN MUX DISABLE  */
-	// val = readl(pcie->parf + PARF_SYS_CTRL);
-	// val &= ~MAC_PHY_POWERDOWN_IN_P2_D_MUX_EN;
-	writel(0x365e, pcie->parf + PARF_SYS_CTRL);
+	val = readl(pcie->parf + PARF_SYS_CTRL);
+	val &= ~MAC_PHY_POWERDOWN_IN_P2_D_MUX_EN;
+	writel(val, pcie->parf + PARF_SYS_CTRL);
 
 	val = readl(pcie->parf + PARF_MHI_CLOCK_RESET_CTRL);
 	val |= BYPASS;
