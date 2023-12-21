@@ -39,6 +39,7 @@
 /* PARF registers */
 #define PARF_SYS_CTRL				0x00
 #define PARF_PM_CTRL				0x20
+#define PARF_PM_STTS				0x24
 #define PARF_PCS_DEEMPH				0x34
 #define PARF_PCS_SWING				0x38
 #define PARF_PHY_CTRL				0x40
@@ -82,7 +83,7 @@
 #define L1_CLK_RMV_DIS				BIT(1)
 
 /* PARF_PM_CTRL register fields */
-#define REQ_NOT_ENTR_L1				BIT(5)
+#define REQ_NOT_ENTR_L1				BIT(5) /* "Prevent L0->L1" */
 
 /* PARF_PCS_DEEMPH register fields */
 #define PCS_DEEMPH_TX_DEEMPH_GEN1(x)		FIELD_PREP(GENMASK(21, 16), x)
@@ -124,6 +125,7 @@
 
 /* ELBI_SYS_CTRL register fields */
 #define ELBI_SYS_CTRL_LT_ENABLE			BIT(0)
+#define ELBI_SYS_CTRL_PME_TURNOFF_MSG		BIT(4)
 
 /* AXI_MSTR_RESP_COMP_CTRL0 register fields */
 #define CFG_REMOTE_RD_REQ_BRIDGE_SIZE_2K	0x4
@@ -246,6 +248,7 @@ struct qcom_pcie {
 	const struct qcom_pcie_cfg *cfg;
 	struct dentry *debugfs;
 	bool suspended;
+	int global_irq;
 };
 
 #define to_qcom_pcie(x)		dev_get_drvdata((x)->dev)
@@ -278,10 +281,20 @@ static int qcom_pcie_start_link(struct dw_pcie *pci)
 static void qcom_pcie_stop_link(struct dw_pcie *pci)
 {
 	struct qcom_pcie *pcie = to_qcom_pcie(pci);
+	u32 ret_l23, val;
 
-	/* Disable Link Training state machine */
-	if (pcie->cfg->ops->ltssm_enable)
-		pcie->cfg->ops->ltssm_enable(pcie, false);
+	// /* Disable Link Training state machine */
+	// if (pcie->cfg->ops->ltssm_enable)
+	// 	pcie->cfg->ops->ltssm_enable(pcie, false);
+
+	writel(ELBI_SYS_CTRL_PME_TURNOFF_MSG, pcie->elbi + ELBI_SYS_CTRL);
+	readl(pcie->elbi + ELBI_SYS_CTRL);
+
+	ret_l23 = readl_poll_timeout((pcie->parf + PARF_PM_STTS), val,
+				     val & BIT(5), 10000, 100000);
+
+	/* Check readiness for L23 */
+	dev_info(pci->dev, " > L23 enter %sok\n", ret_l23 ? "NOT " : "");
 }
 
 static void qcom_pcie_clear_hpc(struct dw_pcie *pci)
@@ -557,6 +570,7 @@ static void qcom_pcie_2_3_2_ltssm_enable(struct qcom_pcie *pcie, bool en)
 	else
 		val &= ~LTSSM_EN;
 	writel(val, pcie->parf + PARF_LTSSM);
+	readl(pcie->parf + PARF_LTSSM);
 }
 
 static int qcom_pcie_get_resources_2_3_2(struct qcom_pcie *pcie)
@@ -951,9 +965,9 @@ static int qcom_pcie_init_2_7_0(struct qcom_pcie *pcie)
 	writel(0, pcie->parf + PARF_DBI_BASE_ADDR);
 
 	/* MAC PHY_POWERDOWN MUX DISABLE  */
-	val = readl(pcie->parf + PARF_SYS_CTRL);
-	val &= ~MAC_PHY_POWERDOWN_IN_P2_D_MUX_EN;
-	writel(val, pcie->parf + PARF_SYS_CTRL);
+	// val = readl(pcie->parf + PARF_SYS_CTRL);
+	// val &= ~MAC_PHY_POWERDOWN_IN_P2_D_MUX_EN;
+	writel(0x365e, pcie->parf + PARF_SYS_CTRL);
 
 	val = readl(pcie->parf + PARF_MHI_CLOCK_RESET_CTRL);
 	val |= BYPASS;
@@ -1007,10 +1021,33 @@ static void qcom_pcie_host_post_init_2_7_0(struct qcom_pcie *pcie)
 static void qcom_pcie_deinit_2_7_0(struct qcom_pcie *pcie)
 {
 	struct qcom_pcie_resources_2_7_0 *res = &pcie->res.v2_7_0;
+	u32 val;
+
+	// axe?
+	// val = readl(pcie->parf + PARF_MHI_CLOCK_RESET_CTRL);
+	// val &= ~BYPASS;
+	// writel(val, pcie->parf + PARF_MHI_CLOCK_RESET_CTRL);
+	// readl(pcie->parf + PARF_MHI_CLOCK_RESET_CTRL);
+
+	// val = readl(pcie->parf + PARF_SYS_CTRL);
+	// val |= MAC_PHY_POWERDOWN_IN_P2_D_MUX_EN;
+	// writel(val, pcie->parf + PARF_SYS_CTRL);
+	// readl(pcie->parf + PARF_SYS_CTRL);
+
+	/* Disable PCIe clocks and resets */
+	val = readl(pcie->parf + PARF_PHY_CTRL);
+	val |= PHY_TEST_PWR_DOWN;
+	writel(val, pcie->parf + PARF_PHY_CTRL);
+	readl(pcie->parf + PARF_PHY_CTRL);
 
 	clk_bulk_disable_unprepare(res->num_clks, res->clks);
 
+	reset_control_assert(res->rst);
+	usleep_range(2000, 2500);
+
 	regulator_bulk_disable(ARRAY_SIZE(res->supplies), res->supplies);
+
+	// downstream deasserts PERST# here
 }
 
 static int qcom_pcie_config_sid_1_9_0(struct qcom_pcie *pcie)
@@ -1208,6 +1245,8 @@ static int qcom_pcie_host_init(struct dw_pcie_rp *pp)
 
 	qcom_ep_reset_assert(pcie);
 
+	phy_init(pcie->phy);
+
 	ret = pcie->cfg->ops->init(pcie);
 	if (ret)
 		return ret;
@@ -1250,15 +1289,10 @@ static void qcom_pcie_host_deinit(struct dw_pcie_rp *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct qcom_pcie *pcie = to_qcom_pcie(pci);
-	u32 val;
 
 	qcom_ep_reset_assert(pcie);
 	phy_power_off(pcie->phy);
-
-	/* Disable PCIe clocks and resets */
-	val = readl(pcie->parf + PARF_PHY_CTRL);
-	val |= PHY_TEST_PWR_DOWN;
-	writel(val, pcie->parf + PARF_PHY_CTRL);
+	phy_exit(pcie->phy);
 
 	pcie->cfg->ops->deinit(pcie);
 }
@@ -1468,6 +1502,27 @@ static int qcom_pcie_link_transition_count(struct seq_file *s, void *data)
 	return 0;
 }
 
+// static irqreturn_t qcom_pcie_ep_global_irq_thread(int irq, void *data)
+// {
+// 	struct qcom_pcie_ep *pcie_ep = data;
+// 	struct dw_pcie *pci = &pcie_ep->pci;
+// 	struct device *dev = pci->dev;
+// 	u32 status = readl_relaxed(pcie_ep->parf + PARF_INT_ALL_STATUS);
+// 	u32 mask = readl_relaxed(pcie_ep->parf + PARF_INT_ALL_MASK);
+
+// 	writel_relaxed(status, pcie_ep->parf + PARF_INT_ALL_CLEAR);
+// 	status &= mask;
+
+// 	if (FIELD_GET(PARF_INT_ALL_LINK_DOWN, status)) {
+// 		dev_dbg(dev, "Received Linkdown event\n");
+// 		pcie_ep->link_status = QCOM_PCIE_EP_LINK_DOWN;
+// 		pci_epc_linkdown(pci->ep.epc);
+
+// 	}
+
+// 	return IRQ_HANDLED;
+// }
+
 static void qcom_pcie_init_debugfs(struct qcom_pcie *pcie)
 {
 	struct dw_pcie *pci = pcie->pci;
@@ -1570,6 +1625,21 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, pcie);
 
+	// pcie->global_irq = platform_get_irq_byname(pdev, "global");
+	// if (pcie->global_irq < 0) {
+	// 	ret = pcie->global_irq;
+	// 	goto err_phy_exit;
+	// }
+
+	// ret = devm_request_threaded_irq(&pdev->dev, pcie->global_irq, NULL,
+	// 				qcom_pcie_ep_global_irq_thread,
+	// 				IRQF_ONESHOT,
+	// 				"global_irq", pcie);
+	// if (ret) {
+	// 	dev_err(dev, "Failed to request Global IRQ\n");
+	// 	goto err_phy_exit;
+	// }
+
 	ret = dw_pcie_host_init(pp);
 	if (ret) {
 		dev_err(dev, "cannot initialize host\n");
@@ -1604,6 +1674,9 @@ static int qcom_pcie_suspend_noirq(struct device *dev)
 	 */
 	if (pcie->suspended)
 		return 0;
+
+	/* Kick the downstream devices, if any are up */
+	//pci_stop_root_bus(pcie->pci->pp.bridge->bus); /* very bad? */
 
 	if (dw_pcie_link_up(pcie->pci))
 		qcom_pcie_stop_link(pcie->pci);
@@ -1657,6 +1730,16 @@ pr_err("hello pcie resume\n");
 		ret = qcom_pcie_host_init(&pcie->pci->pp);
 		if (ret)
 			return ret;
+
+		if (!dw_pcie_link_up(pcie->pci)) {
+			ret = qcom_pcie_start_link(pcie->pci);
+			if (ret)
+				return ret; /* tragic */
+
+			ret = dw_pcie_wait_for_link(pcie->pci);
+			if (ret)
+				return ret;
+		}
 
 		pcie->suspended = false;
 		pr_err("\tPCIe resume worked\n");
