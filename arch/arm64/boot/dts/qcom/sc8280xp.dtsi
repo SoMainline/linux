@@ -1831,7 +1831,7 @@
 			assigned-clocks = <&gcc GCC_PCIE4_PHY_RCHNG_CLK>;
 			assigned-clock-rates = <100000000>;
 
-			power-domains = <&gcc PCIE_4_GDSC>;
+			power-domains = <&rpmhpd SC8280XP_MX>;
 
 			resets = <&gcc GCC_PCIE_4_PHY_BCR>;
 			reset-names = "phy";
@@ -1942,7 +1942,7 @@
 			assigned-clocks = <&gcc GCC_PCIE3B_PHY_RCHNG_CLK>;
 			assigned-clock-rates = <100000000>;
 
-			power-domains = <&gcc PCIE_3B_GDSC>;
+			power-domains = <&rpmhpd SC8280XP_MX>;
 
 			resets = <&gcc GCC_PCIE_3B_PHY_BCR>;
 			reset-names = "phy";
@@ -2054,7 +2054,7 @@
 			assigned-clocks = <&gcc GCC_PCIE3A_PHY_RCHNG_CLK>;
 			assigned-clock-rates = <100000000>;
 
-			power-domains = <&gcc PCIE_3A_GDSC>;
+			power-domains = <&rpmhpd SC8280XP_MX>;
 
 			resets = <&gcc GCC_PCIE_3A_PHY_BCR>;
 			reset-names = "phy";
@@ -2167,7 +2167,7 @@
 			assigned-clocks = <&gcc GCC_PCIE2B_PHY_RCHNG_CLK>;
 			assigned-clock-rates = <100000000>;
 
-			power-domains = <&gcc PCIE_2B_GDSC>;
+			power-domains = <&rpmhpd SC8280XP_MX>;
 
 			resets = <&gcc GCC_PCIE_2B_PHY_BCR>;
 			reset-names = "phy";
@@ -2279,7 +2279,7 @@
 			assigned-clocks = <&gcc GCC_PCIE2A_PHY_RCHNG_CLK>;
 			assigned-clock-rates = <100000000>;
 
-			power-domains = <&gcc PCIE_2A_GDSC>;
+			power-domains = <&rpmhpd SC8280XP_MX>;
 
 			resets = <&gcc GCC_PCIE_2A_PHY_BCR>;
 			reset-names = "phy";
