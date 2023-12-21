@@ -1248,8 +1248,6 @@ static int qcom_pcie_host_init(struct dw_pcie_rp *pp)
 
 	qcom_ep_reset_assert(pcie);
 
-	phy_init(pcie->phy);
-
 	ret = pcie->cfg->ops->init(pcie);
 	if (ret)
 		return ret;
@@ -1295,7 +1293,6 @@ static void qcom_pcie_host_deinit(struct dw_pcie_rp *pp)
 
 	qcom_ep_reset_assert(pcie);
 	phy_power_off(pcie->phy);
-	phy_exit(pcie->phy);
 
 	pcie->cfg->ops->deinit(pcie);
 }
