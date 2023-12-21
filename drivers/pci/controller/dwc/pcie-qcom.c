@@ -1626,7 +1626,7 @@ static int qcom_pcie_suspend_noirq(struct device *dev)
 	}
 
 	pcie->suspended = true;
-
+pr_err("\tPCIe suspend worked\n");
 	return 0;
 }
 
@@ -1634,7 +1634,7 @@ static int qcom_pcie_resume_noirq(struct device *dev)
 {
 	struct qcom_pcie *pcie = dev_get_drvdata(dev);
 	int ret;
-
+pr_err("hello pcie resume\n");
 	/*
 	 * Undo the tag change from qcom_pcie_suspend_noirq, in case RPMh
 	 * spontaneously decides to power collapse the platform based on
@@ -1653,11 +1653,13 @@ static int qcom_pcie_resume_noirq(struct device *dev)
 	}
 
 	if (pcie->suspended) {
+		pr_err("DEBUG woop woop managed to start UNkicking pcie\n");
 		ret = qcom_pcie_host_init(&pcie->pci->pp);
 		if (ret)
 			return ret;
 
 		pcie->suspended = false;
+		pr_err("\tPCIe resume worked\n");
 	}
 
 	qcom_pcie_icc_update(pcie);

@@ -1515,7 +1515,7 @@ static int pci_set_low_power_state(struct pci_dev *dev, pci_power_t state)
 int pci_set_power_state(struct pci_dev *dev, pci_power_t state)
 {
 	int error;
-
+pr_err("called PCI set power state %u\n", state);
 	/* Bound the state we're entering */
 	if (state > PCI_D3cold)
 		state = PCI_D3cold;
