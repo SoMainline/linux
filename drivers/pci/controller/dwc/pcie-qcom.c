@@ -1026,17 +1026,6 @@ static void qcom_pcie_deinit_2_7_0(struct qcom_pcie *pcie)
 	struct qcom_pcie_resources_2_7_0 *res = &pcie->res.v2_7_0;
 	u32 val;
 
-	// axe?
-	// val = readl(pcie->parf + PARF_MHI_CLOCK_RESET_CTRL);
-	// val &= ~BYPASS;
-	// writel(val, pcie->parf + PARF_MHI_CLOCK_RESET_CTRL);
-	// readl(pcie->parf + PARF_MHI_CLOCK_RESET_CTRL);
-
-	// val = readl(pcie->parf + PARF_SYS_CTRL);
-	// val |= MAC_PHY_POWERDOWN_IN_P2_D_MUX_EN;
-	// writel(val, pcie->parf + PARF_SYS_CTRL);
-	// readl(pcie->parf + PARF_SYS_CTRL);
-
 	/* Disable PCIe clocks and resets */
 	val = readl(pcie->parf + PARF_PHY_CTRL);
 	val |= PHY_TEST_PWR_DOWN;
@@ -1049,8 +1038,6 @@ static void qcom_pcie_deinit_2_7_0(struct qcom_pcie *pcie)
 	usleep_range(2000, 2500);
 
 	regulator_bulk_disable(ARRAY_SIZE(res->supplies), res->supplies);
-
-	// downstream deasserts PERST# here
 }
 
 static int qcom_pcie_config_sid_1_9_0(struct qcom_pcie *pcie)
