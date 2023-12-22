@@ -230,7 +230,7 @@ struct qcom_pcie_ops {
 	int (*post_init)(struct qcom_pcie *pcie);
 	void (*host_post_init)(struct qcom_pcie *pcie);
 	void (*deinit)(struct qcom_pcie *pcie);
-	void (*ltssm_enable)(struct qcom_pcie *pcie, bool en);
+	void (*ltssm_enable)(struct qcom_pcie *pcie);
 	int (*config_sid)(struct qcom_pcie *pcie);
 };
 
@@ -276,7 +276,7 @@ static int qcom_pcie_start_link(struct dw_pcie *pci)
 
 	/* Enable Link Training state machine */
 	if (pcie->cfg->ops->ltssm_enable)
-		pcie->cfg->ops->ltssm_enable(pcie, true);
+		pcie->cfg->ops->ltssm_enable(pcie);
 
 	return 0;
 }
@@ -310,16 +310,13 @@ static void qcom_pcie_clear_hpc(struct dw_pcie *pci)
 	dw_pcie_dbi_ro_wr_dis(pci);
 }
 
-static void qcom_pcie_2_1_0_ltssm_enable(struct qcom_pcie *pcie, bool en)
+static void qcom_pcie_2_1_0_ltssm_enable(struct qcom_pcie *pcie)
 {
 	u32 val;
 
 	/* enable link training */
 	val = readl(pcie->elbi + ELBI_SYS_CTRL);
-	if (en)
-		val |= ELBI_SYS_CTRL_LT_ENABLE;
-	else
-		val &= ~ELBI_SYS_CTRL_LT_ENABLE;
+	val |= ELBI_SYS_CTRL_LT_ENABLE;
 	writel(val, pcie->elbi + ELBI_SYS_CTRL);
 }
 
@@ -558,16 +555,13 @@ static int qcom_pcie_post_init_1_0_0(struct qcom_pcie *pcie)
 	return 0;
 }
 
-static void qcom_pcie_2_3_2_ltssm_enable(struct qcom_pcie *pcie, bool en)
+static void qcom_pcie_2_3_2_ltssm_enable(struct qcom_pcie *pcie)
 {
 	u32 val;
 
 	/* enable link training */
 	val = readl(pcie->parf + PARF_LTSSM);
-	if (en)
-		val |= LTSSM_EN;
-	else
-		val &= ~LTSSM_EN;
+	val |= LTSSM_EN;
 	writel(val, pcie->parf + PARF_LTSSM);
 	readl(pcie->parf + PARF_LTSSM);
 }
