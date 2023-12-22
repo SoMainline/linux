@@ -530,8 +530,9 @@
 
 	vddpe-3v3-supply = <&vreg_nvme>;
 
-	pinctrl-names = "default";
-	pinctrl-0 = <&pcie2a_default>;
+	pinctrl-0 = <&pcie2a_default>, <&pcie2a_clkreq_default>;
+	pinctrl-1 = <&pcie2a_default>, <&pcie2a_clkreq_sleep>;
+	pinctrl-names = "default", "sleep";
 
 	status = "okay";
 };
@@ -549,8 +550,9 @@
 
 	vddpe-3v3-supply = <&vreg_wwan>;
 
-	pinctrl-names = "default";
-	pinctrl-0 = <&pcie3a_default>;
+	pinctrl-0 = <&pcie3a_default>, <&pcie3a_clkreq_default>;
+	pinctrl-1 = <&pcie3a_default>, <&pcie3a_clkreq_sleep>;
+	pinctrl-names = "default", "sleep";
 
 	status = "okay";
 };
@@ -568,8 +570,9 @@
 
 	vddpe-3v3-supply = <&vreg_wlan>;
 
-	pinctrl-names = "default";
-	pinctrl-0 = <&pcie4_default>;
+	pinctrl-0 = <&pcie4_default>, <&pcie4_clkreq_default>;
+	pinctrl-1 = <&pcie4_default>, <&pcie4_clkreq_sleep>;
+	pinctrl-names = "default", "sleep";
 
 	status = "okay";
 };
@@ -835,13 +838,6 @@
 	};
 
 	pcie2a_default: pcie2a-default-state {
-		clkreq-n-pins {
-			pins = "gpio142";
-			function = "pcie2a_clkreq";
-			drive-strength = <2>;
-			bias-pull-up;
-		};
-
 		perst-n-pins {
 			pins = "gpio143";
 			function = "gpio";
@@ -857,14 +853,21 @@
 	       };
 	};
 
-	pcie3a_default: pcie3a-default-state {
-		clkreq-n-pins {
-			pins = "gpio150";
-			function = "pcie3a_clkreq";
-			drive-strength = <2>;
-			bias-pull-up;
-		};
+	pcie2a_clkreq_default: pcie2a-clkreq-default-state {
+		pins = "gpio142";
+		function = "pcie2a_clkreq";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
 
+	pcie2a_clkreq_sleep: pcie2a-clkreq-sleep-state {
+		pins = "gpio142";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	pcie3a_default: pcie3a-default-state {
 		perst-n-pins {
 			pins = "gpio151";
 			function = "gpio";
@@ -880,14 +883,21 @@
 		};
 	};
 
-	pcie4_default: pcie4-default-state {
-		clkreq-n-pins {
-			pins = "gpio140";
-			function = "pcie4_clkreq";
-			drive-strength = <2>;
-			bias-pull-up;
-		};
+	pcie3a_clkreq_default: pcie3a-clkreq-default-state {
+		pins = "gpio150";
+		function = "pcie3a_clkreq";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
 
+	pcie3a_clkreq_sleep: pcie3a-clkreq-sleep-state {
+		pins = "gpio150";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	pcie4_default: pcie4-default-state {
 		perst-n-pins {
 			pins = "gpio141";
 			function = "gpio";
@@ -901,6 +911,20 @@
 			drive-strength = <2>;
 			bias-pull-up;
 		};
+	};
+
+	pcie4_clkreq_default: pcie4-clkreq-default-state {
+		pins = "gpio140";
+		function = "pcie4_clkreq";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	pcie4_clkreq_sleep: pcie4-clkreq-sleep-state {
+		pins = "gpio140";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
 	};
 
 	sdc2_default_state: sdc2-default-state {
