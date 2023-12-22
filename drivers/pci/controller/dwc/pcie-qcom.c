@@ -1706,6 +1706,8 @@ static int qcom_pcie_resume_noirq(struct device *dev)
 		if (ret)
 			return ret;
 
+		dw_pcie_setup_rc(&pcie->pci->pp);
+
 		if (!dw_pcie_link_up(pcie->pci)) {
 			ret = qcom_pcie_start_link(pcie->pci);
 			if (ret)
