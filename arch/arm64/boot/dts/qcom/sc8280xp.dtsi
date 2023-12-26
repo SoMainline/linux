@@ -941,7 +941,7 @@
 			};
 
 			uart17: serial@884000 {
-				//compatible = "qcom,geni-uart";
+				compatible = "qcom,geni-uart";
 				reg = <0 0x00884000 0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP2_S1_CLK>;
 				clock-names = "se";
@@ -1051,7 +1051,7 @@
 			};
 
 			i2c21: i2c@894000 {
-				//compatible = "qcom,geni-i2c";
+				compatible = "qcom,geni-i2c";
 				reg = <0 0x00894000 0 0x4000>;
 				clock-names = "se";
 				clocks = <&gcc GCC_QUPV3_WRAP2_S5_CLK>;
@@ -1304,7 +1304,7 @@
 			};
 
 			i2c4: i2c@990000 {
-				//compatible = "qcom,geni-i2c";
+				compatible = "qcom,geni-i2c";
 				reg = <0 0x00990000 0 0x4000>;
 				clock-names = "se";
 				clocks = <&gcc GCC_QUPV3_WRAP0_S4_CLK>;
@@ -3332,7 +3332,7 @@
 		};
 
 		usb_0: usb@a6f8800 {
-		//	compatible = "qcom,sc8280xp-dwc3", "qcom,dwc3";
+			compatible = "qcom,sc8280xp-dwc3", "qcom,dwc3";
 			reg = <0 0x0a6f8800 0 0x400>;
 			#address-cells = <2>;
 			#size-cells = <2>;
@@ -3392,7 +3392,7 @@
 		};
 
 		usb_1: usb@a8f8800 {
-		//	compatible = "qcom,sc8280xp-dwc3", "qcom,dwc3";
+			compatible = "qcom,sc8280xp-dwc3", "qcom,dwc3";
 			reg = <0 0x0a8f8800 0 0x400>;
 			#address-cells = <2>;
 			#size-cells = <2>;
