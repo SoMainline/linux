@@ -282,8 +282,6 @@ int qcom_icc_bcm_voter_commit(struct bcm_voter *voter)
 			bcm_aggregate_mask(bcm);
 		else
 			bcm_aggregate(bcm);
-
-		bcm->vote_y[QCOM_ICC_BUCKET_SLEEP] = 0;
 	}
 
 	/*
