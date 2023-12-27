@@ -850,7 +850,7 @@
 				 <&pcie4_phy>,
 				 <0>,
 				 <0>;
-			//power-domains = <&rpmhpd SC8280XP_CX>;
+			power-domains = <&rpmhpd SC8280XP_CX>;
 		};
 
 		ipcc: mailbox@408000 {
