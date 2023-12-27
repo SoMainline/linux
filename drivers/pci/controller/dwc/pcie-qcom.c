@@ -1662,10 +1662,10 @@ static int qcom_pcie_suspend_noirq(struct device *dev)
 
 	/*
 	 * The PCIe RC may be covertly accessed by the secure firmware on sleep exit.
-	 * Use the ACTIVE_ONLY tag to let RPMh pull the plug on PCIe in sleep,
+	 * Use the WAKE bucket to let RPMh pull the plug on PCIe in sleep,
 	 * but guarantee it comes back for resume.
 	 */
-	icc_set_tag(pcie->icc_mem, QCOM_ICC_TAG_ACTIVE_ONLY);
+	icc_set_tag(pcie->icc_mem, QCOM_ICC_TAG_WAKE);
 	/* Flush the tag change */
 	ret = icc_set_bw(pcie->icc_mem, 0, pcie->last_bw);
 	if (ret) {
