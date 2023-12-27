@@ -1479,27 +1479,6 @@ static int qcom_pcie_link_transition_count(struct seq_file *s, void *data)
 	return 0;
 }
 
-// static irqreturn_t qcom_pcie_ep_global_irq_thread(int irq, void *data)
-// {
-// 	struct qcom_pcie_ep *pcie_ep = data;
-// 	struct dw_pcie *pci = &pcie_ep->pci;
-// 	struct device *dev = pci->dev;
-// 	u32 status = readl_relaxed(pcie_ep->parf + PARF_INT_ALL_STATUS);
-// 	u32 mask = readl_relaxed(pcie_ep->parf + PARF_INT_ALL_MASK);
-
-// 	writel_relaxed(status, pcie_ep->parf + PARF_INT_ALL_CLEAR);
-// 	status &= mask;
-
-// 	if (FIELD_GET(PARF_INT_ALL_LINK_DOWN, status)) {
-// 		dev_dbg(dev, "Received Linkdown event\n");
-// 		pcie_ep->link_status = QCOM_PCIE_EP_LINK_DOWN;
-// 		pci_epc_linkdown(pci->ep.epc);
-
-// 	}
-
-// 	return IRQ_HANDLED;
-// }
-
 static void qcom_pcie_init_debugfs(struct qcom_pcie *pcie)
 {
 	struct dw_pcie *pci = pcie->pci;
@@ -1602,21 +1581,6 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, pcie);
 
-	// pcie->global_irq = platform_get_irq_byname(pdev, "global");
-	// if (pcie->global_irq < 0) {
-	// 	ret = pcie->global_irq;
-	// 	goto err_phy_exit;
-	// }
-
-	// ret = devm_request_threaded_irq(&pdev->dev, pcie->global_irq, NULL,
-	// 				qcom_pcie_ep_global_irq_thread,
-	// 				IRQF_ONESHOT,
-	// 				"global_irq", pcie);
-	// if (ret) {
-	// 	dev_err(dev, "Failed to request Global IRQ\n");
-	// 	goto err_phy_exit;
-	// }
-
 	ret = dw_pcie_host_init(pp);
 	if (ret) {
 		dev_err(dev, "cannot initialize host\n");
@@ -1651,9 +1615,6 @@ static int qcom_pcie_suspend_noirq(struct device *dev)
 	 */
 	if (pcie->suspended)
 		return 0;
-
-	/* Kick the downstream devices, if any are up */
-	//pci_stop_root_bus(pcie->pci->pp.bridge->bus); /* very bad? */
 
 	if (dw_pcie_link_up(pcie->pci))
 		qcom_pcie_stop_link(pcie->pci);
