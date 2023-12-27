@@ -8,7 +8,7 @@
  */
 
 #define pr_fmt(fmt) "PM: " fmt
-
+void icc_summary_dump(void);
 #include <linux/string.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
@@ -423,6 +423,7 @@ static int suspend_enter(suspend_state_t state, bool *wakeup)
 	if (suspend_test(TEST_PLATFORM))
 		goto Platform_wake;
 
+	icc_summary_dump();
 	if (state == PM_SUSPEND_TO_IDLE) {
 		s2idle_loop();
 		goto Platform_wake;
