@@ -79,6 +79,47 @@ static int icc_summary_show(struct seq_file *s, void *data)
 }
 DEFINE_SHOW_ATTRIBUTE(icc_summary);
 
+#define ONLY_SHOW_SLEEP_BCKT	1
+#include <dt-bindings/interconnect/qcom,icc.h>
+void icc_summary_dump(void)
+{
+	struct icc_provider *provider;
+
+	mutex_lock(&icc_lock);
+
+	pr_err(" node                                  tag          avg         peak\n");
+        pr_err("--------------------------------------------------------------------\n");
+
+	list_for_each_entry(provider, &icc_providers, provider_list) {
+                struct icc_node *n;
+
+                list_for_each_entry(n, &provider->nodes, node_list) {
+                        struct icc_req *r;
+
+			pr_err("%-42s %12u %12u\n", n->name, n->avg_bw, n->peak_bw);
+                        hlist_for_each_entry(r, &n->req_list, req_node) {
+                                u32 avg_bw = 0, peak_bw = 0;
+
+                                if (!r->dev)
+                                        continue;
+
+                                if (r->enabled) {
+                                        avg_bw = r->avg_bw;
+                                        peak_bw = r->peak_bw;
+                                }
+#ifdef ONLY_SHOW_SLEEP_BCKT
+				if (r->tag & QCOM_ICC_TAG_SLEEP)
+#endif
+					pr_err("  %-27s %12u %12u %12u\n", dev_name(r->dev), r->tag, avg_bw, peak_bw);
+                        }
+                }
+        }
+
+
+	mutex_unlock(&icc_lock);
+}
+EXPORT_SYMBOL_GPL(icc_summary_dump);
+
 static void icc_graph_show_link(struct seq_file *s, int level,
 				struct icc_node *n, struct icc_node *m)
 {
