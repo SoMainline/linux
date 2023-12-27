@@ -505,28 +505,43 @@ static int psci_system_suspend(unsigned long unused)
 
 static int psci_system_suspend_enter(suspend_state_t state)
 {
-	int ret;
+	return cpu_suspend(0, psci_system_suspend);
+}
 
-	ret = cpu_suspend(0, psci_system_suspend);
-	if (ret)
-		return ret;
+static const struct platform_suspend_ops psci_suspend_ops = {
+	.valid          = suspend_valid_only_mem,
+	.enter          = psci_system_suspend_enter,
+};
 
+/*
+ * Some PSCI implementations (particularly on Qualcomm platforms) silently
+ * sneak in SoC-wide power collapse through CPU_SUSPEND, while advertising no
+ * support for SYSTEM_SUSPEND.
+ */
+
+static int psci_cpu_as_system_suspend_enter(suspend_state_t state)
+{
 	pm_set_resume_via_firmware();
 
 	return 0;
 }
 
-static int psci_system_suspend_begin(suspend_state_t state)
+static int psci_cpu_as_system_suspend_begin(suspend_state_t state)
 {
 	pm_set_suspend_via_firmware();
 
 	return 0;
 }
 
-static const struct platform_suspend_ops psci_suspend_ops = {
-	.valid          = suspend_valid_only_mem,
-	.enter          = psci_system_suspend_enter,
-	.begin          = psci_system_suspend_begin,
+static int suspend_valid_all(suspend_state_t state)
+{
+	return state == PM_SUSPEND_TO_IDLE;
+}
+
+static const struct platform_suspend_ops psci_cpu_as_system_suspend_ops = {
+	.valid         = suspend_valid_all,
+	.enter         = psci_cpu_as_system_suspend_enter,
+	.begin         = psci_cpu_as_system_suspend_begin,
 };
 
 static void __init psci_init_system_reset2(void)
@@ -539,8 +554,15 @@ static void __init psci_init_system_reset2(void)
 		psci_system_reset2_supported = true;
 }
 
+
+static const struct of_device_id cpu_as_system_suspend_match_table[] = {
+	{ .compatible = "qcom,sc8280xp" },
+	{ }
+};
+
 static void __init psci_init_system_suspend(void)
 {
+	struct device_node *np = of_find_node_by_path("/");
 	int ret;
 
 	if (!IS_ENABLED(CONFIG_SUSPEND))
@@ -548,8 +570,14 @@ static void __init psci_init_system_suspend(void)
 
 	ret = psci_features(PSCI_FN_NATIVE(1_0, SYSTEM_SUSPEND));
 
-	if (ret != PSCI_RET_NOT_SUPPORTED)
+	if (ret == PSCI_RET_NOT_SUPPORTED) {
+		if (of_match_node(cpu_as_system_suspend_match_table, np))
+			suspend_set_ops(&psci_cpu_as_system_suspend_ops);
+	} else {
 		suspend_set_ops(&psci_suspend_ops);
+	}
+
+	of_node_put(np);
 }
 
 static void __init psci_init_cpu_suspend(void)
