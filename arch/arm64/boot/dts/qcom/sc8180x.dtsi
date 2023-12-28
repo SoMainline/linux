@@ -3171,11 +3171,6 @@
 						opp-hz = /bits/ 64 <540000000>;
 						required-opps = <&rpmhpd_opp_svs_l1>;
 					};
-
-					opp-810000000 {
-						opp-hz = /bits/ 64 <810000000>;
-						required-opps = <&rpmhpd_opp_nom>;
-					};
 				};
 			};
 		};
