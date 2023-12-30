@@ -40,6 +40,11 @@
 		};
 	};
 
+	phytest {
+		compatible = "phytest";
+		phys = <&pcie2a_phy>;
+	};
+
 	cpus {
 		#address-cells = <2>;
 		#size-cells = <0>;
