@@ -61,6 +61,7 @@
 
 /* ELBI registers */
 #define ELBI_SYS_CTRL				0x04
+#define ELBI_SYS_STTS				0x08
 
 /* DBI registers */
 #define AXI_MSTR_RESP_COMP_CTRL0		0x818
@@ -131,6 +132,9 @@
 /* ELBI_SYS_CTRL register fields */
 #define ELBI_SYS_CTRL_LT_ENABLE			BIT(0)
 #define ELBI_SYS_CTRL_PME_TURNOFF_MSG		BIT(4)
+
+/* ELBI_SYS_STTS register fields */
+#define ELBI_SYS_STTS_LTSSM_STATE		GENMASK(8, 3)
 
 /* AXI_MSTR_RESP_COMP_CTRL0 register fields */
 #define CFG_REMOTE_RD_REQ_BRIDGE_SIZE_2K	0x4
