@@ -340,8 +340,8 @@
 
 		scmi {
 			compatible = "arm,scmi";
-			mboxes = <&rimps_mbox>;
-			mbox-names = "tx";
+			mboxes = <&apcs 28>, <&rimps_mbox>;
+			mbox-names = "tx", "rx";
 			shmem = <&cpu_scp_shmem>;
 			#address-cells = <1>;
 			#size-cells = <0>;
@@ -800,6 +800,12 @@
 
 		#address-cells = <2>;
 		#size-cells = <2>;
+
+		apcs: mailbox@17400000 {
+			compatible = "qcom,msm8994-apcs-kpss-global", "syscon";
+			reg = <0x0 0x17400000 0x0 0x10>;
+			#mbox-cells = <1>;
+		};
 
 		gcc: clock-controller@100000 {
 			compatible = "qcom,sm8550-gcc";
@@ -4000,10 +4006,9 @@
 			};
 		};
 
-		rimps_mbox: mailbox@17400000 {
+		rimps_mbox: mailbox@17d90000 {
 			compatible = "qcom,rimps-mbox";
-			reg = <0 0x17400000 0 0x10>,
-			      <0 0x17d90000 0 0x1000>;
+			reg = <0 0x17d90000 0 0x1000>;
 			interrupts = <GIC_SPI 62 IRQ_TYPE_LEVEL_HIGH>;
 			#mbox-cells = <0>;
 		};
