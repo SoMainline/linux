@@ -1048,6 +1048,7 @@ int device_links_check_suppliers(struct device *dev)
 			fwnode_ret = -EPROBE_DEFER;
 			dev_err_probe(dev, -EPROBE_DEFER,
 				    "wait for supplier %pfwf\n", sup_fw);
+			dev_err(dev, "wait for supplier %pfwf\n", sup_fw);
 		} else {
 			fwnode_ret = -EAGAIN;
 		}
@@ -1076,6 +1077,7 @@ int device_links_check_suppliers(struct device *dev)
 			dev_err_probe(dev, -EPROBE_DEFER,
 				      "supplier %s not ready\n",
 				      dev_name(link->supplier));
+			dev_err(dev, "supplier %s not ready\n", dev_name(link->supplier));
 			ret = -EPROBE_DEFER;
 			break;
 		}

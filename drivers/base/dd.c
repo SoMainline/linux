@@ -613,13 +613,15 @@ static int really_probe(struct device *dev, struct device_driver *drv)
 		 * device_block_probing() which, in turn, will call
 		 * wait_for_device_probe() right after that to avoid any races.
 		 */
-		dev_dbg(dev, "Driver %s force probe deferral\n", drv->name);
+		dev_err(dev, "Driver %s force probe deferral\n", drv->name);
 		return -EPROBE_DEFER;
 	}
 
 	link_ret = device_links_check_suppliers(dev);
-	if (link_ret == -EPROBE_DEFER)
+	if (link_ret == -EPROBE_DEFER) {
+		pr_err("probe of %s blocked by missing links..\n", dev_name(dev));
 		return link_ret;
+	}
 
 	pr_debug("bus: '%s': %s: probing driver %s with device %s\n",
 		 drv->bus->name, __func__, drv->name, dev_name(dev));
