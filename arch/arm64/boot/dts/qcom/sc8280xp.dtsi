@@ -3508,13 +3508,15 @@
 					 <&dispcc0 DISP_CC_MDSS_AHB_CLK>,
 					 <&dispcc0 DISP_CC_MDSS_MDP_LUT_CLK>,
 					 <&dispcc0 DISP_CC_MDSS_MDP_CLK>,
-					 <&dispcc0 DISP_CC_MDSS_VSYNC_CLK>;
+					 <&dispcc0 DISP_CC_MDSS_VSYNC_CLK>,
+					 <&dispcc0 DISP_CC_MDSS_ROT_CLK>;
 				clock-names = "bus",
 					      "nrt_bus",
 					      "iface",
 					      "lut",
 					      "core",
-					      "vsync";
+					      "vsync",
+					      "rot";
 				interrupt-parent = <&mdss0>;
 				interrupts = <0>;
 				power-domains = <&rpmhpd SC8280XP_MMCX>;
@@ -4621,13 +4623,15 @@
 					 <&dispcc1 DISP_CC_MDSS_AHB_CLK>,
 					 <&dispcc1 DISP_CC_MDSS_MDP_LUT_CLK>,
 					 <&dispcc1 DISP_CC_MDSS_MDP_CLK>,
-					 <&dispcc1 DISP_CC_MDSS_VSYNC_CLK>;
+					 <&dispcc1 DISP_CC_MDSS_VSYNC_CLK>,
+					 <&dispcc1 DISP_CC_MDSS_ROT_CLK>;
 				clock-names = "bus",
 					      "nrt_bus",
 					      "iface",
 					      "lut",
 					      "core",
-					      "vsync";
+					      "vsync",
+					      "rot";
 				interrupt-parent = <&mdss1>;
 				interrupts = <0>;
 				power-domains = <&rpmhpd SC8280XP_MMCX>;
