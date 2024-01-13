@@ -2474,6 +2474,7 @@
 				      "gcc_gpu_gpll0_div_clk_src";
 
 			power-domains = <&rpmhpd SC8280XP_GFX>;
+			requires-opps = <&rpmhpd_opp_low_svs>;
 			#clock-cells = <1>;
 			#reset-cells = <1>;
 			#power-domain-cells = <1>;
