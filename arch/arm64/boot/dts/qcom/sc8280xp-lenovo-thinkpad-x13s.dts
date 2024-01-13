@@ -397,7 +397,7 @@
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-			regulator-always-on;
+			//regulator-always-on;
 		};
 
 		vreg_s11b: smps11 {
@@ -405,7 +405,7 @@
 			regulator-min-microvolt = <1272000>;
 			regulator-max-microvolt = <1272000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-			regulator-always-on;
+			//regulator-always-on;
 		};
 
 		vreg_s12b: smps12 {
@@ -413,7 +413,7 @@
 			regulator-min-microvolt = <984000>;
 			regulator-max-microvolt = <984000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-			regulator-always-on;
+			//regulator-always-on;
 		};
 
 		vreg_l3b: ldo3 {
@@ -456,7 +456,7 @@
 			regulator-min-microvolt = <1880000>;
 			regulator-max-microvolt = <1900000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-			regulator-always-on;
+			//regulator-always-on;
 		};
 
 		vreg_l1c: ldo1 {
@@ -485,7 +485,7 @@
 			regulator-min-microvolt = <3008000>;
 			regulator-max-microvolt = <3960000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_AUTO>;
-			regulator-always-on;
+			//regulator-always-on;
 		};
 	};
 
@@ -618,11 +618,11 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c4_default>;
 
-	status = "okay";
+//	status = "okay";
 
 	/* FIXME: verify */
 	touchscreen@10 {
-		compatible = "hid-over-i2c";
+	//	compatible = "hid-over-i2c";
 		reg = <0x10>;
 
 		hid-descr-addr = <0x1>;
@@ -1105,10 +1105,10 @@
 	pinctrl-0 = <&uart2_default>;
 	pinctrl-names = "default";
 
-	status = "okay";
+	//status = "okay";
 
 	bluetooth {
-		compatible = "qcom,wcn6855-bt";
+	//	compatible = "qcom,wcn6855-bt";
 
 		vddio-supply = <&vreg_s10b>;
 		vddbtcxmx-supply = <&vreg_s12b>;
