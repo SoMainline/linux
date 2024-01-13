@@ -1113,7 +1113,7 @@ err_poweroff:
 static bool pd_ignore_unused;
 static int __init pd_ignore_unused_setup(char *__unused)
 {
-	pd_ignore_unused = true;
+	// pd_ignore_unused = true;
 	return 1;
 }
 __setup("pd_ignore_unused", pd_ignore_unused_setup);

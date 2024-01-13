@@ -1423,7 +1423,7 @@ unprepare_out:
 static bool clk_ignore_unused __initdata;
 static int __init clk_ignore_unused_setup(char *__unused)
 {
-	clk_ignore_unused = true;
+	//clk_ignore_unused = true;
 	return 1;
 }
 __setup("clk_ignore_unused", clk_ignore_unused_setup);
