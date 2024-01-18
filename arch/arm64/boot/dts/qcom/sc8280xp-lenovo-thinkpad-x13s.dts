@@ -416,6 +416,24 @@
 			//regulator-always-on;
 		};
 
+		/* VDD_A_USB(HS|SS)_2_0P9 */
+		vreg_l1b: ldo1 {
+			regulator-name = "vreg_l1b";
+			regulator-min-microvolt = <912000>;
+			regulator-max-microvolt = <912000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			regulator-boot-on;
+		};
+
+		/* NC */
+		vreg_l2b: ldo2 {
+			regulator-name = "vreg_l2b";
+			regulator-min-microvolt = <1504000>;
+			regulator-max-microvolt = <1504000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_LPM>;
+			regulator-boot-on;
+		};
+
 		vreg_l3b: ldo3 {
 			regulator-name = "vreg_l3b";
 			regulator-min-microvolt = <1200000>;
@@ -436,6 +454,15 @@
 			regulator-min-microvolt = <880000>;
 			regulator-max-microvolt = <880000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			regulator-boot-on;
+		};
+
+		/* NC */
+		vreg_l9b: ldo9 {
+			regulator-name = "vreg_l9b";
+			regulator-min-microvolt = <320000>;
+			regulator-max-microvolt = <320000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_LPM>;
 			regulator-boot-on;
 		};
 	};
@@ -464,6 +491,15 @@
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		/* NC */
+		vreg_l2c: ldo2 {
+			regulator-name = "vreg_l2c";
+			regulator-min-microvolt = <1504000>;
+			regulator-max-microvolt = <1504000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_LPM>;
+			regulator-boot-on;
 		};
 
 		vreg_l12c: ldo12 {
@@ -499,6 +535,42 @@
 		vdd-l6-l9-l10-supply = <&vreg_s12b>;
 		vdd-l8-supply = <&vreg_s12b>;
 
+		/* NC */
+		vreg_s10d: smps10 {
+			regulator-name = "vreg_s10d";
+			regulator-min-microvolt = <320000>;
+			regulator-max-microvolt = <320000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_LPM>;
+			regulator-boot-on;
+		};
+
+		/* NC */
+		vreg_s11d: smps11 {
+			regulator-name = "vreg_s11d";
+			regulator-min-microvolt = <320000>;
+			regulator-max-microvolt = <320000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_LPM>;
+			regulator-boot-on;
+		};
+
+		/* NC */
+		vreg_s12d: smps12 {
+			regulator-name = "vreg_s12d";
+			regulator-min-microvolt = <320000>;
+			regulator-max-microvolt = <320000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_LPM>;
+			regulator-boot-on;
+		};
+
+		/* L2D - VDD_A_USBHS_4_5_3P1 */
+		vreg_l2d: ldo2 {
+			regulator-name = "vreg_l2d";
+			regulator-min-microvolt = <3072000>;
+			regulator-max-microvolt = <3072000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			regulator-boot-on;
+		};
+
 		vreg_l3d: ldo3 {
 			regulator-name = "vreg_l3d";
 			regulator-min-microvolt = <1200000>;
@@ -532,6 +604,15 @@
 			regulator-min-microvolt = <912000>;
 			regulator-max-microvolt = <912000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		/* VDD_A_USBHS_4_5_0P9 */
+		vreg_l10d: ldo10 {
+			regulator-name = "vreg_l10d";
+			regulator-min-microvolt = <912000>;
+			regulator-max-microvolt = <912000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			regulator-boot-on;
 		};
 	};
 };
@@ -962,7 +1043,7 @@
 };
 
 &remoteproc_nsp0 {
-	firmware-name = "qcom/sc8280xp/LENOVO/21BX/qccdsp8280.mbn";
+//	firmware-name = "qcom/sc8280xp/LENOVO/21BX/qccdsp8280.mbn";
 
 	status = "okay";
 };
