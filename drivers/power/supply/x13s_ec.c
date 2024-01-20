@@ -35,10 +35,10 @@
  #define REG_AUDIO_MUTE_KEY		BIT(4)
 
 #define REG_SUS_CTL			0x80
- #define REG_SUS_CTL_S0IX_ENTER		0x55
- #define REG_SUS_CTL_SUS_ENTER		0x66
- #define REG_SUS_CTL_S0IX_EXIT		0xAA
- #define REG_SUS_CTL_SUS_EXIT		0xBB
+ #define REG_SUS_CTL_SUS_ENTER		0x55
+ #define REG_SUS_CTL_S0IX_OFF		0x66 //also called on disp off notif
+ #define REG_SUS_CTL_SUS_EXIT		0xAA
+ #define REG_SUS_CTL_S0IX_EXIT		0xBB //also called on disp on notif
 
 #define REG_KBD				0xC0
  #define REG_KBD_MICMUTE		BIT(0)
@@ -59,6 +59,7 @@
  #define REG_CA_WDOG_STH		BIT(1) // if true DYTC(0x001f1001) else DYTC(0x000f1001)
  #define REG_EN_KBD_CTL			BIT(2) // some enable
  #define REG_EN_KB_BKL			BIT(3) // some optional value to be used after setting BIT(2)
+ #define REG_EN_SOMETHING_WAKEUP	BIT(6)
  #define REG_CA_KBD_LIGHT_PRESENT_MAYBE	BIT(7)
 
 
@@ -97,6 +98,7 @@ struct x13s_ec {
 	struct regmap *regmap;
 	struct gpio_desc *reset_gpio;
 	bool suspended;
+	struct mutex lock;
 	//int last_convertible_mode;
 };
 
@@ -169,6 +171,8 @@ static int x13s_ec_probe(struct i2c_client *client)
 	ec = devm_kzalloc(dev, sizeof(*ec), GFP_KERNEL);
 	if (!ec)
 		return -ENOMEM;
+
+	mutex_init(&ec->lock);
 
 	dev_set_drvdata(dev, ec);
 	ec->client = client;
