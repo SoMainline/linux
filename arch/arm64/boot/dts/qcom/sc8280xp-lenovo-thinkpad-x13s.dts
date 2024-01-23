@@ -24,6 +24,9 @@
 
 	aliases {
 		i2c4 = &i2c4;
+		i2c8 = &i2c8;
+		i2c10 = &i2c10;
+		i2c11 = &i2c11;
 		i2c21 = &i2c21;
 		serial1 = &uart2;
 	};
@@ -632,6 +635,23 @@
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&ts0_default>;
+	};
+};
+
+&i2c8 {
+	clock-frequency = <400000>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c8_default>;
+
+	status = "okay";
+
+	/* EC @ 0x28 */
+	embedded-controller@28 {
+		compatible = "lenovo,thinkpad-ec-x13s";
+		reg = <0x28>;
+		interrupts-extended = <&pdc 247 IRQ_TYPE_LEVEL_HIGH>; /* EC_PM_INT_N, fires on resume? */
+		reset-gpios = <&tlmm 176 GPIO_ACTIVE_HIGH>; /* EC_INT */
 	};
 };
 
@@ -1305,6 +1325,13 @@
 	i2c4_default: i2c4-default-state {
 		pins = "gpio171", "gpio172";
 		function = "qup4";
+		drive-strength = <16>;
+		bias-disable;
+	};
+
+	i2c8_default: i2c8-default-state {
+		pins = "gpio43", "gpio44";
+		function = "qup8";
 		drive-strength = <16>;
 		bias-disable;
 	};
