@@ -15,8 +15,8 @@
 
 #define REG_SMBUS_MULTI_READ		0x00
 #define REG_SMBUS_MULTI_WRITE		0x01
-#define REG_SMBUS_REQUEST		0x02
-#define REG_SMBUS_RESPONSE		0x03
+#define REG_SMBUS_READ			0x02
+#define REG_SMBUS_WRITE			0x03
 
 #define REG_REV_MAJ			0x00
 
@@ -139,60 +139,29 @@ static irqreturn_t x13s_ec_intr(int irq, void *data)
 
 static int x13s_ec_write(struct x13s_ec *ec, u16 reg, u8 val)
 {
-	int ret;
+	if (reg <= 0xff) {
+		return i2c_smbus_write_i2c_block_data(ec->client,
+						      REG_SMBUS_WRITE,
+						      2,
+						      (u8 []){ reg, val });
+	}
 
-	struct i2c_msg i2c_msg[] = {
-		{
-			.addr = ec->client->addr,
-			.flags = ec->client->flags,
-			.len = 1,
-			.buf = (u8[]){ 3, reg & 0xff, reg >> 8 },
-		}, {
-			.addr = ec->client->addr,
-			.len = 1,
-			.buf = (u8[]){ val },
-		},
-	};
-
-	WARN_ON(!mutex_is_locked(&ec->lock));
-
-//	ret = i2c_transfer(ec->client->adapter, i2c_msg, 2);
-//	if (ret)
-//		pr_err("ec: failed to i2c tx: %d\n", ret);
-
-	return ret;
+	return i2c_smbus_write_i2c_block_data(ec->client,
+					      REG_SMBUS_MULTI_WRITE,
+					      3,
+					      (u8 []){ reg & 0xff, reg >> 8, val });
 }
 
-static int x13s_ec_read(struct x13s_ec *ec, u16 reg, u8 *buf, u8 buf_len)
+static int x13s_ec_read(struct x13s_ec *ec, u16 reg, u8 *buf)
 {
-	int ret = 0;
-	u8 __free(kfree) *rx_buffer;
+	int ret;
 
-	rx_buffer = kzalloc(buf_len, GFP_KERNEL);
-	if (!rx_buffer)
-		return -ENOMEM;
-
-	struct i2c_msg msg[] = {
-		{
-			.addr = ec->client->addr,
-			.flags = ec->client->flags,
-			.len = 1,
-			.buf = (u8[]) { 0x02 },
-		}, {
-			.addr = ec->client->addr,
-			.flags = ec->client->flags | I2C_M_RD,
-			.len = buf_len,
-			.buf = rx_buffer,
-		},
-	};
-
-	ret = i2c_transfer(ec->client->adapter, msg, ARRAY_SIZE(msg));
+	// TODO: figure out MULTI_READ
+	ret = i2c_smbus_write_byte_data(ec->client, REG_SMBUS_READ, reg);
 	if (ret)
-		pr_err("ec: failed to i2c rx: %d\n", ret);
-	else
-		memcpy(buf, rx_buffer, buf_len);
+		return ret;
 
-	return ret;
+	return i2c_smbus_read_i2c_block_data(ec->client, 0x02, 1, buf);
 }
 
 static int x13s_ec_suspend(struct device *dev)
@@ -283,18 +252,13 @@ static int x13s_ec_probe(struct i2c_client *client)
 
 	msleep(100);
 	u8 buf[1] = {0};
-//	ret = x13s_ec_read(ec, REG_CA, buf, 1);
-	i2c_smbus_write_byte_data(client, 0x02, REG_CA);
-	i2c_smbus_read_i2c_block_data(client, 0x02, 1, buf);
-	pr_err("buf[0] = 0x%x\n", buf[0]);
+	ret = x13s_ec_read(ec, REG_CA, buf);
+	pr_err("buf[0xCA] = 0x%x\n", buf[0]);
 
 	msleep(100);
 
-//	i2c_smbus_write_i2c_block_data(client, 3, 2, (u8 []){ REG_CA, 0x60 | BIT(7) });
-//	msleep(100);
-
-	int i;
 #if 0
+	int i;
 	for (i = 0; i <= 0xff; i++) {
 		i2c_smbus_write_byte_data(client, 0x02, (u8)i);
 		i2c_smbus_read_i2c_block_data(client, 0x02, 1, buf);
@@ -302,20 +266,9 @@ static int x13s_ec_probe(struct i2c_client *client)
 		msleep(150);
 	}
 #endif
-//	for (i = 0; i <= 0xff; i++) {
-//		pr_err("WRITING 0xFF TO REG 0x%x\n", i);
-		i2c_smbus_write_i2c_block_data(client, 3, 2, (u8 []){ 192, 0x21 });
-		msleep(100);
-//		gpiod_set_value(ec->reset_gpio, 1);
-//	}
 
-	msleep(100);
-	ret = x13s_ec_write(ec, REG_CA, 0xff);
+	ret = x13s_ec_write(ec, REG_KBD, REG_KBD_MICMUTE);
 	msleep(50);
-	ret = x13s_ec_write(ec, REG_KBD, 0xa8 | BIT(0));
-	if (ret)
-		pr_err("1 failed with %d\n", ret);
-	msleep(100);
 
 	return 0;
 }
