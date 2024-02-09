@@ -11,6 +11,9 @@
 #include <linux/module.h>
 #include <linux/platform_device.h>
 
+#define RIMPS_SEND_IRQ_OFFSET		0xC
+ #define RIMPS_SEND_IRQ_VAL		BIT(28)
+
 #define RIMPS_CLEAR_IRQ_OFFSET		0x308
  #define RIMPS_CLEAR_IRQ_VAL		BIT(3)
 
@@ -20,6 +23,7 @@
 /**
  * struct qcom_rimps_mbox - RIMPS driver data
  * @dev: Device associated with this instance
+ * @tx_base: Base of the TX region
  * @rx_base: Base of the RX region
  * @mbox: The mailbox controller
  * @channel: The mailbox channel
@@ -27,6 +31,7 @@
  */
 struct qcom_rimps_mbox {
 	struct device *dev;
+	void __iomem *tx_base;
 	void __iomem *rx_base;
 	struct mbox_controller mbox;
 	struct mbox_chan channel;
@@ -54,6 +59,15 @@ static irqreturn_t qcom_rimps_mbox_rx_interrupt(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static int qcom_rimps_mbox_send_data(struct mbox_chan *chan, void *data)
+{
+	struct qcom_rimps_mbox *rimps_mbox = container_of(chan->mbox, struct qcom_rimps_mbox, mbox);
+
+	writel(RIMPS_SEND_IRQ_VAL, rimps_mbox->tx_base + RIMPS_SEND_IRQ_OFFSET);
+
+	return 0;
+}
+
 static struct mbox_chan *qcom_rimps_mbox_xlate(struct mbox_controller *mbox,
 					       const struct of_phandle_args *sp)
 {
@@ -62,6 +76,10 @@ static struct mbox_chan *qcom_rimps_mbox_xlate(struct mbox_controller *mbox,
 
 	return &mbox->chans[0];
 }
+
+static const struct mbox_chan_ops rimps_mbox_chan_ops = {
+	.send_data = qcom_rimps_mbox_send_data,
+};
 
 static int qcom_rimps_mbox_probe(struct platform_device *pdev)
 {
@@ -76,7 +94,11 @@ static int qcom_rimps_mbox_probe(struct platform_device *pdev)
 
 	rimps_mbox->dev = dev;
 
-	rimps_mbox->rx_base = devm_platform_get_and_ioremap_resource(pdev, 0, NULL);
+	rimps_mbox->tx_base = devm_platform_get_and_ioremap_resource(pdev, 0, NULL);
+	if (!rimps_mbox->tx_base)
+		return dev_err_probe(dev, -ENOMEM, "Failed to ioremap the TX base\n");
+
+	rimps_mbox->rx_base = devm_platform_get_and_ioremap_resource(pdev, 1, NULL);
 	if (!rimps_mbox->rx_base)
 		return dev_err_probe(dev, -ENOMEM, "Failed to ioremap the RX base\n");
 
@@ -88,6 +110,7 @@ static int qcom_rimps_mbox_probe(struct platform_device *pdev)
 	mbox->dev = dev;
 	mbox->num_chans = 1;
 	mbox->chans = &rimps_mbox->channel;
+	mbox->ops = &rimps_mbox_chan_ops;
 	mbox->of_xlate = qcom_rimps_mbox_xlate;
 
 	ret = devm_mbox_controller_register(dev, mbox);
