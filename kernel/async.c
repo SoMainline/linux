@@ -174,7 +174,7 @@ static async_cookie_t __async_schedule_node_domain(async_func_t func,
 	spin_unlock_irqrestore(&async_lock, flags);
 
 	/* schedule for execution */
-	queue_work_node(node, system_unbound_wq, &entry->work);
+	queue_work_node(node, system_wq, &entry->work);
 
 	return newcookie;
 }
