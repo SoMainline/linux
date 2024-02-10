@@ -291,6 +291,11 @@
 			no-map;
 		};
 
+		lenovo_ta_mem: ta@aea00000 {
+			reg = <0 0xaea00000 0 0x100000>;
+			no-map;
+		};
+
 		linux,cma {
 			compatible = "shared-dma-pool";
 			size = <0x0 0x8000000>;
