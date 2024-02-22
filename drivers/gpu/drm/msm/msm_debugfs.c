@@ -324,11 +324,11 @@ static void msm_debugfs_gpu_init(struct drm_minor *minor)
 	debugfs_create_bool("idle_clamp",0600, gpu_devfreq,
 			    &priv->gpu_clamp_to_idle);
 
-	debugfs_create_u32("upthreshold",0600, gpu_devfreq,
-			   &priv->gpu_devfreq_config.upthreshold);
+	// debugfs_create_u32("upthreshold",0600, gpu_devfreq,
+	// 		   &priv->gpu_devfreq_config.upthreshold);
 
-	debugfs_create_u32("downdifferential",0600, gpu_devfreq,
-			   &priv->gpu_devfreq_config.downdifferential);
+	// debugfs_create_u32("downdifferential",0600, gpu_devfreq,
+	// 		   &priv->gpu_devfreq_config.downdifferential);
 }
 
 void msm_debugfs_init(struct drm_minor *minor)

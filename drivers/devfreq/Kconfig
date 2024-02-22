@@ -73,6 +73,13 @@ config DEVFREQ_GOV_PASSIVE
 	  through sysfs entries. The passive governor recommends that
 	  devfreq device uses the OPP table to get the frequency/voltage.
 
+config DEVFREQ_GOV_ADRENO_TZ
+	tristate "Qualcomm Adreno TrustZone-based governor"
+	help
+	  The Qualcomm TrustZone provides an interface that suggests DVFS
+	  settings for the Adreno GPU, based on internal usage statistics.
+	  Enable this driver to support utilizing this mechanism.
+
 comment "DEVFREQ Drivers"
 
 config ARM_EXYNOS_BUS_DEVFREQ

@@ -12,6 +12,8 @@
 #include <linux/math64.h>
 #include <linux/units.h>
 
+#include <linux/devfreq/governor_adreno_tz.h>
+
 /*
  * Power Management:
  */
@@ -136,23 +138,29 @@ static bool has_devfreq(struct msm_gpu *gpu)
 	return !!df->devfreq;
 }
 
+extern int msm_adreno_tz_init(struct device *dev);
 void msm_devfreq_init(struct msm_gpu *gpu)
 {
 	struct msm_gpu_devfreq *df = &gpu->devfreq;
 	struct msm_drm_private *priv = gpu->dev->dev_private;
+	int ret;
 
 	/* We need target support to do devfreq */
 	if (!gpu->funcs->gpu_busy)
 		return;
 
-	/*
-	 * Setup default values for simple_ondemand governor tuning.  We
-	 * want to throttle up at 50% load for the double-buffer case,
-	 * where due to stalling waiting for vblank we could get stuck
-	 * at (for ex) 30fps at 50% utilization.
-	 */
-	priv->gpu_devfreq_config.upthreshold = 50;
-	priv->gpu_devfreq_config.downdifferential = 10;
+	// TODO: fall back to ondemand if err, e.g. on cros? or i.mx
+	priv->gpu_devfreq_config.bin.ctxt_aware_busy_penalty = 12000;
+	priv->gpu_devfreq_config.ctxt_aware_enable = false;
+
+	priv->gpu_devfreq_config.disable_busy_time_burst = false;
+	priv->gpu_devfreq_config.mod_percent = 100;
+	priv->gpu_devfreq_config.device_id = 0;
+
+	if (msm_adreno_tz_init(&gpu->pdev->dev)) {
+		pr_err("sadge no adreno tz\n");
+		return;
+	}
 
 	mutex_init(&df->lock);
 
@@ -161,19 +169,16 @@ void msm_devfreq_init(struct msm_gpu *gpu)
 
 	msm_devfreq_profile.initial_freq = gpu->fast_rate;
 
-	/*
-	 * Don't set the freq_table or max_state and let devfreq build the table
-	 * from OPP
-	 * After a deferred probe, these may have be left to non-zero values,
-	 * so set them back to zero before creating the devfreq device
-	 */
-	msm_devfreq_profile.freq_table = NULL;
-	msm_devfreq_profile.max_state = 0;
+	/* Fill in the freq_table based on supplied OPPs */
+	ret = devfreq_profile_set_freq_table(&gpu->pdev->dev, &msm_devfreq_profile);
+	if (ret) {
+		pr_err("this is so sad adreno \n");
+		return;
+	}
 
 	df->devfreq = devm_devfreq_add_device(&gpu->pdev->dev,
-			&msm_devfreq_profile, DEVFREQ_GOV_SIMPLE_ONDEMAND,
-			&priv->gpu_devfreq_config);
-
+					      &msm_devfreq_profile, "msm-adreno-tz",
+					      &priv->gpu_devfreq_config);
 	if (IS_ERR(df->devfreq)) {
 		DRM_DEV_ERROR(&gpu->pdev->dev, "Couldn't initialize GPU devfreq\n");
 		dev_pm_qos_remove_request(&df->boost_freq);

@@ -33,6 +33,8 @@
 #include <drm/msm_drm.h>
 #include <drm/drm_gem.h>
 
+#include <linux/devfreq/governor_adreno_tz.h>
+
 #ifdef CONFIG_FAULT_INJECTION
 extern struct fault_attr fail_gem_alloc;
 extern struct fault_attr fail_gem_iova;
@@ -222,7 +224,7 @@ struct msm_drm_private {
 	unsigned int hangcheck_period;
 
 	/** gpu_devfreq_config: Devfreq tuning config for the GPU. */
-	struct devfreq_simple_ondemand_data gpu_devfreq_config;
+	struct devfreq_msm_adreno_tz_data gpu_devfreq_config;
 
 	/**
 	 * gpu_clamp_to_idle: Enable clamping to idle freq when inactive
