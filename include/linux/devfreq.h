@@ -274,6 +274,9 @@ void devm_devfreq_unregister_notifier(struct device *dev,
 struct devfreq *devfreq_get_devfreq_by_node(struct device_node *node);
 struct devfreq *devfreq_get_devfreq_by_phandle(struct device *dev,
 				const char *phandle_name, int index);
+
+int devfreq_profile_set_freq_table(struct device *dev,
+				   struct devfreq_dev_profile *dp);
 #endif /* CONFIG_PM_DEVFREQ */
 
 /**

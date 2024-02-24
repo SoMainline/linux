@@ -176,37 +176,38 @@ static int devfreq_get_freq_level(struct devfreq *devfreq, unsigned long freq)
 	return -EINVAL;
 }
 
-static int set_freq_table(struct devfreq *devfreq)
+int devfreq_profile_set_freq_table(struct device *dev, struct devfreq_dev_profile *dp)
 {
 	struct dev_pm_opp *opp;
 	unsigned long freq;
 	int i, count;
 
 	/* Initialize the freq_table from OPP table */
-	count = dev_pm_opp_get_opp_count(devfreq->dev.parent);
+	count = dev_pm_opp_get_opp_count(dev);
 	if (count <= 0)
 		return -EINVAL;
 
-	devfreq->max_state = count;
-	devfreq->freq_table = devm_kcalloc(devfreq->dev.parent,
-					   devfreq->max_state,
-					   sizeof(*devfreq->freq_table),
-					   GFP_KERNEL);
-	if (!devfreq->freq_table)
+	dp->max_state = count;
+	dp->freq_table = devm_kcalloc(dev,
+				      dp->max_state,
+				      sizeof(*dp->freq_table),
+				      GFP_KERNEL);
+	if (!dp->freq_table)
 		return -ENOMEM;
 
-	for (i = 0, freq = 0; i < devfreq->max_state; i++, freq++) {
-		opp = dev_pm_opp_find_freq_ceil_indexed(devfreq->dev.parent, &freq, 0);
+	for (i = 0, freq = 0; i < dp->max_state; i++, freq++) {
+		opp = dev_pm_opp_find_freq_ceil_indexed(dev, &freq, 0);
 		if (IS_ERR(opp)) {
-			devm_kfree(devfreq->dev.parent, devfreq->freq_table);
+			devm_kfree(dev, dp->freq_table);
 			return PTR_ERR(opp);
 		}
 		dev_pm_opp_put(opp);
-		devfreq->freq_table[i] = freq;
+		dp->freq_table[i] = freq;
 	}
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(devfreq_profile_set_freq_table);
 
 /**
  * devfreq_update_status() - Update statistics of devfreq behavior
@@ -852,14 +853,14 @@ struct devfreq *devfreq_add_device(struct device *dev,
 
 	if (!devfreq->profile->max_state || !devfreq->profile->freq_table) {
 		mutex_unlock(&devfreq->lock);
-		err = set_freq_table(devfreq);
+		err = devfreq_profile_set_freq_table(devfreq->dev.parent, devfreq->profile);
 		if (err < 0)
 			goto err_dev;
 		mutex_lock(&devfreq->lock);
-	} else {
-		devfreq->freq_table = devfreq->profile->freq_table;
-		devfreq->max_state = devfreq->profile->max_state;
 	}
+
+	devfreq->freq_table = devfreq->profile->freq_table;
+	devfreq->max_state = devfreq->profile->max_state;
 
 	devfreq->scaling_min_freq = find_available_min_freq(devfreq);
 	if (!devfreq->scaling_min_freq) {
