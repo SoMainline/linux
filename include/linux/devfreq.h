@@ -277,6 +277,7 @@ struct devfreq *devfreq_get_devfreq_by_phandle(struct device *dev,
 
 int devfreq_profile_set_freq_table(struct device *dev,
 				   struct devfreq_dev_profile *dp);
+int devfreq_get_freq_level(struct devfreq *devfreq, unsigned long freq);
 #endif /* CONFIG_PM_DEVFREQ */
 
 /**

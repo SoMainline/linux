@@ -165,7 +165,7 @@ EXPORT_SYMBOL(devfreq_get_freq_range);
  * @devfreq:	the devfreq instance
  * @freq:	the target frequency
  */
-static int devfreq_get_freq_level(struct devfreq *devfreq, unsigned long freq)
+int devfreq_get_freq_level(struct devfreq *devfreq, unsigned long freq)
 {
 	int lev;
 
@@ -175,6 +175,7 @@ static int devfreq_get_freq_level(struct devfreq *devfreq, unsigned long freq)
 
 	return -EINVAL;
 }
+EXPORT_SYMBOL_GPL(devfreq_get_freq_level);
 
 int devfreq_profile_set_freq_table(struct device *dev, struct devfreq_dev_profile *dp)
 {
