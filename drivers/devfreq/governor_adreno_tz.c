@@ -15,17 +15,16 @@
 
 #include "governor.h"
 
-static DEFINE_SPINLOCK(tz_lock);
+static DEFINE_MUTEX(tz_lock);
 static DEFINE_SPINLOCK(sample_lock);
 static DEFINE_SPINLOCK(suspend_lock);
 
-/* 5ms to capture up to 3 re-draws per frame for 60fps content. */
-#define BUSY_TIME_FLOOR			5000
-
-/* MIN_BUSY is 1 msec for the sample to be sent */
-#define MIN_BUSY			1000
+/* MIN_BUSY_TIME is 1 ms for the sample to be sent */
+#define MIN_BUSY_TIME			1000
 #define MAX_TZ_VERSION			0
 
+/* 5ms to capture up to 3 re-draws per frame for 60fps content. */
+#define TOTAL_TIME_FLOOR			5000
 /* 50ms, larger than any standard frame length, but less than the idle timer. */
 #define BUSY_TIME_CEILING		50000
 
@@ -51,7 +50,7 @@ static u64 suspend_time_ms(void)
 	if (!suspend_start)
 		return 0;
 
-	suspend_sampling_time = (u64)ktime_to_ms(ktime_get());
+	suspend_sampling_time = ktime_to_ms(ktime_get());
 	time_diff = suspend_sampling_time - suspend_start;
 
 	/* Update the suspend_start sample again */
@@ -71,14 +70,13 @@ static ssize_t gpu_load_show(struct device *dev,
 	 * This will keep the average value in sync with
 	 * with the client sampling duration.
 	 */
-	spin_lock(&sample_lock);
+	guard(spinlock)(&sample_lock);
 	if (acc_total)
 		sysfs_busy_perc = (acc_relative_busy * 100) / acc_total;
 
 	/* Reset the parameters */
 	acc_total = 0;
 	acc_relative_busy = 0;
-	spin_unlock(&sample_lock);
 	return snprintf(buf, PAGE_SIZE, "%lu\n", sysfs_busy_perc);
 }
 
@@ -92,7 +90,7 @@ static ssize_t suspend_time_show(struct device *dev,
 {
 	u64 time_diff;
 
-	spin_lock(&suspend_lock);
+	guard(spinlock)(&suspend_lock);
 	time_diff = suspend_time_ms();
 	/*
 	 * Adding the previous suspend time also as the gpu
@@ -102,7 +100,6 @@ static ssize_t suspend_time_show(struct device *dev,
 	 */
 	time_diff += suspend_time;
 	suspend_time = 0;
-	spin_unlock(&suspend_lock);
 
 	return snprintf(buf, PAGE_SIZE, "%llu\n", time_diff);
 }
@@ -151,7 +148,7 @@ static void compute_work_load(struct devfreq_dev_status *stats,
 {
 	u64 busy;
 
-	spin_lock(&sample_lock);
+	guard(spinlock)(&sample_lock);
 	/*
 	 * Keep collecting the stats till the client
 	 * reads it. Average of all samples and reset
@@ -161,48 +158,35 @@ static void compute_work_load(struct devfreq_dev_status *stats,
 	busy = (u64)stats->busy_time * stats->current_frequency;
 	do_div(busy, devfreq->profile->freq_table[0]);
 	acc_relative_busy += busy;
-
-	spin_unlock(&sample_lock);
 }
 
 static int scm_reset_entry(unsigned int *scm_data,
-			  u32 size_scm_data, bool is_64)
+			   u32 size_scm_data, bool is_64)
 {
-	int ret;
 	/* sync memory before sending the commands to tz */
 	__iowmb();
 
-	if (is_64) {
-		ret = qcom_scm_dcvs_reset();
-	} else {
-		spin_lock(&tz_lock);
-		ret = qcom_scm_io_reset();
-		spin_unlock(&tz_lock);
-	}
+	if (is_64)
+		return qcom_scm_dcvs_reset();
 
-	return ret;
+	guard(mutex)(&tz_lock);
+	return qcom_scm_io_reset();
 }
 
 static int scm_update_entry(int level, s64 total_time, s64 busy_time,
 			    int context_count,
 			    struct devfreq_msm_adreno_tz_data *priv)
 {
-	int ret;
 	/* sync memory before sending the commands to tz */
 	__iowmb();
 
-	if (!priv->is_64) {
-		spin_lock(&tz_lock);
-		ret = qcom_scm_dcvs_update(level, total_time, busy_time);
-		spin_unlock(&tz_lock);
-	} else if (!priv->ctxt_aware_enable) {
-		ret = qcom_scm_dcvs_update_v2(level, total_time, busy_time);
-	} else {
-		ret = qcom_scm_dcvs_update_ca_v2(level, total_time, busy_time,
-			context_count);
-	}
+	if (priv->ctxt_aware_enable)
+		return qcom_scm_dcvs_update_ca_v2(level, total_time, busy_time, context_count);
+	else if (priv->is_64)
+		return qcom_scm_dcvs_update_v2(level, total_time, busy_time);
 
-	return ret;
+	guard(mutex)(&tz_lock);
+	return qcom_scm_dcvs_update(level, total_time, busy_time);
 }
 
 static int tz_init_ca(struct device *dev, struct devfreq_msm_adreno_tz_data *priv)
@@ -284,7 +268,8 @@ static int tz_init(struct device *dev, struct devfreq_msm_adreno_tz_data *priv,
 
 	ret = qcom_scm_dcvs_init_v2(paddr, size_pwrlevels, version);
 	if (!ret) {
-		priv->is_64 = true; }
+		priv->is_64 = true;
+	}
 	// if (!qtee_shmbridge_is_enabled())
 		kfree_sensitive(tz_buf);
 	// else
@@ -325,17 +310,14 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 {
 	struct devfreq_dev_status *stats = &devfreq->last_status;
 	struct devfreq_msm_adreno_tz_data *priv = devfreq->data;
-	int level, result, val;
 	int context_count = 0;
+	int level, ret, val;
 	u64 busy_time;
 
-	if (!priv)
-		return 0;
-
-	result = devfreq_update_stats(devfreq);
-	if (result) {
-		pr_err("get_status failed %d\n", result);
-		return result;
+	ret = devfreq_update_stats(devfreq);
+	if (ret) {
+		pr_err("devfreq_update_stats returned: %d\n", ret);
+		return ret;
 	}
 
 	*freq = stats->current_frequency;
@@ -358,13 +340,13 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 
 	/*
 	 * Do not waste CPU cycles running this algorithm if
-	 * the GPU just started, or if less than BUSY_TIME_FLOOR time
+	 * the GPU just started, or if less than TOTAL_TIME_FLOOR time
 	 * has passed since the last run or the gpu hasn't been
-	 * busier than MIN_BUSY.
+	 * busier than MIN_BUSY_TIME.
 	 */
 	if ((stats->total_time == 0) ||
-	    (priv->bin.total_time < BUSY_TIME_FLOOR) ||
-	    (unsigned int)priv->bin.busy_time < MIN_BUSY) {
+	    (priv->bin.total_time < TOTAL_TIME_FLOOR) ||
+	    (priv->bin.busy_time < MIN_BUSY_TIME)) {
 		return 0;
 	}
 
@@ -379,7 +361,7 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 	 * increase frequency.  Otherwise run the normal algorithm.
 	 */
 	if (!priv->disable_busy_time_burst && priv->bin.busy_time > BUSY_TIME_CEILING) {
-		val = -1 * level;
+		val = -level;
 	} else {
 		val = scm_update_entry(level, priv->bin.total_time,
 			priv->bin.busy_time, context_count, priv);
@@ -403,40 +385,39 @@ static int tz_get_target_freq(struct devfreq *devfreq, unsigned long *freq)
 
 	pr_debug("adreno tz decided to use freq %lu (%u)\n", devfreq->profile->freq_table[level], level);
 
-	return 0;
+	return ret;
 }
 
 static int tz_start(struct devfreq *devfreq)
 {
 	unsigned int tz_pwrlevels[MSM_ADRENO_MAX_PWRLEVELS + 1] = { 0 };
-	struct devfreq_msm_adreno_tz_data *priv;
+	struct devfreq_msm_adreno_tz_data *priv = devfreq->data;
 	unsigned int version;
-	int i, out, ret;
+	int i, ret;
 
-	priv = devfreq->data;
-
-	out = 1;
-	if (devfreq->profile->max_state < ARRAY_SIZE(tz_pwrlevels)) {
-		for (i = 0; i < devfreq->profile->max_state; i++)
-			tz_pwrlevels[out++] = devfreq->profile->freq_table[i];
-
-		/* The first element holds the number of entries */
-		tz_pwrlevels[0] = i;
-	} else {
-		pr_err("Power level array is too long\n");
+	if (devfreq->profile->max_state >= ARRAY_SIZE(tz_pwrlevels)) {
+		pr_err("Power level array is too long (%d)\n",
+		       devfreq->profile->max_state);
 		return -EINVAL;
 	}
 
-	ret = tz_init(&devfreq->dev, priv, tz_pwrlevels, sizeof(tz_pwrlevels),
+	for (i = 0; i < devfreq->profile->max_state; i++)
+		tz_pwrlevels[i + 1] = devfreq->profile->freq_table[i];
+
+	/* The first element holds the number of entries */
+	tz_pwrlevels[0] = devfreq->profile->max_state - 1;
+
+	ret = tz_init(&devfreq->dev, priv,
+		      tz_pwrlevels, sizeof(tz_pwrlevels),
 		      &version, sizeof(version));
-	if (ret != 0 || version > MAX_TZ_VERSION) {
+	if (ret || version > MAX_TZ_VERSION) {
 		pr_err("tz_init failed\n");
 		return ret;
 	}
 
 	pr_err("TZ THING WORKSSSSS\n");
 
-	for (i = 0; adreno_tz_attr_list[i] != NULL; i++)
+	for (i = 0; adreno_tz_attr_list[i]; i++)
 		device_create_file(&devfreq->dev, adreno_tz_attr_list[i]);
 
 	return 0;
@@ -446,21 +427,16 @@ static int tz_stop(struct devfreq *devfreq)
 {
 	int i;
 
-	for (i = 0; adreno_tz_attr_list[i] != NULL; i++)
+	for (i = 0; adreno_tz_attr_list[i]; i++)
 		device_remove_file(&devfreq->dev, adreno_tz_attr_list[i]);
 
-	/* leaving the governor and cleaning the pointer to private data */
-	devfreq->data = NULL;
 	return 0;
 }
 
 static int tz_suspend(struct devfreq *devfreq)
 {
 	struct devfreq_msm_adreno_tz_data *priv = devfreq->data;
-	unsigned int scm_data[2] = { 0 };
-
-	if (!priv)
-		return 0;
+	unsigned int scm_data[2] = { 0, 0 };
 
 	scm_reset_entry(scm_data, sizeof(scm_data), priv->is_64);
 
