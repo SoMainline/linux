@@ -223,8 +223,15 @@ struct msm_drm_private {
 	 */
 	unsigned int hangcheck_period;
 
-	/** gpu_devfreq_config: Devfreq tuning config for the GPU. */
-	struct devfreq_msm_adreno_tz_data gpu_devfreq_config;
+	/*
+	 * gpu_devfreq_config: Configuration data for devfreq governors:
+	 *  adreno_tz for the TrustZone-backed, Qualcomm-proprietary one
+	 *  simple_od for the in-kernel simple_ondemand
+	 */
+	union {
+		struct devfreq_msm_adreno_tz_data adreno_tz;
+		struct devfreq_simple_ondemand_data simple_od;
+	} gpu_devfreq_config;
 
 	/**
 	 * gpu_clamp_to_idle: Enable clamping to idle freq when inactive
