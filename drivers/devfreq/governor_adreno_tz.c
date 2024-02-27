@@ -213,26 +213,22 @@ static int adreno_tz_init(struct device *dev, struct devfreq_msm_adreno_tz_data 
 	if (!ret)
 		priv->is_64 = true;
 
-	/* Initialize context aware feature, if enabled */
-	if (priv->ctxt_aware_enable) {
-		if (!priv->is_64)
-			return -EINVAL;
+	/*
+	 * If context-aware DCVS is not available, or the initialization fails,
+	 * simply print an error message and return success, as "normal" DCVS
+	 * will still work just fine.
+	 */
+	priv->ctxt_aware_enable = priv->is_64 && qcom_scm_dcvs_ca_available();
+	if (!priv->ctxt_aware_enable) {
+		pr_warn("Context-aware DCVS isn't supported\n");
+		return 0;
+	}
 
-		if (!qcom_scm_dcvs_ca_available()) {
-			pr_warn("Context aware DCVS isn't supported\n");
-			priv->ctxt_aware_enable = false;
-		}
-
-		/*
-		 * If context aware initialization fails, just print an error
-		 * message and return success, as normal DCVS will still work.
-		 */
-		ret = adreno_tz_init_ca(dev, priv);
-		if (ret) {
-			pr_err("Context aware DCVS init failed\n");
-			priv->ctxt_aware_enable = false;
-			return 0;
-		}
+	ret = adreno_tz_init_ca(dev, priv);
+	if (ret) {
+		pr_err("Context-aware DCVS init failed\n");
+		priv->ctxt_aware_enable = false;
+		return 0;
 	}
 
 	return ret;
@@ -261,7 +257,7 @@ static int adreno_tz_get_target_freq(struct devfreq *devfreq,
 	priv->busy_time += status->busy_time;
 
 	if (status->private_data)
-		context_count = *((int *)status->private_data);
+		context_count = *(int *)status->private_data;
 
 	/* Update the GPU load statistics */
 	adreno_tz_compute_work_load(status, priv, devfreq);

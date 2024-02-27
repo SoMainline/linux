@@ -94,7 +94,7 @@ static int msm_devfreq_get_dev_status(struct device *dev,
 	df->time = time;
 
 #warning dont forgetti
-	status->private_data = 0; //TODO active ctxts
+	status->private_data = &gpu->active_submits; //TODO active ctxts
 
 	if (df->suspended) {
 		mutex_unlock(&df->lock);
@@ -154,9 +154,14 @@ static int msm_configure_adreno_tz_dfgov(struct msm_gpu *gpu)
 
 	config = &priv->gpu_devfreq_config.adreno_tz;
 
-	/* TODO: implement the 'context-aware' setup properly */
-	config->ctxt_aware_target_pwrlevel = -1;
-	config->ctxt_aware_enable = false;
+	/*
+	 * TODO:
+	 * Most(?) "small" SKUs (found in 2, 4  and 6xxx series chips?) expect
+	 * to pass the highest frequency level associated with a corner lower
+	 * than NOM.
+	 */
+	/* Jump to the second-highest frequency on context-aware DCVS events */
+	config->ctxt_aware_target_pwrlevel = 1;
 
 	ret = governor_adreno_tz_init(&gpu->pdev->dev);
 	if (ret) {
