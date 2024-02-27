@@ -139,7 +139,6 @@ static bool has_devfreq(struct msm_gpu *gpu)
 	return !!df->devfreq;
 }
 
-extern int msm_adreno_tz_init(struct device *dev);
 static int msm_configure_adreno_tz_dfgov(struct msm_gpu *gpu)
 {
 	struct msm_drm_private *priv = gpu->dev->dev_private;
@@ -153,14 +152,10 @@ static int msm_configure_adreno_tz_dfgov(struct msm_gpu *gpu)
 	config = &priv->gpu_devfreq_config.adreno_tz;
 
 	/* TODO: implement the 'context-aware' setup properly */
-	config->bin.ctxt_aware_busy_penalty = 12000;
 	config->ctxt_aware_enable = false;
-
-	config->disable_busy_time_burst = false;
-	config->mod_percent = 100;
 	config->device_id = 0;
 
-	ret = msm_adreno_tz_init(&gpu->pdev->dev);
+	ret = governor_adreno_tz_init(&gpu->pdev->dev);
 	if (ret) {
 		//
 		pr_err("Couldn't initialize the Adreno TZ governor: %d\n", ret);
@@ -201,7 +196,7 @@ void msm_devfreq_init(struct msm_gpu *gpu)
 
 	/* Try to initialize the TZ-based governor, fall back to simple_od */
 	if (!msm_configure_adreno_tz_dfgov(gpu)) {
-		default_gov_name = "msm-adreno-tz";
+		default_gov_name = DEVFREQ_GOV_ADRENO_TZ;
 		gov_config = &priv->gpu_devfreq_config.adreno_tz;
 	} else {
 		msm_configure_simple_ondemand_dfgov(gpu);
