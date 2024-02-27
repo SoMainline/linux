@@ -18,27 +18,22 @@ static DEFINE_MUTEX(tz_lock);
 static DEFINE_SPINLOCK(sample_lock);
 static DEFINE_SPINLOCK(suspend_lock);
 
-/* BUSY_TIME_FLOOR is 1 ms for the sample to be sent */
-#define BUSY_TIME_FLOOR			1000
 #define MAX_TZ_VERSION			0
+#define MSM_ADRENO_MAX_PWRLEVELS	16
+#define DEFAULT_CTX_AWARE_BUSY_PENALTY	12000 /* ns */
 
 /* 5ms to capture up to 3 re-draws per frame for 60fps content. */
-#define TOTAL_TIME_FLOOR		5000
+#define TOTAL_TIME_FLOOR		5000 /* ns */
+
+/* BUSY_TIME_FLOOR is 1 ms for the sample to be sent */
+#define BUSY_TIME_FLOOR			1000 /* ns */
+
 /* 50ms, larger than any standard frame length, but less than the idle timer. */
-#define BUSY_TIME_CEILING		50000
-
-#define MSM_ADRENO_MAX_PWRLEVELS	16
-
-#define DEFAULT_CTX_AWARE_BUSY_PENALTY	12000 /* ns? */
+#define BUSY_TIME_CEILING		50000 /* ns */
 
 static u64 suspend_time;
 static u64 suspend_start;
 static unsigned long acc_total, acc_relative_busy;
-
-struct msm_adreno_extended_profile {
-	struct devfreq_msm_adreno_tz_data *private_data;
-	struct devfreq_dev_profile profile;
-};
 
 /* Returns GPU suspend time in millisecond. */
 static u64 suspend_time_ms(void)
@@ -111,7 +106,7 @@ static const struct device_attribute *adreno_tz_attr_list[] = {
 };
 
 /**
- * adreno_tz_compute_work_load() - Compute..
+ * adreno_tz_compute_work_load() - Compute the weighted size of the work
  * @stats: Pointer to devfreq statistics
  * @priv: Pointer to the governor private data
  * @devfreq: Pointer to the devfreq instance
@@ -219,27 +214,28 @@ static int adreno_tz_init(struct device *dev, struct devfreq_msm_adreno_tz_data 
 	if (!ret)
 		priv->is_64 = true;
 
-#if 0
-	 /* Initialize context aware feature, if enabled (only supported on 64-bit). */
-	if (!ret && priv->ctxt_aware_enable) {
-		if (priv->is_64 && qcom_scm_dcvs_ca_available()) {
-			ret = adreno_tz_init_ca(dev, priv);
-			/*
-			 * If context aware feature initialization fails,
-			 * just print an error message and return
-			 * success as normal DCVS will still work.
-			 */
-			if (ret) {
-				pr_err("tz: context aware DCVS init failed\n");
-				priv->ctxt_aware_enable = false;
-				return 0;
-			}
-		} else {
-			pr_warn("tz: context aware DCVS not supported\n");
+	/* Initialize context aware feature, if enabled */
+	if (priv->ctxt_aware_enable) {
+		if (!priv->is_64)
+			return -EINVAL;
+
+		if (!qcom_scm_dcvs_ca_available()) {
+			pr_warn("Context aware DCVS isn't supported\n");
 			priv->ctxt_aware_enable = false;
 		}
+
+		/*
+		 * If context aware initialization fails, just print an error
+		 * message and return success, as normal DCVS will still work.
+		 */
+		ret = adreno_tz_init_ca(dev, priv);
+		if (ret) {
+			pr_err("Context aware DCVS init failed\n");
+			priv->ctxt_aware_enable = false;
+			return 0;
+		}
 	}
-#endif
+
 	return ret;
 }
 
@@ -284,7 +280,7 @@ static int adreno_tz_get_target_freq(struct devfreq *devfreq,
 
 	level = devfreq_get_freq_level(devfreq, stats->current_frequency);
 	if (level < 0) {
-		pr_err("bad freq %ld\n", stats->current_frequency);
+		pr_err("Couldn't get level for frequency %ld\n", stats->current_frequency);
 		return level;
 	}
 
@@ -327,26 +323,31 @@ static int adreno_tz_start(struct devfreq *devfreq)
 {
 	unsigned int tz_pwrlevels[MSM_ADRENO_MAX_PWRLEVELS + 1] = { 0 };
 	struct devfreq_msm_adreno_tz_data *priv = devfreq->data;
+	struct devfreq_dev_profile *profile = devfreq->profile;
 	unsigned int version;
 	int i, ret;
 
-	if (devfreq->profile->max_state >= ARRAY_SIZE(tz_pwrlevels)) {
+	if (profile->max_state >= ARRAY_SIZE(tz_pwrlevels)) {
 		pr_err("Power level array is too long (%d)\n",
-		       devfreq->profile->max_state);
+		       profile->max_state);
 		return -EINVAL;
 	}
 
-	for (i = 0; i < devfreq->profile->max_state; i++)
-		tz_pwrlevels[i + 1] = devfreq->profile->freq_table[i];
+	/*
+	 * The freq_table is low-to-high by devfreq API design. The TZ however,
+	 * expects the reverse order..
+	 */
+	for (i = 0; i < profile->max_state; i++)
+		tz_pwrlevels[i + 1] = profile->freq_table[i];
 
 	/* The first element holds the number of entries */
-	tz_pwrlevels[0] = devfreq->profile->max_state - 1;
+	tz_pwrlevels[0] = profile->max_state - 1;
 
 	ret = adreno_tz_init(&devfreq->dev, priv,
 		      tz_pwrlevels, sizeof(tz_pwrlevels),
 		      &version, sizeof(version));
 	if (ret) {
-		pr_err("adreno_tz_init failed: %d\n", ret);
+		pr_err("adreno_tz_init failed with: %d\n", ret);
 		return ret;
 	} else if (version > MAX_TZ_VERSION) {
 		pr_err("TZ governor v%d is not supported!\n", version);
@@ -355,8 +356,6 @@ static int adreno_tz_start(struct devfreq *devfreq)
 
 	for (i = 0; adreno_tz_attr_list[i]; i++)
 		device_create_file(&devfreq->dev, adreno_tz_attr_list[i]);
-
-	pr_err("TZ THING WORKSSSSS\n");
 
 	return 0;
 }
