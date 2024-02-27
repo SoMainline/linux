@@ -4,6 +4,8 @@
  * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  * Copyright (c) 2024, Linaro Limited
  */
+#define pr_fmt(fmt) "gov_adreno_tz: " fmt
+
 #include <linux/devfreq.h>
 #include <linux/devfreq/governor_adreno_tz.h>
 #include <linux/dma-mapping.h>

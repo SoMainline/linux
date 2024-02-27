@@ -127,7 +127,6 @@ static int msm_devfreq_get_cur_freq(struct device *dev, unsigned long *freq)
 
 static struct devfreq_dev_profile msm_devfreq_profile = {
 	.timer = DEVFREQ_TIMER_DELAYED,
-	.polling_ms = 50,
 	.target = msm_devfreq_target,
 	.get_dev_status = msm_devfreq_get_dev_status,
 	.get_cur_freq = msm_devfreq_get_cur_freq,
@@ -205,11 +204,13 @@ void msm_devfreq_init(struct msm_gpu *gpu)
 	if (!msm_configure_adreno_tz_dfgov(gpu)) {
 		default_gov_name = DEVFREQ_GOV_ADRENO_TZ;
 		gov_config = &priv->gpu_devfreq_config.adreno_tz;
+		msm_devfreq_profile.polling_ms = 10;
 	} else {
 		/* Fall back to simple_ondemand on failure */
 		msm_configure_simple_ondemand_dfgov(gpu);
 		default_gov_name = DEVFREQ_GOV_SIMPLE_ONDEMAND;
 		gov_config = &priv->gpu_devfreq_config.simple_od;
+		msm_devfreq_profile.polling_ms = 50;
 	}
 
 	mutex_init(&df->lock);
