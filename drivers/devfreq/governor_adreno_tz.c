@@ -240,7 +240,7 @@ static int adreno_tz_init(struct device *dev, struct devfreq_msm_adreno_tz_data 
 static int adreno_tz_get_target_freq(struct devfreq *devfreq,
 				     unsigned long *freq)
 {
-	struct devfreq_dev_status *stats = &devfreq->last_status;
+	struct devfreq_dev_status *status = &devfreq->last_status;
 	struct devfreq_msm_adreno_tz_data *priv = devfreq->data;
 	int level, level_offset, ret;
 	int context_count = 0;
@@ -251,34 +251,34 @@ static int adreno_tz_get_target_freq(struct devfreq *devfreq,
 		return ret;
 	}
 
-	*freq = stats->current_frequency;
-	priv->total_time += stats->total_time;
+	*freq = status->current_frequency;
+	priv->total_time += status->total_time;
 
 	/* busy_time should not go over total_time */
-	stats->busy_time = min_t(u64, stats->busy_time, stats->total_time);
+	status->busy_time = min_t(u64, status->busy_time, status->total_time);
 
-	priv->busy_time += stats->busy_time;
+	priv->busy_time += status->busy_time;
 
-	if (stats->private_data)
-		context_count = *((int *)stats->private_data);
+	if (status->private_data)
+		context_count = *((int *)status->private_data);
 
 	/* Update the GPU load statistics */
-	adreno_tz_compute_work_load(stats, priv, devfreq);
+	adreno_tz_compute_work_load(status, priv, devfreq);
 
 	/*
 	 * Do not waste CPU cycles running this algorithm if the GPU has just
 	 * started, OR if less than TOTAL_TIME_FLOOR time has passed since the
 	 * last run, OR the gpu hasn't been busy for at least BUSY_TIME_FLOOR.
 	 */
-	if ((stats->total_time == 0) ||
+	if ((status->total_time == 0) ||
 	    (priv->total_time < TOTAL_TIME_FLOOR) ||
 	    (priv->busy_time < BUSY_TIME_FLOOR)) {
 		return 0;
 	}
 
-	level = devfreq_get_freq_level(devfreq, stats->current_frequency);
+	level = devfreq_get_freq_level(devfreq, status->current_frequency);
 	if (level < 0) {
-		pr_err("Couldn't get level for frequency %ld\n", stats->current_frequency);
+		pr_err("Couldn't get level for frequency %ld\n", status->current_frequency);
 		return level;
 	}
 

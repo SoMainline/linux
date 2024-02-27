@@ -93,6 +93,9 @@ static int msm_devfreq_get_dev_status(struct device *dev,
 	status->total_time = ktime_us_delta(time, df->time);
 	df->time = time;
 
+#warning dont forgetti
+	status->private_data = 0; //TODO active ctxts
+
 	if (df->suspended) {
 		mutex_unlock(&df->lock);
 		status->busy_time = 0;
