@@ -31,9 +31,10 @@ static DEFINE_SPINLOCK(suspend_lock);
 /* 50ms, larger than any standard frame length, but less than the idle timer. */
 #define BUSY_TIME_CEILING		50000 /* ns */
 
-static u64 suspend_time;
 static u64 suspend_start;
-static unsigned long acc_total, acc_relative_busy;
+static u64 suspend_time;
+static unsigned long acc_relative_busy;
+static unsigned long acc_total;
 
 /* Returns GPU suspend time in millisecond. */
 static u64 suspend_time_ms(void)
@@ -172,7 +173,7 @@ static int adreno_tz_init_ca(struct device *dev,
 
 	/* Set data for TZ */
 	tz_ca_data[0] = priv->ctxt_aware_target_pwrlevel;
-	tz_ca_data[1] = DEFAULT_CTX_AWARE_BUSY_PENALTY; /* This is *techinically* configurable */
+	tz_ca_data[1] = DEFAULT_CTX_AWARE_BUSY_PENALTY; /* This is *technically* configurable */
 
 	tz_buf = kzalloc(PAGE_ALIGN(sizeof(tz_ca_data)), GFP_KERNEL);
 	if (!tz_buf)
@@ -328,8 +329,8 @@ static int adreno_tz_start(struct devfreq *devfreq)
 	int i, ret;
 
 	if (profile->max_state >= ARRAY_SIZE(tz_pwrlevels)) {
-		pr_err("Power level array is too long (%d)\n",
-		       profile->max_state);
+		pr_err("Power level array is too long (%d > %d)\n",
+		       profile->max_state, MSM_ADRENO_MAX_PWRLEVELS);
 		return -EINVAL;
 	}
 
@@ -351,8 +352,18 @@ static int adreno_tz_start(struct devfreq *devfreq)
 		return -EINVAL;
 	}
 
-	for (i = 0; adreno_tz_attr_list[i]; i++)
-		device_create_file(&devfreq->dev, adreno_tz_attr_list[i]);
+	for (i = 0; adreno_tz_attr_list[i]; i++) {
+		ret = device_create_file(&devfreq->dev, adreno_tz_attr_list[i]);
+		if (ret) {
+			pr_err("Failed to create adreno_tz file %d\n", i);
+			while (i--) {
+				device_remove_file(&devfreq->dev,
+						   adreno_tz_attr_list[i]);
+			}
+
+			return ret;
+		}
+	}
 
 	return 0;
 }
@@ -420,7 +431,7 @@ static int adreno_tz_handler(struct devfreq *devfreq,
 	case DEVFREQ_GOV_RESUME:
 		spin_lock(&suspend_lock);
 		suspend_time += suspend_time_ms();
-		/* Reset the suspend_start when gpu resumes */
+		/* Reset suspend_start when gpu resumes */
 		suspend_start = 0;
 		spin_unlock(&suspend_lock);
 		ret = 0;

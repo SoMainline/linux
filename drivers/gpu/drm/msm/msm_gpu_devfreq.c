@@ -160,7 +160,6 @@ static int msm_configure_adreno_tz_dfgov(struct msm_gpu *gpu)
 
 	ret = governor_adreno_tz_init(&gpu->pdev->dev);
 	if (ret) {
-		//
 		pr_err("Couldn't initialize the Adreno TZ governor: %d\n", ret);
 		return -EINVAL;
 	}
