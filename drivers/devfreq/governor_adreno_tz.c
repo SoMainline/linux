@@ -333,20 +333,16 @@ static int adreno_tz_start(struct devfreq *devfreq)
 		return -EINVAL;
 	}
 
-	/*
-	 * The downstream driver sends frequencies in a high-to-low order, but
-	 * it looks like the TZ part is smart enough to handle the devfreq-native
-	 * low-to-high as well!
-	 */
+	/* devfreq internally uses low-to-high OPP ordering, adreno_tz doesn't.. */
 	for (i = 0; i < profile->max_state; i++)
-		tz_pwrlevels[i + 1] = profile->freq_table[i];
+		tz_pwrlevels[i + 1] = profile->freq_table[profile->max_state - 1 - i];
 
 	/* The first element holds the number of entries */
 	tz_pwrlevels[0] = profile->max_state - 1;
 
 	ret = adreno_tz_init(&devfreq->dev, priv,
-		      tz_pwrlevels, sizeof(tz_pwrlevels),
-		      &version, sizeof(version));
+			     tz_pwrlevels, sizeof(tz_pwrlevels),
+			     &version, sizeof(version));
 	if (ret) {
 		pr_err("adreno_tz_init failed with: %d\n", ret);
 		return ret;
