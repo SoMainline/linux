@@ -110,8 +110,6 @@ static const struct device_attribute *adreno_tz_attr_list[] = {
  * @stats: Pointer to devfreq statistics
  * @priv: Pointer to the governor private data
  * @devfreq: Pointer to the devfreq instance
- *
- * This function requires that the OPPs are ordered low-to-high.
  */
 static void adreno_tz_compute_work_load(struct devfreq_dev_status *stats,
 					struct devfreq_msm_adreno_tz_data *priv,
@@ -126,7 +124,7 @@ static void adreno_tz_compute_work_load(struct devfreq_dev_status *stats,
 	 */
 	acc_total += stats->total_time;
 	busy = (u64)stats->busy_time * stats->current_frequency;
-	do_div(busy, devfreq->profile->freq_table[0]);
+	do_div(busy, devfreq->profile->freq_table[devfreq->profile->max_state - 1]);
 	acc_relative_busy += busy;
 }
 
@@ -310,6 +308,8 @@ static int adreno_tz_get_target_freq(struct devfreq *devfreq,
 
 	*freq = devfreq->profile->freq_table[level];
 
+	pr_debug("TZ suggests %lu Hz (level = %u)\n", *freq, level);
+
 	return ret;
 }
 
@@ -334,8 +334,9 @@ static int adreno_tz_start(struct devfreq *devfreq)
 	}
 
 	/*
-	 * The freq_table is low-to-high by devfreq API design. The TZ however,
-	 * expects the reverse order..
+	 * The downstream driver sends frequencies in a high-to-low order, but
+	 * it looks like the TZ part is smart enough to handle the devfreq-native
+	 * low-to-high as well!
 	 */
 	for (i = 0; i < profile->max_state; i++)
 		tz_pwrlevels[i + 1] = profile->freq_table[i];
