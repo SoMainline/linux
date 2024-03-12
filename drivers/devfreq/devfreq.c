@@ -196,6 +196,7 @@ int devfreq_profile_set_freq_table(struct device *dev, struct devfreq_dev_profil
 	if (!dp->freq_table)
 		return -ENOMEM;
 
+	/* The frequencies are stored low-to-high */
 	for (i = 0, freq = 0; i < dp->max_state; i++, freq++) {
 		opp = dev_pm_opp_find_freq_ceil_indexed(dev, &freq, 0);
 		if (IS_ERR(opp)) {

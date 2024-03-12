@@ -281,13 +281,17 @@ static int adreno_tz_get_target_freq(struct devfreq *devfreq,
 		return level;
 	}
 
+	/* Translate lo-to-hi (devfreq) into hi-to-to (TZ gov) */
+	level = devfreq->profile->max_state - 1 - level;
+
 	/*
 	 * If there is an extended block of busy processing, bump up the
 	 * frequency. Otherwise, run the normal algorithm.
 	 */
 	if (priv->busy_time > BUSY_TIME_CEILING) {
+		/* Forcibly jump to F_MAX */
 		level_offset = 0;
-		level = 0; /* Jump to F_MAX */
+		level = 0;
 	} else {
 		level_offset = scm_update_entry(level, priv->total_time,
 						priv->busy_time,
@@ -297,15 +301,16 @@ static int adreno_tz_get_target_freq(struct devfreq *devfreq,
 	priv->total_time = 0;
 	priv->busy_time = 0;
 
-	/*
-	 * If the decision is to move to a different level, make sure the GPU
-	 * frequency changes.
-	 */
 	if (level_offset) {
 		level += level_offset;
+
+		/* This is just input sanitization.. should never happen! */
 		level = max(level, 0);
 		level = min_t(int, level, devfreq->profile->max_state - 1);
 	}
+
+	/* Translate hi-to-lo (TZ gov) into lo-to-hi (devfreq) */
+	level = devfreq->profile->max_state - 1 - level;
 
 	*freq = devfreq->profile->freq_table[level];
 
