@@ -285,12 +285,14 @@ static int adreno_tz_get_target_freq(struct devfreq *devfreq,
 	 * If there is an extended block of busy processing, bump up the
 	 * frequency. Otherwise, run the normal algorithm.
 	 */
-	if (priv->busy_time > BUSY_TIME_CEILING)
-		level_offset = -level;
-	else
+	if (priv->busy_time > BUSY_TIME_CEILING) {
+		level_offset = 0;
+		level = 0; /* Jump to F_MAX */
+	} else {
 		level_offset = scm_update_entry(level, priv->total_time,
 						priv->busy_time,
 						context_count, priv);
+	}
 
 	priv->total_time = 0;
 	priv->busy_time = 0;
