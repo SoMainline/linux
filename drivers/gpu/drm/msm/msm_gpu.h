@@ -250,7 +250,7 @@ struct msm_gpu {
 
 	/* Hang and Inactivity Detection:
 	 */
-#define DRM_MSM_INACTIVE_PERIOD   66 /* in ms (roughly four frames) */
+#define DRM_MSM_INACTIVE_PERIOD   80 /* in ms (roughly four frames) */
 
 #define DRM_MSM_HANGCHECK_DEFAULT_PERIOD 500 /* in ms */
 #define DRM_MSM_HANGCHECK_PROGRESS_RETRIES 3
