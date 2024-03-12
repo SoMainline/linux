@@ -222,7 +222,7 @@ static int adreno_tz_init(struct device *dev, struct devfreq_msm_adreno_tz_data 
 	 */
 	priv->ctxt_aware_enable = priv->is_64 && qcom_scm_dcvs_ca_available();
 	if (!priv->ctxt_aware_enable) {
-		pr_warn("Context-aware DCVS isn't supported\n");
+		pr_warn("Context-aware DCVS is unsupported\n");
 		return 0;
 	}
 
@@ -301,16 +301,15 @@ static int adreno_tz_get_target_freq(struct devfreq *devfreq,
 	priv->total_time = 0;
 	priv->busy_time = 0;
 
-	if (level_offset) {
+	if (level_offset)
 		level += level_offset;
-
-		/* This is just input sanitization.. should never happen! */
-		level = max(level, 0);
-		level = min_t(int, level, devfreq->profile->max_state - 1);
-	}
 
 	/* Translate hi-to-lo (TZ gov) into lo-to-hi (devfreq) */
 	level = devfreq->profile->max_state - 1 - level;
+
+	/* Ensure some sanity in the returned data.. */
+	level = max(level, 0);
+	level = min_t(int, level, devfreq->profile->max_state - 1);
 
 	*freq = devfreq->profile->freq_table[level];
 
@@ -417,16 +416,20 @@ static int adreno_tz_handler(struct devfreq *devfreq,
 	switch (event) {
 	case DEVFREQ_GOV_START:
 		ret = adreno_tz_start(devfreq);
+		devfreq_monitor_start(devfreq);
 		break;
 	case DEVFREQ_GOV_STOP:
 		spin_lock(&suspend_lock);
 		suspend_start = 0;
 		spin_unlock(&suspend_lock);
 		adreno_tz_stop(devfreq);
+		devfreq_monitor_stop(devfreq);
 		break;
 	case DEVFREQ_GOV_SUSPEND:
 		ret = adreno_tz_suspend(devfreq);
 		if (!ret) {
+			devfreq_monitor_suspend(devfreq);
+
 			spin_lock(&suspend_lock);
 			/* Collect the start sample for suspend time */
 			suspend_start = ktime_to_ms(ktime_get());
@@ -434,6 +437,8 @@ static int adreno_tz_handler(struct devfreq *devfreq,
 		}
 		break;
 	case DEVFREQ_GOV_RESUME:
+		devfreq_monitor_resume(devfreq);
+
 		spin_lock(&suspend_lock);
 		suspend_time += suspend_time_ms();
 		/* Reset suspend_start when gpu resumes */
