@@ -155,9 +155,8 @@ static int msm_configure_adreno_tz_dfgov(struct msm_gpu *gpu)
 
 	/*
 	 * TODO:
-	 * Most(?) "small" SKUs (found in 2, 4  and 6xxx series chips?) expect
-	 * to pass the highest frequency level associated with a corner lower
-	 * than NOM.
+	 * Most(?) small SKUs expect to pass the highest frequency level
+	 * associated with a corner lower than NOM.
 	 */
 	/* Jump to the second-highest frequency on context-aware DCVS events */
 	config->ctxt_aware_target_pwrlevel = 1;
