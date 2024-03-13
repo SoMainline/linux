@@ -12,6 +12,9 @@
 #include <linux/math64.h>
 #include <linux/units.h>
 
+#include <linux/devfreq/governor_adreno_tz.h>
+#include <linux/firmware/qcom/qcom_scm.h>
+
 /*
  * Power Management:
  */
@@ -90,6 +93,9 @@ static int msm_devfreq_get_dev_status(struct device *dev,
 	status->total_time = ktime_us_delta(time, df->time);
 	df->time = time;
 
+#warning dont forgetti
+	status->private_data = &gpu->active_submits; //TODO active ctxts
+
 	if (df->suspended) {
 		mutex_unlock(&df->lock);
 		status->busy_time = 0;
@@ -121,7 +127,6 @@ static int msm_devfreq_get_cur_freq(struct device *dev, unsigned long *freq)
 
 static struct devfreq_dev_profile msm_devfreq_profile = {
 	.timer = DEVFREQ_TIMER_DELAYED,
-	.polling_ms = 50,
 	.target = msm_devfreq_target,
 	.get_dev_status = msm_devfreq_get_dev_status,
 	.get_cur_freq = msm_devfreq_get_cur_freq,
@@ -136,14 +141,41 @@ static bool has_devfreq(struct msm_gpu *gpu)
 	return !!df->devfreq;
 }
 
-void msm_devfreq_init(struct msm_gpu *gpu)
+static int msm_configure_adreno_tz_dfgov(struct msm_gpu *gpu)
 {
-	struct msm_gpu_devfreq *df = &gpu->devfreq;
 	struct msm_drm_private *priv = gpu->dev->dev_private;
+	struct devfreq_msm_adreno_tz_data *config;
+	int ret;
 
-	/* We need target support to do devfreq */
-	if (!gpu->funcs->gpu_busy)
-		return;
+	/* Check if our TZ exposes the governor interfaces */
+	if (!qcom_scm_dcvs_core_available())
+		return -EINVAL;
+
+	config = &priv->gpu_devfreq_config.adreno_tz;
+
+	/*
+	 * TODO:
+	 * Most(?) small SKUs expect to pass the highest frequency level
+	 * associated with a corner lower than NOM.
+	 */
+	/* Jump to the second-highest frequency on context-aware DCVS events */
+	config->ctxt_aware_target_pwrlevel = 1;
+
+	ret = governor_adreno_tz_init(&gpu->pdev->dev);
+	if (ret) {
+		pr_err("Couldn't initialize the Adreno TZ governor: %d\n", ret);
+		return -EINVAL;
+	}
+
+	return ret;
+}
+
+static void msm_configure_simple_ondemand_dfgov(struct msm_gpu *gpu)
+{
+	struct msm_drm_private *priv = gpu->dev->dev_private;
+	struct devfreq_simple_ondemand_data *config;
+
+	config = &priv->gpu_devfreq_config.simple_od;
 
 	/*
 	 * Setup default values for simple_ondemand governor tuning.  We
@@ -151,8 +183,34 @@ void msm_devfreq_init(struct msm_gpu *gpu)
 	 * where due to stalling waiting for vblank we could get stuck
 	 * at (for ex) 30fps at 50% utilization.
 	 */
-	priv->gpu_devfreq_config.upthreshold = 50;
-	priv->gpu_devfreq_config.downdifferential = 10;
+	config->upthreshold = 50;
+	config->downdifferential = 10;
+}
+
+void msm_devfreq_init(struct msm_gpu *gpu)
+{
+	struct msm_drm_private *priv = gpu->dev->dev_private;
+	struct msm_gpu_devfreq *df = &gpu->devfreq;
+	const char *default_gov_name;
+	void *gov_config;
+	int ret;
+
+	/* We need target support to do devfreq */
+	if (!gpu->funcs->gpu_busy)
+		return;
+
+	/* Try to initialize the TZ-based governor */
+	if (!msm_configure_adreno_tz_dfgov(gpu)) {
+		default_gov_name = DEVFREQ_GOV_ADRENO_TZ;
+		gov_config = &priv->gpu_devfreq_config.adreno_tz;
+		msm_devfreq_profile.polling_ms = 10;
+	} else {
+		/* Fall back to simple_ondemand on failure */
+		msm_configure_simple_ondemand_dfgov(gpu);
+		default_gov_name = DEVFREQ_GOV_SIMPLE_ONDEMAND;
+		gov_config = &priv->gpu_devfreq_config.simple_od;
+		msm_devfreq_profile.polling_ms = 50;
+	}
 
 	mutex_init(&df->lock);
 
@@ -161,19 +219,15 @@ void msm_devfreq_init(struct msm_gpu *gpu)
 
 	msm_devfreq_profile.initial_freq = gpu->fast_rate;
 
-	/*
-	 * Don't set the freq_table or max_state and let devfreq build the table
-	 * from OPP
-	 * After a deferred probe, these may have be left to non-zero values,
-	 * so set them back to zero before creating the devfreq device
-	 */
-	msm_devfreq_profile.freq_table = NULL;
-	msm_devfreq_profile.max_state = 0;
+	/* Fill in the freq_table based on supplied OPPs */
+	ret = devfreq_profile_set_freq_table(&gpu->pdev->dev, &msm_devfreq_profile);
+	if (ret) {
+		pr_err("Couldn't populate devfreq freq_table: %d\n", ret);
+		return;
+	}
 
-	df->devfreq = devm_devfreq_add_device(&gpu->pdev->dev,
-			&msm_devfreq_profile, DEVFREQ_GOV_SIMPLE_ONDEMAND,
-			&priv->gpu_devfreq_config);
-
+	df->devfreq = devm_devfreq_add_device(&gpu->pdev->dev, &msm_devfreq_profile,
+					      default_gov_name, gov_config);
 	if (IS_ERR(df->devfreq)) {
 		DRM_DEV_ERROR(&gpu->pdev->dev, "Couldn't initialize GPU devfreq\n");
 		dev_pm_qos_remove_request(&df->boost_freq);
