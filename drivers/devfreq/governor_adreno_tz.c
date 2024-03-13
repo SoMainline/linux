@@ -343,7 +343,7 @@ static int adreno_tz_start(struct devfreq *devfreq)
 		tz_pwrlevels[i + 1] = profile->freq_table[profile->max_state - 1 - i];
 
 	/* The first element holds the number of entries */
-	tz_pwrlevels[0] = profile->max_state - 1;
+	tz_pwrlevels[0] = profile->max_state;
 
 	ret = adreno_tz_init(&devfreq->dev, priv,
 			     tz_pwrlevels, sizeof(tz_pwrlevels),
