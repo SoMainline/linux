@@ -823,6 +823,21 @@ int qcom_scm_io_writel(phys_addr_t addr, unsigned int val)
 }
 EXPORT_SYMBOL_GPL(qcom_scm_io_writel);
 
+int qcom_scm_io_reset(void)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_IO,
+		.cmd = QCOM_SCM_IO_RESET,
+		.arginfo = QCOM_SCM_ARGS(2),
+		.args[0] = 0,
+		.args[1] = 0,
+		.owner = ARM_SMCCC_OWNER_SIP,
+	};
+
+	return qcom_scm_call_atomic(__scm->dev, &desc, NULL);
+}
+EXPORT_SYMBOL(qcom_scm_io_reset);
+
 /**
  * qcom_scm_restore_sec_cfg_available() - Check if secure environment
  * supports restore security config interface.
@@ -1047,6 +1062,144 @@ int qcom_scm_assign_mem(phys_addr_t mem_addr, size_t mem_sz,
 	return 0;
 }
 EXPORT_SYMBOL_GPL(qcom_scm_assign_mem);
+
+int qcom_scm_dcvs_reset(void)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_DCVS,
+		.cmd = QCOM_SCM_DCVS_RESET,
+		.owner = ARM_SMCCC_OWNER_SIP
+	};
+
+	return qcom_scm_call(__scm->dev, &desc, NULL);
+}
+EXPORT_SYMBOL(qcom_scm_dcvs_reset);
+
+int qcom_scm_dcvs_init_v2(phys_addr_t addr, size_t size, int *version)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_DCVS,
+		.cmd = QCOM_SCM_DCVS_INIT_V2,
+		.owner = ARM_SMCCC_OWNER_SIP,
+		.args[0] = addr,
+		.args[1] = size,
+		.arginfo = QCOM_SCM_ARGS(2, QCOM_SCM_RW, QCOM_SCM_VAL),
+	};
+	struct qcom_scm_res res;
+	int ret;
+
+	ret = qcom_scm_call(__scm->dev, &desc, &res);
+	if (ret >= 0)
+		*version = res.result[0];
+
+	return ret;
+}
+EXPORT_SYMBOL(qcom_scm_dcvs_init_v2);
+
+int qcom_scm_dcvs_init_ca_v2(phys_addr_t addr, size_t size)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_DCVS,
+		.cmd = QCOM_SCM_DCVS_INIT_CA_V2,
+		.owner = ARM_SMCCC_OWNER_SIP,
+		.args[0] = addr,
+		.args[1] = size,
+		.arginfo = QCOM_SCM_ARGS(2, QCOM_SCM_RW, QCOM_SCM_VAL),
+	};
+
+	return qcom_scm_call(__scm->dev, &desc, NULL);
+}
+EXPORT_SYMBOL(qcom_scm_dcvs_init_ca_v2);
+
+int qcom_scm_dcvs_update(int level, s64 total_time, s64 busy_time)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_DCVS,
+		.cmd = QCOM_SCM_DCVS_UPDATE,
+		.owner = ARM_SMCCC_OWNER_SIP,
+		.args[0] = level,
+		.args[1] = total_time,
+		.args[2] = busy_time,
+		.arginfo = QCOM_SCM_ARGS(3),
+	};
+	struct qcom_scm_res res;
+	int ret;
+
+
+	ret = qcom_scm_call_atomic(__scm->dev, &desc, &res);
+
+	return ret ?: res.result[0];
+}
+EXPORT_SYMBOL(qcom_scm_dcvs_update);
+
+int qcom_scm_dcvs_update_v2(int level, s64 total_time, s64 busy_time)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_DCVS,
+		.cmd = QCOM_SCM_DCVS_UPDATE_V2,
+		.owner = ARM_SMCCC_OWNER_SIP,
+		.args[0] = level,
+		.args[1] = total_time,
+		.args[2] = busy_time,
+		.arginfo = QCOM_SCM_ARGS(3),
+	};
+	struct qcom_scm_res res;
+	int ret;
+
+	ret = qcom_scm_call(__scm->dev, &desc, &res);
+
+	return ret ?: res.result[0];
+}
+EXPORT_SYMBOL(qcom_scm_dcvs_update_v2);
+
+int qcom_scm_dcvs_update_ca_v2(int level, s64 total_time, s64 busy_time,
+			       int context_count)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_DCVS,
+		.cmd = QCOM_SCM_DCVS_UPDATE_CA_V2,
+		.owner = ARM_SMCCC_OWNER_SIP,
+		.args[0] = level,
+		.args[1] = total_time,
+		.args[2] = busy_time,
+		.args[3] = context_count,
+		.arginfo = QCOM_SCM_ARGS(4),
+	};
+	struct qcom_scm_res res;
+	int ret;
+
+	ret = qcom_scm_call(__scm->dev, &desc, &res);
+
+	return ret ?: res.result[0];
+}
+EXPORT_SYMBOL(qcom_scm_dcvs_update_ca_v2);
+
+/**
+ * qcom_scm_dcvs_core_available() - check if core DCVS operations are available
+ */
+bool qcom_scm_dcvs_core_available(void)
+{
+	return __qcom_scm_is_call_available(__scm->dev, QCOM_SCM_SVC_DCVS,
+					    QCOM_SCM_DCVS_INIT) &&
+	       __qcom_scm_is_call_available(__scm->dev, QCOM_SCM_SVC_DCVS,
+					    QCOM_SCM_DCVS_UPDATE) &&
+	       __qcom_scm_is_call_available(__scm->dev, QCOM_SCM_SVC_DCVS,
+					    QCOM_SCM_DCVS_RESET);
+}
+EXPORT_SYMBOL(qcom_scm_dcvs_core_available);
+
+/**
+ * qcom_scm_dcvs_ca_available() - check if context aware DCVS operations are
+ * available
+ */
+bool qcom_scm_dcvs_ca_available(void)
+{
+	return __qcom_scm_is_call_available(__scm->dev, QCOM_SCM_SVC_DCVS,
+					    QCOM_SCM_DCVS_INIT_CA_V2) &&
+	       __qcom_scm_is_call_available(__scm->dev, QCOM_SCM_SVC_DCVS,
+					    QCOM_SCM_DCVS_UPDATE_CA_V2);
+}
+EXPORT_SYMBOL(qcom_scm_dcvs_ca_available);
 
 /**
  * qcom_scm_ocmem_lock_available() - is OCMEM lock/unlock interface available
