@@ -5,6 +5,7 @@
 
 /dts-v1/;
 
+#include <dt-bindings/usb/pd.h>
 #include "sm6115.dtsi"
 #include "pm6125.dtsi"
 #include "pmi632.dtsi"
@@ -100,12 +101,23 @@
 			self-powered;
 
 			/* TODO: Add a proper PD setup */
-			typec-power-opmode = "default";
-			try-power-role = "sink";
-			power-role = "dual";
+			typec-power-opmode = "default"; // !pd-disable
+			try-power-role = "sink"; // !pd-disable
+			power-role = "source";
 			pd-disable;
 
-			accessory-mode-audio;
+			// source-pdos = <PDO_FIXED(5000, 500,
+			// 	       PDO_FIXED_DUAL_ROLE |
+			// 	       PDO_FIXED_USB_COMM |
+			// 	       PDO_FIXED_DATA_SWAP)>;
+
+			// sink-pdos = <PDO_FIXED(5000, 1000,
+			// 	       PDO_FIXED_DUAL_ROLE |
+			// 	       PDO_FIXED_USB_COMM |
+			// 	       PDO_FIXED_DATA_SWAP)>;
+			// op-sink-microwatt = <10000000>;
+
+			accessory-mode-audio; // ????
 
 			ports {
 				#address-cells = <1>;
@@ -119,8 +131,8 @@
 					};
 				};
 
-				port@2 {
-					reg = <2>;
+				port@1 {
+					reg = <1>;
 
 					rt1715_sbu_ep: endpoint {
 						remote-endpoint = <&fsa4480_sbu_mux>;
@@ -158,6 +170,7 @@
 		port {
 			fsa4480_sbu_mux: endpoint {
 				remote-endpoint = <&rt1715_sbu_ep>;
+				// data-lanes = <1 0>;
 			};
 		};
 	};
