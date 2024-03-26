@@ -50,30 +50,27 @@
 
 #define ICC_BUS_CLK_MIN_RATE		19200ULL /* kHz */
 
-static int qcom_icc_set_qnoc_qos(struct icc_node *src)
+static void qcom_icc_set_qnoc_qos(struct icc_node *src)
 {
 	struct icc_provider *provider = src->provider;
 	struct qcom_icc_provider *qp = to_qcom_provider(provider);
 	struct qcom_icc_node *qn = src->data;
 	struct qcom_icc_qos *qos = &qn->qos;
-	int rc;
 
-	rc = regmap_update_bits(qp->regmap,
-			qp->qos_offset + QNOC_QOS_MCTL_LOWn_ADDR(qos->qos_port),
-			QNOC_QOS_MCTL_DFLT_PRIO_MASK,
-			qos->areq_prio << QNOC_QOS_MCTL_DFLT_PRIO_SHIFT);
-	if (rc)
-		return rc;
+	regmap_update_bits(qp->regmap,
+			   qp->qos_offset + QNOC_QOS_MCTL_LOWn_ADDR(qos->qos_port),
+			   QNOC_QOS_MCTL_DFLT_PRIO_MASK,
+			   qos->areq_prio << QNOC_QOS_MCTL_DFLT_PRIO_SHIFT);
 
-	return regmap_update_bits(qp->regmap,
-			qp->qos_offset + QNOC_QOS_MCTL_LOWn_ADDR(qos->qos_port),
-			QNOC_QOS_MCTL_URGFWD_EN_MASK,
-			!!qos->urg_fwd_en << QNOC_QOS_MCTL_URGFWD_EN_SHIFT);
+	regmap_update_bits(qp->regmap,
+			   qp->qos_offset + QNOC_QOS_MCTL_LOWn_ADDR(qos->qos_port),
+			   QNOC_QOS_MCTL_URGFWD_EN_MASK,
+			   !!qos->urg_fwd_en << QNOC_QOS_MCTL_URGFWD_EN_SHIFT);
 }
 
-static int qcom_icc_bimc_set_qos_health(struct qcom_icc_provider *qp,
-					struct qcom_icc_qos *qos,
-					int regnum)
+static void qcom_icc_bimc_set_qos_health(struct qcom_icc_provider *qp,
+					 struct qcom_icc_qos *qos,
+					 int regnum)
 {
 	u32 val;
 	u32 mask;
@@ -90,19 +87,18 @@ static int qcom_icc_bimc_set_qos_health(struct qcom_icc_provider *qp,
 		mask |= M_BKE_HEALTH_CFG_LIMITCMDS_MASK;
 	}
 
-	return regmap_update_bits(qp->regmap,
-				  qp->qos_offset + M_BKE_HEALTH_CFG_ADDR(regnum, qos->qos_port),
-				  mask, val);
+	regmap_update_bits(qp->regmap,
+			   qp->qos_offset + M_BKE_HEALTH_CFG_ADDR(regnum, qos->qos_port),
+			   mask, val);
 }
 
-static int qcom_icc_set_bimc_qos(struct icc_node *src)
+static void qcom_icc_set_bimc_qos(struct icc_node *src)
 {
 	struct qcom_icc_provider *qp;
 	struct qcom_icc_node *qn;
 	struct icc_provider *provider;
 	u32 mode = NOC_QOS_MODE_BYPASS;
 	u32 val = 0;
-	int i, rc = 0;
 
 	qn = src->data;
 	provider = src->provider;
@@ -115,48 +111,42 @@ static int qcom_icc_set_bimc_qos(struct icc_node *src)
 	 * only if we are NOT in Bypass Mode.
 	 */
 	if (mode != NOC_QOS_MODE_BYPASS) {
-		for (i = 3; i >= 0; i--) {
-			rc = qcom_icc_bimc_set_qos_health(qp,
-							  &qn->qos, i);
-			if (rc)
-				return rc;
-		}
+		qcom_icc_bimc_set_qos_health(qp, &qn->qos, 3);
+		qcom_icc_bimc_set_qos_health(qp, &qn->qos, 2);
+		qcom_icc_bimc_set_qos_health(qp, &qn->qos, 1);
+		qcom_icc_bimc_set_qos_health(qp, &qn->qos, 0);
 
 		/* Set BKE_EN to 1 when Fixed, Regulator or Limiter Mode */
 		val = 1;
 	}
 
-	return regmap_update_bits(qp->regmap,
-				  qp->qos_offset + M_BKE_EN_ADDR(qn->qos.qos_port),
-				  M_BKE_EN_EN_BMASK, val);
+	regmap_update_bits(qp->regmap,
+			   qp->qos_offset + M_BKE_EN_ADDR(qn->qos.qos_port),
+			   M_BKE_EN_EN_BMASK, val);
 }
 
-static int qcom_icc_noc_set_qos_priority(struct qcom_icc_provider *qp,
+static void qcom_icc_noc_set_qos_priority(struct qcom_icc_provider *qp,
 					 struct qcom_icc_qos *qos)
 {
 	u32 val;
-	int rc;
 
 	/* Must be updated one at a time, P1 first, P0 last */
 	val = qos->areq_prio << NOC_QOS_PRIORITY_P1_SHIFT;
-	rc = regmap_update_bits(qp->regmap,
-				qp->qos_offset + NOC_QOS_PRIORITYn_ADDR(qos->qos_port),
-				NOC_QOS_PRIORITY_P1_MASK, val);
-	if (rc)
-		return rc;
+	regmap_update_bits(qp->regmap,
+			   qp->qos_offset + NOC_QOS_PRIORITYn_ADDR(qos->qos_port),
+			   NOC_QOS_PRIORITY_P1_MASK, val);
 
-	return regmap_update_bits(qp->regmap,
-				  qp->qos_offset + NOC_QOS_PRIORITYn_ADDR(qos->qos_port),
-				  NOC_QOS_PRIORITY_P0_MASK, qos->prio_level);
+	regmap_update_bits(qp->regmap,
+			   qp->qos_offset + NOC_QOS_PRIORITYn_ADDR(qos->qos_port),
+			   NOC_QOS_PRIORITY_P0_MASK, qos->prio_level);
 }
 
-static int qcom_icc_set_noc_qos(struct icc_node *src)
+static void qcom_icc_set_noc_qos(struct icc_node *src)
 {
 	struct qcom_icc_provider *qp;
 	struct qcom_icc_node *qn;
 	struct icc_provider *provider;
 	u32 mode = NOC_QOS_MODE_BYPASS_VAL;
-	int rc = 0;
 
 	qn = src->data;
 	provider = src->provider;
@@ -166,15 +156,12 @@ static int qcom_icc_set_noc_qos(struct icc_node *src)
 		dev_dbg(src->provider->dev,
 			"NoC QoS: Skipping %s: vote aggregated on parent.\n",
 			qn->name);
-		return 0;
 	}
 
 	if (qn->qos.qos_mode == NOC_QOS_MODE_FIXED) {
 		dev_dbg(src->provider->dev, "NoC QoS: %s: Set Fixed mode\n", qn->name);
 		mode = NOC_QOS_MODE_FIXED_VAL;
-		rc = qcom_icc_noc_set_qos_priority(qp, &qn->qos);
-		if (rc)
-			return rc;
+		qcom_icc_noc_set_qos_priority(qp, &qn->qos);
 	} else if (qn->qos.qos_mode == NOC_QOS_MODE_BYPASS) {
 		dev_dbg(src->provider->dev, "NoC QoS: %s: Set Bypass mode\n", qn->name);
 		mode = NOC_QOS_MODE_BYPASS_VAL;
@@ -182,12 +169,12 @@ static int qcom_icc_set_noc_qos(struct icc_node *src)
 		/* How did we get here? */
 	}
 
-	return regmap_update_bits(qp->regmap,
-				  qp->qos_offset + NOC_QOS_MODEn_ADDR(qn->qos.qos_port),
-				  NOC_QOS_MODEn_MASK, mode);
+	regmap_update_bits(qp->regmap,
+			   qp->qos_offset + NOC_QOS_MODEn_ADDR(qn->qos.qos_port),
+			   NOC_QOS_MODEn_MASK, mode);
 }
 
-static int qcom_icc_qos_set(struct icc_node *node)
+static void qcom_icc_qos_set(struct icc_node *node)
 {
 	struct qcom_icc_provider *qp = to_qcom_provider(node->provider);
 	struct qcom_icc_node *qn = node->data;
@@ -196,11 +183,14 @@ static int qcom_icc_qos_set(struct icc_node *node)
 
 	switch (qp->type) {
 	case QCOM_ICC_BIMC:
-		return qcom_icc_set_bimc_qos(node);
+		qcom_icc_set_bimc_qos(node);
+		break;
 	case QCOM_ICC_QNOC:
-		return qcom_icc_set_qnoc_qos(node);
+		qcom_icc_set_qnoc_qos(node);
+		break;
 	default:
-		return qcom_icc_set_noc_qos(node);
+		qcom_icc_set_noc_qos(node);
+		break;
 	}
 }
 
@@ -586,14 +576,8 @@ regmap_done:
 
 		/* Set QoS registers (we only need to do it once, generally) */
 		if (qnodes[i]->qos.ap_owned &&
-		    qnodes[i]->qos.qos_mode != NOC_QOS_MODE_INVALID) {
-			ret = qcom_icc_qos_set(node);
-			if (ret) {
-				clk_bulk_disable_unprepare(qp->num_intf_clks,
-							   qp->intf_clks);
-				goto err_remove_nodes;
-			}
-		}
+		    qnodes[i]->qos.qos_mode != NOC_QOS_MODE_INVALID)
+			qcom_icc_qos_set(node);
 
 		data->nodes[i] = node;
 	}
