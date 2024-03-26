@@ -43,7 +43,6 @@ struct rpm_clk_resource {
  * @num_intf_clks: the total number of intf_clks clk_bulk_data entries
  * @type: the ICC provider type
  * @regmap: regmap for QoS registers read/write access
- * @qos_offset: offset to QoS registers
  * @ab_coeff: a percentage-based coefficient for compensating the AB calculations
  * @ib_coeff: an inverse-percentage-based coefficient for compensating the IB calculations
  * @bus_clk_rate: bus clock rate in Hz
@@ -58,7 +57,6 @@ struct qcom_icc_provider {
 	int num_intf_clks;
 	enum qcom_icc_type type;
 	struct regmap *regmap;
-	unsigned int qos_offset;
 	u16 ab_coeff;
 	u16 ib_coeff;
 	u32 bus_clk_rate[QCOM_SMD_RPM_STATE_NUM];
@@ -70,23 +68,23 @@ struct qcom_icc_provider {
 };
 
 /**
- * struct qcom_icc_qos - Qualcomm specific interconnect QoS parameters
+ * struct qcom_icc_qos_data - Qualcomm specific interconnect QoS parameters
  * @areq_prio: node requests priority
  * @prio_level: priority level for bus communication
  * @limit_commands: activate/deactivate limiter mode during runtime
- * @ap_owned: indicates if the node is owned by the AP or by the RPM
  * @qos_mode: default qos mode for this node
  * @qos_port: qos port number for finding qos registers of this node
  * @urg_fwd_en: enable urgent forwarding
+ * @node_idx: the index of the node associated with this configuration entry
  */
-struct qcom_icc_qos {
+struct qcom_icc_qos_data {
 	u32 areq_prio;
 	u32 prio_level;
 	bool limit_commands;
-	bool ap_owned;
 	int qos_mode;
 	int qos_port;
 	bool urg_fwd_en;
+	unsigned int node_idx;
 };
 
 /**
@@ -106,6 +104,7 @@ struct qcom_icc_qos {
  * @ab_coeff: a percentage-based coefficient for compensating the AB calculations
  * @ib_coeff: an inverse-percentage-based coefficient for compensating the IB calculations
  * @bus_clk_rate: a pointer to an array containing bus clock rates in Hz
+ * @ap_owned: indicates if the AP is expected to manage bandwidth on this node
  */
 struct qcom_icc_node {
 	unsigned char *name;
@@ -119,10 +118,10 @@ struct qcom_icc_node {
 	u64 max_peak[QCOM_SMD_RPM_STATE_NUM];
 	int mas_rpm_id;
 	int slv_rpm_id;
-	struct qcom_icc_qos qos;
 	u16 ab_coeff;
 	u16 ib_coeff;
 	u32 bus_clk_rate[QCOM_SMD_RPM_STATE_NUM];
+	bool ap_owned;
 };
 
 struct qcom_icc_desc {
@@ -134,6 +133,8 @@ struct qcom_icc_desc {
 	bool keep_alive;
 	enum qcom_icc_type type;
 	const struct regmap_config *regmap_cfg;
+	const struct qcom_icc_qos_data * const qos_data;
+	const u16 qos_data_num;
 	unsigned int qos_offset;
 	u16 ab_coeff;
 	u16 ib_coeff;
