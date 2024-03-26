@@ -1447,7 +1447,7 @@ static const struct qcom_icc_qos_data mmnrt_qos_data[] = {
 		.qos_mode = NOC_QOS_MODE_FIXED,
 		.areq_prio = 4,
 		.prio_level = 0,
-		.urg_fwd_en = false,
+		.urg_fwd_en = true,
 		.limit_commands = false,
 		.node_idx = MASTER_VIDEO_PROC,
 	},
