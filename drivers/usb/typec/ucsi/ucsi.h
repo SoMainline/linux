@@ -215,6 +215,7 @@ struct ucsi_capability {
 #define UCSI_CAP_CABLE_DETAILS			BIT(5)
 #define UCSI_CAP_EXT_SUPPLY_NOTIFICATIONS	BIT(6)
 #define UCSI_CAP_PD_RESET			BIT(7)
+#define UCSI_CAP_GET_PD_MESSAGE			BIT(8)
 	u16 reserved_1;
 	u8 num_alt_modes;
 	u8 reserved_2;
