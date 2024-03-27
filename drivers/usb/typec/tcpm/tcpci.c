@@ -222,10 +222,12 @@ static int tcpci_get_cc(struct tcpc_dev *tcpc,
 	int ret;
 
 	ret = regmap_read(tcpci->regmap, TCPC_ROLE_CTRL, &role_control);
+	pr_err("TCPC_ROLE_CTRL = 0x%x\n", role_control);
 	if (ret < 0)
 		return ret;
 
 	ret = regmap_read(tcpci->regmap, TCPC_CC_STATUS, &reg);
+	pr_err("TCPC_CC_STATUS = 0x%x\n", reg);
 	if (ret < 0)
 		return ret;
 

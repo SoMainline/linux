@@ -5707,6 +5707,12 @@ static void _tcpm_cc_change(struct tcpm_port *port, enum typec_cc_status cc1,
 		       tcpm_port_is_disconnected(port) ? "disconnected"
 						       : "connected");
 
+	pr_err("CC1: %u -> %u, CC2: %u -> %u [state %s, polarity %d, %s]\n",
+		       old_cc1, cc1, old_cc2, cc2, tcpm_states[port->state],
+		       port->polarity,
+		       tcpm_port_is_disconnected(port) ? "disconnected"
+						       : "connected");
+
 	switch (port->state) {
 	case TOGGLING:
 		if (tcpm_port_is_debug(port) || tcpm_port_is_audio(port) ||
