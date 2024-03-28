@@ -29,25 +29,21 @@
 
 #include "nt36xxx.h"
 
-#if NVT_TOUCH_EXT_PROC
 extern int32_t nvt_extra_proc_init(void);
 extern void nvt_extra_proc_deinit(void);
-#endif
 
-#if NVT_TOUCH_MP
 extern int32_t nvt_mp_proc_init(void);
 extern void nvt_mp_proc_deinit(void);
-#endif
 
 struct nvt_ts_data *ts;
 extern bool irq_wake_enabled;
 
 static struct drm_panel *active_panel;
 
-#if BOOT_UPDATE_FIRMWARE
+// TODO: BOOT_UPDATE_FIRMWARE should prob be a module parameter
+// obv true for flashless chips, default to false for flash-equipped ones
 static struct workqueue_struct *nvt_fwu_wq;
 extern void Boot_Update_Firmware(struct work_struct *work);
-#endif
 
 uint32_t ENG_RST_ADDR  = 0x7FFF80;
 uint32_t SWRST_N8_ADDR = 0; //read from dtsi
