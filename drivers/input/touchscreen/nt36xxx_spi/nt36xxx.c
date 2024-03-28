@@ -97,12 +97,12 @@ Description:
 return:
 	Executive outcomes. 0---succeed.
 *******************************************************/
-static inline int32_t spi_read_write(struct spi_device *client, uint8_t *buf, size_t len , NVT_SPI_RW rw)
+static inline int32_t spi_read_write(struct spi_device *client,
+				     uint8_t *buf, size_t len,
+				     NVT_SPI_RW rw)
 {
+	struct spi_transfer t = { .len = len };
 	struct spi_message m;
-	struct spi_transfer t = {
-		.len    = len,
-	};
 
 	memset(ts->xbuf, 0, len + DUMMY_BYTES);
 	memcpy(ts->xbuf, buf, len);
@@ -1566,18 +1566,14 @@ static int lct_nvt_tp_work_callback(bool en)
 }
 #endif
 
-/*******************************************************
-Description:
-	Novatek touchscreen driver probe function.
-
-return:
-	Executive outcomes. 0---succeed. negative---failed
-*******************************************************/
-static int32_t nvt_ts_probe(struct spi_device *client)
+static int nvt_ts_probe(struct spi_device *client)
 {
 	struct device *dev = &client->dev;
-	int32_t retry = 0;
-	int32_t ret = 0;
+	int retry = 0;
+	int ret;
+
+	if (client->controller->flags & SPI_CONTROLLER_HALF_DUPLEX)
+		return dev_err_probe(dev, -EIO, "The controller doesn't support full duplex\n");
 
 	ts = devm_kzalloc(dev, sizeof(struct nvt_ts_data), GFP_KERNEL);
 	if (!ts)
@@ -1592,21 +1588,13 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 		return -ENOMEM;
 
 	ts->client = client;
-	spi_set_drvdata(client, ts);
-
-	if (ts->client->controller->flags & SPI_CONTROLLER_HALF_DUPLEX) {
-		NVT_ERR("Full duplex not supported by master\n");
-		return -EIO;
-	}
-
 	ts->client->bits_per_word = 8;
 	ts->client->mode = SPI_MODE_0;
+	spi_set_drvdata(client, ts);
 
 	ret = spi_setup(ts->client);
-	if (ret < 0) {
-		NVT_ERR("Failed to perform SPI setup\n");
-		return ret;
-	}
+	if (ret < 0)
+		return dev_err_probe(dev, ret, "Failed to perform SPI setup\n");
 
 	//---parse dts---
 	ret = nvt_parse_dt(&client->dev);
@@ -1631,17 +1619,15 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	gpio_set_value(ts->reset_gpio, 1);
 
 	// need 10ms delay after POR(power on reset)
-	msleep(10);
+	usleep_range(10000, 11000);
 
 	//---check chip version trim---
 	ret = nvt_ts_check_chip_ver_trim(CHIP_VER_TRIM_ADDR);
 	if (ret) {
 		NVT_LOG("try to check from old chip ver trim address\n");
 		ret = nvt_ts_check_chip_ver_trim(CHIP_VER_TRIM_OLD_ADDR);
-		if (ret) {
-			NVT_ERR("chip is not identified\n");
-			return -EINVAL;
-		}
+		if (ret)
+			return dev_err_probe(dev, -ENODEV, "Unknown chip id\n"); // TODO: what chip id?
 	}
 
 	ts->abs_x_max = TOUCH_DEFAULT_MAX_WIDTH;
@@ -1655,10 +1641,13 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	ts->max_touch_num = TOUCH_MAX_FINGER_NUM;
 	ts->int_trigger_type = INT_TRIGGER_TYPE;
 
-	//---set input device info.---
-	ts->input_dev->evbit[0] = BIT_MASK(EV_SYN) | BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
-	ts->input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
-	ts->input_dev->propbit[0] = BIT(INPUT_PROP_DIRECT);
+	set_bit(EV_ABS, ts->input_dev->evbit);
+	set_bit(EV_KEY, ts->input_dev->evbit);
+	set_bit(EV_SYN, ts->input_dev->evbit);
+
+	set_bit(BTN_TOUCH, ts->input_dev->keybit);
+
+	set_bit(INPUT_PROP_DIRECT, ts->input_dev->propbit);
 
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, ts->abs_x_max, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, ts->abs_y_max, 0, 0);
@@ -1685,15 +1674,13 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	//---register input device---
 	ret = input_register_device(ts->input_dev);
 	if (ret)
-		return ret;
+		return dev_err_probe(dev, ret, "Couldn't register touchscreen input device\n");
 
 	if (ts->pen_support) {
 		//---allocate pen input device---
 		ts->pen_input_dev = devm_input_allocate_device(dev);
-		if (ts->pen_input_dev == NULL) {
-			NVT_ERR("allocate pen input device failed\n");
+		if (!ts->pen_input_dev)
 			return -ENOMEM;
-		}
 
 		//---set pen input device info.---
 		set_bit(EV_ABS, ts->pen_input_dev->evbit);
@@ -1736,8 +1723,8 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 		//---register pen input device---
 		ret = input_register_device(ts->pen_input_dev);
 		if (ret)
-			return ret;
-	} /* if (ts->pen_support) */
+			return dev_err_probe(dev, ret, "Couldn't register pen input device\n");
+	}
 
 	//---set int-pin & request irq---
 	client->irq = gpio_to_irq(ts->irq_gpio);
@@ -1801,7 +1788,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 #endif
 
 	bTouchIsAwake = 1;
-	NVT_LOG("end\n");
 
 	nvt_irq_enable(true);
 
