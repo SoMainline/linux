@@ -18,14 +18,7 @@
 
 #include "nt36xxx.h"
 
-extern int32_t nvt_extra_proc_init(void);
-extern void nvt_extra_proc_deinit(void);
-
-extern int32_t nvt_mp_proc_init(void);
-extern void nvt_mp_proc_deinit(void);
-
 struct nvt_ts_data *ts;
-extern bool irq_wake_enabled;
 
 // TODO: BOOT_UPDATE_FIRMWARE should prob be a module parameter
 // obv true for flashless chips, default to false for flash-equipped ones
@@ -902,29 +895,29 @@ static uint8_t nvt_fw_recovery(uint8_t *point_data)
 }
 
 #if NVT_TOUCH_WDT_RECOVERY
-static uint8_t recovery_cnt = 0;
+#define RECOVERY_COUNT_MAX		10
 static uint8_t nvt_wdt_fw_recovery(uint8_t *point_data)
 {
-   uint32_t recovery_cnt_max = 10;
-   uint8_t recovery_enable = false;
-   uint8_t i = 0;
+	bool recovery_enable = false;
+	static u8 recovery_cnt = 0;
+	int i;
 
-   recovery_cnt++;
+	recovery_cnt++;
 
-   /* check pattern */
-   for (i=1 ; i<7 ; i++) {
-       if ((point_data[i] != 0xFD) && (point_data[i] != 0xFE)) {
-           recovery_cnt = 0;
-           break;
-       }
-   }
+	/* check pattern */
+	for (i = 1; i < 7; i++) {
+		if ((point_data[i] != 0xFD) && (point_data[i] != 0xFE)) {
+			recovery_cnt = 0;
+			break;
+		}
+	}
 
-   if (recovery_cnt > recovery_cnt_max){
-       recovery_enable = true;
-       recovery_cnt = 0;
-   }
+	if (recovery_cnt > RECOVERY_COUNT_MAX){
+		recovery_enable = true;
+		recovery_cnt = 0;
+	}
 
-   return recovery_enable;
+	return recovery_enable;
 }
 #endif	/* #if NVT_TOUCH_WDT_RECOVERY */
 
@@ -1561,10 +1554,6 @@ static void nvt_ts_remove(struct spi_device *client)
 {
 	NVT_LOG("Removing driver...\n");
 
-	nvt_mp_proc_deinit();
-
-	nvt_extra_proc_deinit();
-
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
 		destroy_workqueue(nvt_fwu_wq);
@@ -1606,10 +1595,6 @@ static void nvt_ts_shutdown(struct spi_device *client)
 	NVT_LOG("Shutdown driver...\n");
 
 	nvt_irq_enable(false);
-
-	nvt_mp_proc_deinit();
-
-	nvt_extra_proc_deinit();
 
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
