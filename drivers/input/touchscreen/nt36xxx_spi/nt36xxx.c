@@ -79,7 +79,7 @@ const uint16_t gesture_key_array[] = {
 };
 #endif
 
-static uint8_t bTouchIsAwake = 0;
+static bool bTouchIsAwake = 0;
 
 /*******************************************************
 Description:
@@ -1194,7 +1194,6 @@ static int32_t nvt_ts_pen_data_checksum(uint8_t *buf, uint8_t length)
 }
 #endif // #if CHECK_PEN_DATA_CHECKSUM
 
-#if POINT_DATA_CHECKSUM
 static int32_t nvt_ts_point_data_checksum(uint8_t *buf, uint8_t length)
 {
    uint8_t checksum = 0;
@@ -1223,7 +1222,6 @@ static int32_t nvt_ts_point_data_checksum(uint8_t *buf, uint8_t length)
 
    return 0;
 }
-#endif /* POINT_DATA_CHECKSUM */
 
 #define POINT_DATA_LEN 65
 /*******************************************************
@@ -1298,14 +1296,12 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		goto XFER_ERROR;
 	}
 
-#if POINT_DATA_CHECKSUM
    if (POINT_DATA_LEN >= POINT_DATA_CHECKSUM_LEN) {
        ret = nvt_ts_point_data_checksum(point_data, POINT_DATA_CHECKSUM_LEN);
        if (ret) {
            goto XFER_ERROR;
        }
    }
-#endif /* POINT_DATA_CHECKSUM */
 
 #if WAKEUP_GESTURE
 	if (bTouchIsAwake == 0) {
@@ -1844,7 +1840,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	device_init_wakeup(&ts->input_dev->dev, 1);
 #endif
 
-#if BOOT_UPDATE_FIRMWARE
 	nvt_fwu_wq = alloc_workqueue("nvt_fwu_wq", WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
 	if (!nvt_fwu_wq) {
 		NVT_ERR("nvt_fwu_wq create workqueue failed\n");
@@ -1854,7 +1849,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	INIT_DELAYED_WORK(&ts->nvt_fwu_work, Boot_Update_Firmware);
 	// please make sure boot update start after display reset(RESX) sequence
 	queue_delayed_work(nvt_fwu_wq, &ts->nvt_fwu_work, msecs_to_jiffies(14000));
-#endif
 
 	//---set device node---
 #if NVT_TOUCH_PROC
@@ -1865,21 +1859,17 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	}
 #endif
 
-#if NVT_TOUCH_EXT_PROC
 	ret = nvt_extra_proc_init();
 	if (ret != 0) {
 		NVT_ERR("nvt extra proc init failed. ret=%d\n", ret);
 		goto err_extra_proc_init_failed;
 	}
-#endif
 
-#if NVT_TOUCH_MP
 	ret = nvt_mp_proc_init();
 	if (ret != 0) {
 		NVT_ERR("nvt mp proc init failed. ret=%d\n", ret);
 		goto err_mp_proc_init_failed;
 	}
-#endif
 
 #ifdef CHECK_TOUCH_VENDOR
 		// ret = init_lct_tp_info("[Vendor]unkown,[FW]unkown,[IC]unkown\n", NULL);
@@ -1897,27 +1887,21 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 
 	return 0;
 
-#if NVT_TOUCH_MP
 	nvt_mp_proc_deinit();
 err_mp_proc_init_failed:
-#endif
-#if NVT_TOUCH_EXT_PROC
 	nvt_extra_proc_deinit();
 err_extra_proc_init_failed:
-#endif
 
 #if NVT_TOUCH_PROC
 	nvt_flash_proc_deinit();
 err_flash_proc_init_failed:
 #endif
-#if BOOT_UPDATE_FIRMWARE
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
 		destroy_workqueue(nvt_fwu_wq);
 		nvt_fwu_wq = NULL;
 	}
 err_create_nvt_fwu_wq_failed:
-#endif
 #if WAKEUP_GESTURE
 	device_init_wakeup(&ts->input_dev->dev, 0);
 #endif
@@ -1979,23 +1963,19 @@ static void nvt_ts_remove(struct spi_device *client)
 {
 	NVT_LOG("Removing driver...\n");
 
-#if NVT_TOUCH_MP
 	nvt_mp_proc_deinit();
-#endif
-#if NVT_TOUCH_EXT_PROC
+
 	nvt_extra_proc_deinit();
-#endif
+
 #if NVT_TOUCH_PROC
 	nvt_flash_proc_deinit();
 #endif
 
-#if BOOT_UPDATE_FIRMWARE
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
 		destroy_workqueue(nvt_fwu_wq);
 		nvt_fwu_wq = NULL;
 	}
-#endif
 
 #if WAKEUP_GESTURE
 	device_init_wakeup(&ts->input_dev->dev, 0);
@@ -2035,23 +2015,19 @@ static void nvt_ts_shutdown(struct spi_device *client)
 
 	nvt_irq_enable(false);
 
-#if NVT_TOUCH_MP
 	nvt_mp_proc_deinit();
-#endif
-#if NVT_TOUCH_EXT_PROC
+
 	nvt_extra_proc_deinit();
-#endif
+
 #if NVT_TOUCH_PROC
 	nvt_flash_proc_deinit();
 #endif
 
-#if BOOT_UPDATE_FIRMWARE
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
 		destroy_workqueue(nvt_fwu_wq);
 		nvt_fwu_wq = NULL;
 	}
-#endif
 
 #if WAKEUP_GESTURE
 	device_init_wakeup(&ts->input_dev->dev, 0);
@@ -2174,25 +2150,25 @@ static int32_t nvt_ts_resume(struct device *dev)
 }
 
 static const struct spi_device_id nvt_ts_id[] = {
-	{ .name = "nt36xxx-spi" },
+	{ .name = "nt36xxx" },
 	{ },
 };
 MODULE_DEVICE_TABLE(spi, nvt_ts_id);
 
 static const struct of_device_id nt36xxx_of_match_table[] = {
-	{ .compatible = "novatek,nt36xxx-spi" },
+	{ .compatible = "novatek,nt36xxx" },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, nt36xxx_of_match_table);
 
 static struct spi_driver nvt_spi_driver = {
 	.driver = {
-		.name = NVT_SPI_NAME,
+		.name = "nt36xxx-spi",
 		.of_match_table = nt36xxx_of_match_table,
 	},
 	.probe = nvt_ts_probe,
-	.remove = nvt_ts_remove,
-	.shutdown = nvt_ts_shutdown,
+	// .remove = nvt_ts_remove,
+	// .shutdown = nvt_ts_shutdown,
 	.id_table = nvt_ts_id,
 };
 module_spi_driver(nvt_spi_driver);
