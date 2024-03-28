@@ -1525,12 +1525,6 @@ static int nvt_ts_probe(struct spi_device *client)
 		goto err_extra_proc_init_failed;
 	}
 
-	ret = nvt_mp_proc_init();
-	if (ret != 0) {
-		NVT_ERR("nvt mp proc init failed. ret=%d\n", ret);
-		goto err_mp_proc_init_failed;
-	}
-
 #ifdef CHECK_TOUCH_VENDOR
 		// ret = init_lct_tp_info("[Vendor]unkown,[FW]unkown,[IC]unkown\n", NULL);
 		// if (ret < 0) {
