@@ -3,6 +3,7 @@
  * Copyright (C) 2010 - 2018 Novatek, Inc.
  * Copyright (c) 2024, Linaro Ltd.
  */
+
 #include <linux/gpio.h>
 #include <linux/input/mt.h>
 #include <linux/interrupt.h>
