@@ -111,7 +111,7 @@ static inline int32_t spi_read_write(struct spi_device *client,
 		case NVTREAD:
 			t.tx_buf = ts->xbuf;
 			t.rx_buf = ts->rbuf;
-			t.len    = (len + DUMMY_BYTES);
+			t.len = (len + DUMMY_BYTES);
 			break;
 
 		case NVTWRITE:
@@ -658,200 +658,6 @@ info_retry:
 
 	return ret;
 }
-
-/*******************************************************
-  Create Device Node (Proc Entry)
-*******************************************************/
-#if NVT_TOUCH_PROC
-static struct proc_dir_entry *NVT_proc_entry;
-#define DEVICE_NAME	"NVTSPI"
-
-/*******************************************************
-Description:
-	Novatek touchscreen /proc/NVTSPI read function.
-
-return:
-	Executive outcomes. 2---succeed. -5,-14---failed.
-*******************************************************/
-static ssize_t nvt_flash_read(struct file *file, char __user *buff, size_t count, loff_t *offp)
-{
-	uint8_t *str = NULL;
-	int32_t ret = 0;
-	int32_t retries = 0;
-	int8_t spi_wr = 0;
-	uint8_t *buf;
-
-	if ((count > NVT_TRANSFER_LEN + 3) || (count < 3)) {
-		NVT_ERR("invalid transfer len!\n");
-		return -EFAULT;
-	}
-
-	/* allocate buffer for spi transfer */
-	str = (uint8_t *)kzalloc((count), GFP_KERNEL);
-	if(str == NULL) {
-		NVT_ERR("kzalloc for buf failed!\n");
-		ret = -ENOMEM;
-		goto kzalloc_failed;
-	}
-
-	buf = (uint8_t *)kzalloc((count), GFP_KERNEL | GFP_DMA);
-	if(buf == NULL) {
-		NVT_ERR("kzalloc for buf failed!\n");
-		ret = -ENOMEM;
-		kfree(str);
-		str = NULL;
-		goto kzalloc_failed;
-	}
-
-	if (copy_from_user(str, buff, count)) {
-		NVT_ERR("copy from user error\n");
-		ret = -EFAULT;
-		goto out;
-	}
-
-	spi_wr = str[0] >> 7;
-	memcpy(buf, str+2, ((str[0] & 0x7F) << 8) | str[1]);
-
-	if (spi_wr == NVTWRITE) {	//SPI write
-		while (retries < 20) {
-			ret = CTP_SPI_WRITE(ts->client, buf, ((str[0] & 0x7F) << 8) | str[1]);
-			if (!ret)
-				break;
-			else
-				NVT_ERR("error, retries=%d, ret=%d\n", retries, ret);
-
-			retries++;
-		}
-
-		if (unlikely(retries == 20)) {
-			NVT_ERR("error, ret = %d\n", ret);
-			ret = -EIO;
-			goto out;
-		}
-	} else if (spi_wr == NVTREAD) {	//SPI read
-		while (retries < 20) {
-			ret = CTP_SPI_READ(ts->client, buf, ((str[0] & 0x7F) << 8) | str[1]);
-			if (!ret)
-				break;
-			else
-				NVT_ERR("error, retries=%d, ret=%d\n", retries, ret);
-
-			retries++;
-		}
-
-		memcpy(str+2, buf, ((str[0] & 0x7F) << 8) | str[1]);
-		// copy buff to user if spi transfer
-		if (retries < 20) {
-			if (copy_to_user(buff, str, count)) {
-				ret = -EFAULT;
-				goto out;
-			}
-		}
-
-		if (unlikely(retries == 20)) {
-			NVT_ERR("error, ret = %d\n", ret);
-			ret = -EIO;
-			goto out;
-		}
-	} else {
-		NVT_ERR("Call error, str[0]=%d\n", str[0]);
-		ret = -EFAULT;
-		goto out;
-	}
-
-out:
-	kfree(str);
-    kfree(buf);
-kzalloc_failed:
-	return ret;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen /proc/NVTSPI open function.
-
-return:
-	Executive outcomes. 0---succeed. -12---failed.
-*******************************************************/
-static int32_t nvt_flash_open(struct inode *inode, struct file *file)
-{
-	struct nvt_flash_data *dev;
-
-	dev = kmalloc(sizeof(struct nvt_flash_data), GFP_KERNEL);
-	if (dev == NULL) {
-		NVT_ERR("Failed to allocate memory for nvt flash data\n");
-		return -ENOMEM;
-	}
-
-	rwlock_init(&dev->lock);
-	file->private_data = dev;
-
-	return 0;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen /proc/NVTSPI close function.
-
-return:
-	Executive outcomes. 0---succeed.
-*******************************************************/
-static int32_t nvt_flash_close(struct inode *inode, struct file *file)
-{
-	struct nvt_flash_data *dev = file->private_data;
-
-	if (dev)
-		kfree(dev);
-
-	return 0;
-}
-
-static const struct proc_ops nvt_flash_fops = {
-	.proc_open = nvt_flash_open,
-	.proc_release = nvt_flash_close,
-	.proc_read = nvt_flash_read,
-};
-
-/*******************************************************
-Description:
-	Novatek touchscreen /proc/NVTSPI initial function.
-
-return:
-	Executive outcomes. 0---succeed. -12---failed.
-*******************************************************/
-static int32_t nvt_flash_proc_init(void)
-{
-	NVT_proc_entry = proc_create(DEVICE_NAME, 0444, NULL,&nvt_flash_fops);
-	if (NVT_proc_entry == NULL) {
-		NVT_ERR("Failed!\n");
-		return -ENOMEM;
-	} else {
-		NVT_LOG("Succeeded!\n");
-	}
-
-	NVT_LOG("============================================================\n");
-	NVT_LOG("Create /proc/%s\n", DEVICE_NAME);
-	NVT_LOG("============================================================\n");
-
-	return 0;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen /proc/NVTSPI deinitial function.
-
-return:
-	n.a.
-*******************************************************/
-static void nvt_flash_proc_deinit(void)
-{
-	if (NVT_proc_entry != NULL) {
-		remove_proc_entry(DEVICE_NAME, NULL);
-		NVT_proc_entry = NULL;
-		NVT_LOG("Removed /proc/%s\n", DEVICE_NAME);
-	}
-}
-#endif
 
 #if WAKEUP_GESTURE
 /* customized gesture id */
@@ -1757,15 +1563,6 @@ static int nvt_ts_probe(struct spi_device *client)
 	// please make sure boot update start after display reset(RESX) sequence
 	queue_delayed_work(nvt_fwu_wq, &ts->nvt_fwu_work, msecs_to_jiffies(14000));
 
-	//---set device node---
-#if NVT_TOUCH_PROC
-	ret = nvt_flash_proc_init();
-	if (ret != 0) {
-		NVT_ERR("nvt flash proc init failed. ret=%d\n", ret);
-		goto err_flash_proc_init_failed;
-	}
-#endif
-
 	ret = nvt_extra_proc_init();
 	if (ret != 0) {
 		NVT_ERR("nvt extra proc init failed. ret=%d\n", ret);
@@ -1798,10 +1595,6 @@ err_mp_proc_init_failed:
 	nvt_extra_proc_deinit();
 err_extra_proc_init_failed:
 
-#if NVT_TOUCH_PROC
-	nvt_flash_proc_deinit();
-err_flash_proc_init_failed:
-#endif
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
 		destroy_workqueue(nvt_fwu_wq);
@@ -1831,10 +1624,6 @@ static void nvt_ts_remove(struct spi_device *client)
 	nvt_mp_proc_deinit();
 
 	nvt_extra_proc_deinit();
-
-#if NVT_TOUCH_PROC
-	nvt_flash_proc_deinit();
-#endif
 
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
@@ -1883,10 +1672,6 @@ static void nvt_ts_shutdown(struct spi_device *client)
 	nvt_mp_proc_deinit();
 
 	nvt_extra_proc_deinit();
-
-#if NVT_TOUCH_PROC
-	nvt_flash_proc_deinit();
-#endif
 
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
