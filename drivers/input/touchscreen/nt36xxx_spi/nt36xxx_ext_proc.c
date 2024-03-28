@@ -40,8 +40,6 @@
 
 #define XDATA_SECTOR_SIZE   256
 
-extern int gesture_flag;
-
 static uint8_t xdata_tmp[5000] = {0};
 static int32_t xdata[2500] = {0};
 static int32_t xdata_pen_tip_x[256] = {0};
@@ -83,8 +81,9 @@ void nvt_change_mode(uint8_t mode)
 		msleep(20);
 	}
 }
+EXPORT_SYMBOL_GPL(nvt_change_mode);
 
-int32_t nvt_set_pen_inband_mode_1(uint8_t freq_idx, uint8_t x_term)
+static int32_t nvt_set_pen_inband_mode_1(uint8_t freq_idx, uint8_t x_term)
 {
 	uint8_t buf[8] = {0};
 	int32_t i = 0;
@@ -120,7 +119,7 @@ int32_t nvt_set_pen_inband_mode_1(uint8_t freq_idx, uint8_t x_term)
 	}
 }
 
-int32_t nvt_set_pen_normal_mode(void)
+static int32_t nvt_set_pen_normal_mode(void)
 {
 	uint8_t buf[8] = {0};
 	int32_t i = 0;
@@ -177,6 +176,7 @@ uint8_t nvt_get_fw_pipe(void)
 
 	return (buf[1] & 0x01);
 }
+EXPORT_SYMBOL_GPL(nvt_get_fw_pipe);
 
 /*******************************************************
 Description:
@@ -267,6 +267,7 @@ void nvt_read_mdata(uint32_t xdata_addr, uint32_t xdata_btn_addr)
 	//---set xdata index to EVENT BUF ADDR---
 	nvt_set_page(ts->mmap->EVENT_BUF_ADDR);
 }
+EXPORT_SYMBOL_GPL(nvt_read_mdata);
 
 /*******************************************************
 Description:
@@ -281,6 +282,7 @@ void nvt_get_mdata(int32_t *buf, uint8_t *m_x_num, uint8_t *m_y_num)
     *m_y_num = ts->y_num;
     memcpy(buf, xdata, ((ts->x_num * ts->y_num + TOUCH_KEY_NUM) * sizeof(int32_t)));
 }
+EXPORT_SYMBOL_GPL(nvt_get_mdata);
 
 /*******************************************************
 Description:
@@ -356,6 +358,7 @@ void nvt_read_get_num_mdata(uint32_t xdata_addr, int32_t *buffer, uint32_t num)
 	//---set xdata index to EVENT BUF ADDR---
 	nvt_set_page(ts->mmap->EVENT_BUF_ADDR);
 }
+EXPORT_SYMBOL_GPL(nvt_read_get_num_mdata);
 
 /*******************************************************
 Description:
@@ -534,12 +537,11 @@ static int32_t nvt_fw_version_open(struct inode *inode, struct file *file)
 	return seq_open(file, &nvt_fw_version_seq_ops);
 }
 
-static const struct file_operations nvt_fw_version_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_fw_version_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_fw_version_fops = {
+	.proc_open = nvt_fw_version_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 /*******************************************************
@@ -589,12 +591,11 @@ static int32_t nvt_baseline_open(struct inode *inode, struct file *file)
 	return seq_open(file, &nvt_seq_ops);
 }
 
-static const struct file_operations nvt_baseline_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_baseline_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_baseline_fops = {
+	.proc_open = nvt_baseline_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 /*******************************************************
@@ -647,12 +648,11 @@ static int32_t nvt_raw_open(struct inode *inode, struct file *file)
 	return seq_open(file, &nvt_seq_ops);
 }
 
-static const struct file_operations nvt_raw_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_raw_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_raw_fops = {
+	.proc_open = nvt_raw_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 /*******************************************************
@@ -705,12 +705,11 @@ static int32_t nvt_diff_open(struct inode *inode, struct file *file)
 	return seq_open(file, &nvt_seq_ops);
 }
 
-static const struct file_operations nvt_diff_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_diff_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_diff_fops = {
+	.proc_open = nvt_diff_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 /*******************************************************
@@ -777,12 +776,11 @@ static int32_t nvt_pen_diff_open(struct inode *inode, struct file *file)
 	return seq_open(file, &nvt_pen_diff_seq_ops);
 }
 
-static const struct file_operations nvt_pen_diff_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_pen_diff_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_pen_diff_fops = {
+	.proc_open = nvt_pen_diff_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 static int nvt_gesture_show(struct seq_file *sfile, void *v) {
@@ -812,8 +810,6 @@ static ssize_t nvt_gesture_store(struct file *file, const char *buffer, size_t c
 	else
 		ts->gesture_enabled = true;
 
-	gesture_flag = ts->gesture_enabled;
-
 	return count;
 
 }
@@ -821,13 +817,12 @@ static int32_t nvt_gesture_open(struct inode *inode, struct file *file) {
 	return single_open(file, nvt_gesture_show, NULL);
 }
 
-static const struct file_operations nvt_gesture_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_gesture_open,
-	.read = seq_read,
-	.write = nvt_gesture_store,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_gesture_fops = {
+	.proc_open = nvt_gesture_open,
+	.proc_read = seq_read,
+	.proc_write = nvt_gesture_store,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 /*******************************************************
@@ -898,6 +893,7 @@ int32_t nvt_extra_proc_init(void)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(nvt_extra_proc_init);
 
 /*******************************************************
 Description:
@@ -949,8 +945,6 @@ void nvt_extra_proc_deinit(void)
 	if (NVT_touch_proc_dir != NULL) {
 		remove_proc_entry(NVT_PROC_TOUCH_FOLDER, NULL);
 	}
-#ifdef CHECK_TOUCH_VENDOR
-	uninit_lct_tp_info();
-#endif
 }
+EXPORT_SYMBOL_GPL(nvt_extra_proc_deinit);
 #endif

@@ -1430,4 +1430,6 @@ config TOUCHSCREEN_HIMAX_HX83112B
 	  To compile this driver as a module, choose M here: the
 	  module will be called himax_hx83112b.
 
++source "drivers/input/touchscreen/nt36xxx_spi/Kconfig"
+
 endif

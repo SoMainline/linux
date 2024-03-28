@@ -574,7 +574,6 @@ static int32_t nvt_save_rawdata_to_csv(int32_t *rawdata, uint8_t x_ch, uint8_t y
 	int32_t iArrayIndex = 0;
 	struct file *fp = NULL;
 	char *fbufp = NULL;
-	mm_segment_t org_fs;
 	int32_t write_ret = 0;
 	uint32_t output_len = 0;
 	loff_t pos = 0;
@@ -610,12 +609,9 @@ static int32_t nvt_save_rawdata_to_csv(int32_t *rawdata, uint8_t x_ch, uint8_t y
 	sprintf(fbufp + y_ch * x_ch * 7 + y_ch * 2 + Key_Channel * 7, "\r\n");
 #endif /* #if TOUCH_KEY_NUM > 0 */
 
-	org_fs = get_fs();
-	set_fs(KERNEL_DS);
 	fp = filp_open(file_path, O_RDWR | O_CREAT, 0644);
 	if (fp == NULL || IS_ERR(fp)) {
 		NVT_ERR("open %s failed\n", file_path);
-		set_fs(org_fs);
 		if (fbufp) {
 			kfree(fbufp);
 			fbufp = NULL;
@@ -632,7 +628,6 @@ static int32_t nvt_save_rawdata_to_csv(int32_t *rawdata, uint8_t x_ch, uint8_t y
 	write_ret = vfs_write(fp, (char __user *)fbufp, output_len, &pos);
 	if (write_ret <= 0) {
 		NVT_ERR("write %s failed\n", file_path);
-		set_fs(org_fs);
 		if (fp) {
 			filp_close(fp, NULL);
 			fp = NULL;
@@ -644,7 +639,6 @@ static int32_t nvt_save_rawdata_to_csv(int32_t *rawdata, uint8_t x_ch, uint8_t y
 		return -1;
 	}
 
-	set_fs(org_fs);
 	if (fp) {
 		filp_close(fp, NULL);
 		fp = NULL;
@@ -1479,7 +1473,7 @@ Description:
 return:
 	n.a.
 *******************************************************/
-void print_selftest_result(struct seq_file *m, int32_t TestResult, uint8_t RecordResult[], int32_t rawdata[], uint8_t x_len, uint8_t y_len)
+static void print_selftest_result(struct seq_file *m, int32_t TestResult, uint8_t RecordResult[], int32_t rawdata[], uint8_t x_len, uint8_t y_len)
 {
 	int32_t i = 0;
 	int32_t j = 0;
@@ -1747,7 +1741,7 @@ Description:
 return:
 	Executive outcomes. 0---succeed. negative---failed.
 *******************************************************/
-int lct_nvt_tp_selftest_callback(unsigned char cmd)
+static int lct_nvt_tp_selftest_callback(unsigned char cmd)
 {
 	struct device_node *np = ts->client->dev.of_node;
 	unsigned char mpcriteria[32] = {0}; //novatek-mp-criteria-default
@@ -2307,12 +2301,11 @@ static int32_t nvt_selftest_open(struct inode *inode, struct file *file)
 	return seq_open(file, &nvt_selftest_seq_ops);
 }
 
-static const struct file_operations nvt_selftest_fops = {
-	.owner = THIS_MODULE,
-	.open = nvt_selftest_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = seq_release,
+static const struct proc_ops nvt_selftest_fops = {
+	.proc_open = nvt_selftest_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = seq_release,
 };
 
 #ifdef CONFIG_OF
@@ -2323,7 +2316,7 @@ Description:
 return:
 	n.a.
 *******************************************************/
-int32_t nvt_mp_parse_ain(struct device_node *np, const char *name, uint8_t *array, int32_t size)
+static int32_t nvt_mp_parse_ain(struct device_node *np, const char *name, uint8_t *array, int32_t size)
 {
 	struct property *data;
 	int32_t len, ret;
@@ -2363,7 +2356,7 @@ Description:
 return:
 	n.a.
 *******************************************************/
-int32_t nvt_mp_parse_u32(struct device_node *np, const char *name, int32_t *para)
+static int32_t nvt_mp_parse_u32(struct device_node *np, const char *name, int32_t *para)
 {
 	int32_t ret;
 
@@ -2387,7 +2380,7 @@ Description:
 return:
 	n.a.
 *******************************************************/
-int32_t nvt_mp_parse_array(struct device_node *np, const char *name, int32_t *array,
+static int32_t nvt_mp_parse_array(struct device_node *np, const char *name, int32_t *array,
 		int32_t size)
 {
 	struct property *data;
@@ -2432,7 +2425,7 @@ Description:
 return:
 	n.a.
 *******************************************************/
-int32_t nvt_mp_parse_pen_array(struct device_node *np, const char *name, int32_t *array,
+static int32_t nvt_mp_parse_pen_array(struct device_node *np, const char *name, int32_t *array,
 		uint32_t x_num, uint32_t y_num)
 {
 	struct property *data;
@@ -2665,11 +2658,12 @@ int32_t nvt_mp_proc_init(void)
 			NVT_LOG("create /proc/nvt_selftest Succeeded!\n");
 		}
 	//longcheer touch selftest
-	lct_tp_selftest_init(lct_nvt_tp_selftest_callback);
+	// lct_tp_selftest_init(lct_nvt_tp_selftest_callback);
 	//novatek touch selftest
 		return 0;
 	}
 }
+EXPORT_SYMBOL_GPL(nvt_mp_proc_init);
 
 /*******************************************************
 Description:
@@ -2689,4 +2683,5 @@ void nvt_mp_proc_deinit(void)
 		NVT_LOG("Removed /proc/%s\n", "nvt_selftest");
 	}
 }
+EXPORT_SYMBOL_GPL(nvt_mp_proc_deinit);
 #endif /* #if NVT_TOUCH_MP */

@@ -59,7 +59,7 @@
 
 
 //---SPI driver info.---
-#define NVT_SPI_NAME "NVT-ts"
+#define NVT_SPI_NAME "nt36xxx-spi"
 
 #if NVT_DEBUG
 #define NVT_LOG(fmt, args...)    pr_err("[%s] %s %d: " fmt, NVT_SPI_NAME, __func__, __LINE__, ##args)
@@ -134,9 +134,7 @@ struct nvt_ts_data {
 	uint8_t max_button_num;
 	uint32_t int_trigger_type;
 	int32_t irq_gpio;
-	uint32_t irq_flags;
 	int32_t reset_gpio;
-	uint32_t reset_flags;
 	struct mutex lock;
 	const struct nvt_ts_mem_map *mmap;
 	uint8_t carrier_system;

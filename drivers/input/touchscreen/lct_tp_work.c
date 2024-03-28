@@ -123,11 +123,11 @@ EXPORT_SYMBOL(get_lct_tp_work_status);
 
 static int lct_creat_proc_tp_entry(void)
 {
-	lct_tp_p->proc_entry_tp = proc_create_data(TP_WORK_NAME, 0444, NULL, &lct_proc_tp_work_fops, NULL);
-	if (IS_ERR_OR_NULL(lct_tp_p->proc_entry_tp)) {
-		TP_LOGE("add /proc/tp_work error \n");
-		return -1;
-	}
+	// lct_tp_p->proc_entry_tp = proc_create_data(TP_WORK_NAME, 0444, NULL, &lct_proc_tp_work_fops, NULL);
+	// if (IS_ERR_OR_NULL(lct_tp_p->proc_entry_tp)) {
+	// 	TP_LOGE("add /proc/tp_work error \n");
+	// 	return -1;
+	// }
 	TP_LOGW("/proc/tp_work is okay!\n");
 
 	return 0;
