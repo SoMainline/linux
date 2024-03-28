@@ -1430,8 +1430,10 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 //				printk("x=%d,y=%d,p=%d,tx=%d,ty=%d,d=%d,b1=%d,b2=%d,bat=%d\n", pen_x, pen_y, pen_pressure,
 //						pen_tilt_x, pen_tilt_y, pen_distance, pen_btn1, pen_btn2, pen_battery);
 
+				// HACK invert xy
 				input_report_abs(ts->pen_input_dev, ABS_X, ts->abs_x_max * 2 - pen_x);
 				input_report_abs(ts->pen_input_dev, ABS_Y, ts->abs_y_max * 2 - pen_y);
+
 				input_report_abs(ts->pen_input_dev, ABS_PRESSURE, pen_pressure);
 				input_report_key(ts->pen_input_dev, BTN_TOUCH, !!pen_pressure);
 				input_report_abs(ts->pen_input_dev, ABS_TILT_X, pen_tilt_x);
