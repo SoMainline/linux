@@ -249,21 +249,6 @@ void nvt_read_mdata(uint32_t xdata_addr, uint32_t xdata_btn_addr)
 		xdata[i] = (int16_t)(xdata_tmp[dummy_len + i * 2] + 256 * xdata_tmp[dummy_len + i * 2 + 1]);
 	}
 
-#if TOUCH_KEY_NUM > 0
-	//read button xdata : step3
-	//---change xdata index---
-	nvt_set_page(xdata_btn_addr);
-
-	//---read data---
-	buf[0] = (xdata_btn_addr & 0xFF);
-	CTP_SPI_READ(ts->client, buf, (TOUCH_KEY_NUM * 2 + 1));
-
-	//---2bytes-to-1data---
-	for (i = 0; i < TOUCH_KEY_NUM; i++) {
-		xdata[ts->x_num * ts->y_num + i] = (int16_t)(buf[1 + i * 2] + 256 * buf[1 + i * 2 + 1]);
-	}
-#endif
-
 	//---set xdata index to EVENT BUF ADDR---
 	nvt_set_page(ts->mmap->EVENT_BUF_ADDR);
 }
@@ -280,7 +265,7 @@ void nvt_get_mdata(int32_t *buf, uint8_t *m_x_num, uint8_t *m_y_num)
 {
     *m_x_num = ts->x_num;
     *m_y_num = ts->y_num;
-    memcpy(buf, xdata, ((ts->x_num * ts->y_num + TOUCH_KEY_NUM) * sizeof(int32_t)));
+    memcpy(buf, xdata, ((ts->x_num * ts->y_num) * sizeof(int32_t)));
 }
 EXPORT_SYMBOL_GPL(nvt_get_mdata);
 
@@ -392,13 +377,6 @@ static int32_t c_show(struct seq_file *m, void *v)
 		}
 		seq_puts(m, "\n");
 	}
-
-#if TOUCH_KEY_NUM > 0
-	for (i = 0; i < TOUCH_KEY_NUM; i++) {
-		seq_printf(m, "%5d, ", xdata[ts->x_num * ts->y_num + i]);
-	}
-	seq_puts(m, "\n");
-#endif
 
 	seq_printf(m, "\n\n");
 	return 0;

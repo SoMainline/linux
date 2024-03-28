@@ -35,14 +35,6 @@ uint32_t ENG_RST_ADDR  = 0x7FFF80;
 uint32_t SWRST_N8_ADDR = 0; //read from dtsi
 uint32_t SPI_RD_FAST_ADDR = 0;	//read from dtsi
 
-#if TOUCH_KEY_NUM > 0
-const uint16_t touch_key_array[TOUCH_KEY_NUM] = {
-	KEY_BACK,
-	KEY_HOME,
-	KEY_MENU
-};
-#endif
-
 #if WAKEUP_GESTURE
 const uint16_t gesture_key_array[] = {
 	KEY_POWER,  //GESTURE_WORD_C
@@ -627,7 +619,6 @@ info_retry:
 		ts->y_num = 32;
 		ts->abs_x_max = TOUCH_DEFAULT_MAX_WIDTH;
 		ts->abs_y_max = TOUCH_DEFAULT_MAX_HEIGHT;
-		ts->max_button_num = TOUCH_KEY_NUM;
 
 		if(retry_count < 3) {
 			retry_count++;
@@ -891,22 +882,6 @@ err_request_irq_gpio:
 	gpio_free(ts->reset_gpio);
 err_request_reset_gpio:
 	return ret;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen deconfig gpio
-
-return:
-	n.a.
-*******************************************************/
-static void nvt_gpio_deconfig(struct nvt_ts_data *ts)
-{
-	if (gpio_is_valid(ts->irq_gpio))
-		gpio_free(ts->irq_gpio);
-
-	if (gpio_is_valid(ts->reset_gpio))
-		gpio_free(ts->reset_gpio);
 }
 
 static uint8_t nvt_fw_recovery(uint8_t *point_data)
@@ -1176,28 +1151,9 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	}
 #endif /* MT_PROTOCOL_B */
 
-#if TOUCH_KEY_NUM > 0
-	if (point_data[61] == 0xF8) {
-		for (i = 0; i < ts->max_button_num; i++) {
-			input_report_key(ts->input_dev, touch_key_array[i], ((point_data[62] >> i) & 0x01));
-		}
-	} else {
-		for (i = 0; i < ts->max_button_num; i++) {
-			input_report_key(ts->input_dev, touch_key_array[i], 0);
-		}
-	}
-#endif
-
 	input_sync(ts->input_dev);
 
 	if (ts->pen_support) {
-/*
-		//--- dump pen buf ---
-		printk("%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
-			point_data[66], point_data[67], point_data[68], point_data[69], point_data[70],
-			point_data[71], point_data[72], point_data[73], point_data[74], point_data[75],
-			point_data[76], point_data[77], point_data[78], point_data[79]);
-*/
 #if CHECK_PEN_DATA_CHECKSUM
 		if (nvt_ts_pen_data_checksum(&point_data[66], PEN_DATA_LEN)) {
 			// pen data packet checksum not match, skip it
@@ -1640,8 +1596,6 @@ static void nvt_ts_remove(struct spi_device *client)
 
 	mutex_destroy(&ts->xbuf_lock);
 	mutex_destroy(&ts->lock);
-
-	nvt_gpio_deconfig(ts);
 
 	if (ts->pen_support) {
 		if (ts->pen_input_dev) {

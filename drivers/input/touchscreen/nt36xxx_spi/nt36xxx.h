@@ -70,10 +70,6 @@
 #define TOUCH_DEFAULT_MAX_WIDTH 1200
 #define TOUCH_DEFAULT_MAX_HEIGHT 2000
 #define TOUCH_MAX_FINGER_NUM 10
-#define TOUCH_KEY_NUM 0
-#if TOUCH_KEY_NUM > 0
-extern const uint16_t touch_key_array[TOUCH_KEY_NUM];
-#endif
 #define TOUCH_FORCE_NUM 1000
 //---for Pen---
 #define PEN_PRESSURE_MAX (4095)
@@ -112,13 +108,6 @@ struct nvt_ts_data {
 	struct delayed_work nvt_fwu_work;
 	uint16_t addr;
 	int8_t phys[32];
-#if defined(CONFIG_DRM)
-	struct notifier_block drm_notif;
-#elif defined(CONFIG_FB)
-	struct notifier_block fb_notif;
-#elif defined(CONFIG_HAS_EARLYSUSPEND)
-	struct early_suspend early_suspend;
-#endif
 	uint8_t fw_ver;
 	uint8_t x_num;
 	uint8_t y_num;
