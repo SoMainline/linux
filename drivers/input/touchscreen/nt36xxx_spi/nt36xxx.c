@@ -1519,12 +1519,6 @@ static int nvt_ts_probe(struct spi_device *client)
 	// please make sure boot update start after display reset(RESX) sequence
 	queue_delayed_work(nvt_fwu_wq, &ts->nvt_fwu_work, msecs_to_jiffies(14000));
 
-	ret = nvt_extra_proc_init();
-	if (ret != 0) {
-		NVT_ERR("nvt extra proc init failed. ret=%d\n", ret);
-		goto err_extra_proc_init_failed;
-	}
-
 #ifdef CHECK_TOUCH_VENDOR
 		// ret = init_lct_tp_info("[Vendor]unkown,[FW]unkown,[IC]unkown\n", NULL);
 		// if (ret < 0) {
@@ -1539,11 +1533,6 @@ static int nvt_ts_probe(struct spi_device *client)
 	nvt_irq_enable(true);
 
 	return 0;
-
-	nvt_mp_proc_deinit();
-err_mp_proc_init_failed:
-	nvt_extra_proc_deinit();
-err_extra_proc_init_failed:
 
 	if (nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
