@@ -1575,7 +1575,6 @@ return:
 *******************************************************/
 static int32_t nvt_ts_probe(struct spi_device *client)
 {
-	struct device_node *dp = client->dev.of_node;
 	struct device *dev = &client->dev;
 	int32_t retry = 0;
 	int32_t ret = 0;
