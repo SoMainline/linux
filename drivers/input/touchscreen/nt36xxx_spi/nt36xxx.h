@@ -23,6 +23,7 @@
 #include <linux/of.h>
 #include <linux/spi/spi.h>
 #include <linux/uaccess.h>
+#include <linux/input/touchscreen.h>
 #define LCT_TP_WORK_EN 1
 #include "../lct_tp_info.h"
 #include "../lct_tp_selftest.h"
@@ -57,16 +58,9 @@
 //#define IRQ_TYPE_EDGE_FALLING 2
 #define INT_TRIGGER_TYPE IRQ_TYPE_EDGE_RISING
 
-
 //---SPI driver info.---
-#define NVT_SPI_NAME "nt36xxx-spi"
-
-#if NVT_DEBUG
-#define NVT_LOG(fmt, args...)    pr_err("[%s] %s %d: " fmt, NVT_SPI_NAME, __func__, __LINE__, ##args)
-#else
-#define NVT_LOG(fmt, args...)    pr_info("[%s] %s %d: " fmt, NVT_SPI_NAME, __func__, __LINE__, ##args)
-#endif
-#define NVT_ERR(fmt, args...)    pr_err("[%s] %s %d: " fmt, NVT_SPI_NAME, __func__, __LINE__, ##args)
+#define NVT_LOG(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
+#define NVT_ERR(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
 
 //---Input device info.---
 #define NVT_TS_NAME "NVTCapacitiveTouchScreen"
@@ -151,15 +145,10 @@ struct nvt_ts_data {
 	uint8_t y_gang_num;
 	struct input_dev *pen_input_dev;
 	int8_t pen_phys[32];
-#ifdef CONFIG_MTK_SPI
-	struct mt_chip_conf spi_ctrl;
-#endif
-#ifdef CONFIG_SPI_MT65XX
-    struct mtk_chip_config spi_ctrl;
-#endif
 #if WAKEUP_GESTURE
 	bool gesture_enabled;
 #endif
+	struct touchscreen_properties props;
 };
 
 #if NVT_TOUCH_PROC
