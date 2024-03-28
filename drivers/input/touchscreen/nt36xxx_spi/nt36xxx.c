@@ -1,29 +1,17 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (C) 2010 - 2018 Novatek, Inc.
- *
- * $Revision: 71333 $
- * $Date: 2020-11-03 14:33:32 +0800 (週二, 03 十一月 2020) $
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
+ * Copyright (c) 2024, Linaro Ltd.
  */
-#include <linux/kernel.h>
-#include <linux/module.h>
+#include <linux/gpio.h>
+#include <linux/input/mt.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
-#include <linux/gpio.h>
-#include <linux/proc_fs.h>
-#include <linux/input/mt.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/of_gpio.h>
 #include <linux/of_irq.h>
+#include <linux/proc_fs.h>
 
 #include <drm/drm_panel.h>
 
@@ -37,8 +25,6 @@ extern void nvt_mp_proc_deinit(void);
 
 struct nvt_ts_data *ts;
 extern bool irq_wake_enabled;
-
-static struct drm_panel *active_panel;
 
 // TODO: BOOT_UPDATE_FIRMWARE should prob be a module parameter
 // obv true for flashless chips, default to false for flash-equipped ones
@@ -1580,35 +1566,6 @@ static int lct_nvt_tp_work_callback(bool en)
 }
 #endif
 
-static int nvt_ts_check_dt(struct device_node *np)
-{
-	int i;
-	int count;
-	struct device_node *node;
-	struct drm_panel *panel;
-
-	NVT_LOG("%s:enter\n",__func__);
-
-	count = of_count_phandle_with_args(np, "panel", NULL);
-	if (count <= 0)
-		return 0;
-
-	for (i = 0; i < count; i++) {
-		node = of_parse_phandle(np, "panel", i);
-		panel = of_drm_find_panel(node);
-		of_node_put(node);
-		if (!IS_ERR(panel)) {
-			active_panel = panel;
-			NVT_LOG(" %s:%s find\n", __func__,node->name);
-			return 0;
-		}
-	}
-
-	if (node)
-		pr_err("%s: %s not actived\n", __func__, node->name);
-	return -ENODEV;
-}
-
 /*******************************************************
 Description:
 	Novatek touchscreen driver probe function.
@@ -1623,14 +1580,11 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	int32_t retry = 0;
 	int32_t ret = 0;
 
-	if (nvt_ts_check_dt(dp))
-		return -ENODEV;
-
 	ts = devm_kzalloc(dev, sizeof(struct nvt_ts_data), GFP_KERNEL);
 	if (!ts)
 		return -ENOMEM;
 
-	ts->xbuf = devm_kzalloc(dev, (NVT_TRANSFER_LEN+1+DUMMY_BYTES), GFP_KERNEL);
+	ts->xbuf = devm_kzalloc(dev, (NVT_TRANSFER_LEN + 1 + DUMMY_BYTES), GFP_KERNEL);
 	if (!ts->xbuf)
 		return -ENOMEM;
 
