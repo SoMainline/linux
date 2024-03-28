@@ -65,6 +65,10 @@
 	};
 };
 
+&gpi_dma0 {
+	status = "okay";
+};
+
 &gpu {
 	status = "okay";
 
@@ -126,6 +130,10 @@
 
 &pon_resin {
 	linux,code = <KEY_VOLUMEDOWN>;
+	status = "okay";
+};
+
+&qupv3_id_0 {
 	status = "okay";
 };
 
@@ -307,6 +315,30 @@
 
 &sleep_clk {
 	clock-frequency = <32764>;
+};
+
+&spi2 {
+	status = "okay";
+
+	touchscreen@0 {
+		compatible = "novatek,nt36xxx";
+		reg = <0>;
+		interrupts-extended = <&tlmm 86 IRQ_TYPE_EDGE_BOTH>;
+		spi-max-frequency = <9600000>;
+		novatek,reset-gpio = <&tlmm 54 0>;
+		novatek,irq-gpio = <&tlmm 86 0x2008>;
+		novatek,spi-rd-fast-addr = <0x3f310>;
+		novatek,swrst-n8-addr = <0x3f0fe>;
+		novatek,pen-support;
+		novatek,wgp-stylus;
+
+		touchscreen-size-x = <1200>;
+		touchscreen-size-y = <2000>;
+		touchscreen-x-mm = <143>;
+		touchscreen-y-mm = <235>;
+		touchscreen-inverted-x;
+		touchscreen-inverted-y;
+	};
 };
 
 &tlmm {
