@@ -1349,8 +1349,11 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			input_report_key(ts->input_dev, BTN_TOUCH, 1);
 #endif /* MT_PROTOCOL_B */
 
-			input_report_abs(ts->input_dev, ABS_MT_POSITION_X, input_x);
-			input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, input_y);
+			// input_report_abs(ts->input_dev, ABS_MT_POSITION_X, input_x);
+			// input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, input_y);
+
+			// TODO: touchscreen_set_mt_pos
+			touchscreen_report_pos(ts->input_dev, &ts->prop, input_x, input_y, true);
 			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, input_w);
 			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, input_p);
 
@@ -1427,8 +1430,8 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 //				printk("x=%d,y=%d,p=%d,tx=%d,ty=%d,d=%d,b1=%d,b2=%d,bat=%d\n", pen_x, pen_y, pen_pressure,
 //						pen_tilt_x, pen_tilt_y, pen_distance, pen_btn1, pen_btn2, pen_battery);
 
-				input_report_abs(ts->pen_input_dev, ABS_X, pen_x);
-				input_report_abs(ts->pen_input_dev, ABS_Y, pen_y);
+				input_report_abs(ts->pen_input_dev, ABS_X, ts->abs_x_max * 2 - pen_x);
+				input_report_abs(ts->pen_input_dev, ABS_Y, ts->abs_y_max * 2 - pen_y);
 				input_report_abs(ts->pen_input_dev, ABS_PRESSURE, pen_pressure);
 				input_report_key(ts->pen_input_dev, BTN_TOUCH, !!pen_pressure);
 				input_report_abs(ts->pen_input_dev, ABS_TILT_X, pen_tilt_x);
@@ -1614,68 +1617,54 @@ return:
 static int32_t nvt_ts_probe(struct spi_device *client)
 {
 	struct device_node *dp = client->dev.of_node;
+	struct device *dev = &client->dev;
 	int32_t retry = 0;
 	int32_t ret = 0;
 
-	pr_err("PRRRRRRRRR\n");
-	NVT_LOG("start\n");
-
-	if (nvt_ts_check_dt(dp)) {
+	if (nvt_ts_check_dt(dp))
 		return -ENODEV;
-	}
 
-	ts = kmalloc(sizeof(struct nvt_ts_data), GFP_KERNEL);
-	if (ts == NULL) {
-		NVT_ERR("failed to allocated memory for nvt ts data\n");
+	ts = devm_kzalloc(dev, sizeof(struct nvt_ts_data), GFP_KERNEL);
+	if (!ts)
 		return -ENOMEM;
-	}
 
-	ts->xbuf = (uint8_t *)kzalloc((NVT_TRANSFER_LEN+1+DUMMY_BYTES), GFP_KERNEL);
-	if(ts->xbuf == NULL) {
-		NVT_ERR("kzalloc for xbuf failed!\n");
-		ret = -ENOMEM;
-		goto err_malloc_xbuf;
-	}
+	ts->xbuf = devm_kzalloc(dev, (NVT_TRANSFER_LEN+1+DUMMY_BYTES), GFP_KERNEL);
+	if (!ts->xbuf)
+		return -ENOMEM;
 
-	ts->rbuf = (uint8_t *)kzalloc(NVT_READ_LEN, GFP_KERNEL);
-	if(ts->rbuf == NULL) {
-		NVT_ERR("kzalloc for rbuf failed!\n");
-		ret = -ENOMEM;
-		goto err_malloc_rbuf;
-	}
+	ts->rbuf = devm_kzalloc(dev, NVT_READ_LEN, GFP_KERNEL);
+	if (!ts->rbuf)
+		return -ENOMEM;
 
 	ts->client = client;
 	spi_set_drvdata(client, ts);
 
-	//---prepare for spi parameter---
 	if (ts->client->controller->flags & SPI_CONTROLLER_HALF_DUPLEX) {
 		NVT_ERR("Full duplex not supported by master\n");
-		ret = -EIO;
-		goto err_ckeck_full_duplex;
+		return -EIO;
 	}
+
 	ts->client->bits_per_word = 8;
 	ts->client->mode = SPI_MODE_0;
 
 	ret = spi_setup(ts->client);
 	if (ret < 0) {
 		NVT_ERR("Failed to perform SPI setup\n");
-		goto err_spi_setup;
+		return ret;
 	}
-
-	NVT_LOG("mode=%d, max_speed_hz=%d\n", ts->client->mode, ts->client->max_speed_hz);
 
 	//---parse dts---
 	ret = nvt_parse_dt(&client->dev);
 	if (ret) {
 		NVT_ERR("parse dt error\n");
-		goto err_spi_setup;
+		return ret;
 	}
 
 	//---request and config GPIOs---
 	ret = nvt_gpio_config(ts);
 	if (ret) {
 		NVT_ERR("gpio config error!\n");
-		goto err_gpio_config_failed;
+		return ret;
 	}
 
 	mutex_init(&ts->lock);
@@ -1696,8 +1685,7 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 		ret = nvt_ts_check_chip_ver_trim(CHIP_VER_TRIM_OLD_ADDR);
 		if (ret) {
 			NVT_ERR("chip is not identified\n");
-			ret = -EINVAL;
-			goto err_chipvertrim_failed;
+			return -EINVAL;
 		}
 	}
 
@@ -1705,50 +1693,26 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	ts->abs_y_max = TOUCH_DEFAULT_MAX_HEIGHT;
 
 	//---allocate input device---
-	ts->input_dev = input_allocate_device();
-	if (ts->input_dev == NULL) {
-		NVT_ERR("allocate input device failed\n");
-		ret = -ENOMEM;
-		goto err_input_dev_alloc_failed;
-	}
+	ts->input_dev = devm_input_allocate_device(dev);
+	if (!ts->input_dev)
+		return -ENOMEM;
 
 	ts->max_touch_num = TOUCH_MAX_FINGER_NUM;
-
-#if TOUCH_KEY_NUM > 0
-	ts->max_button_num = TOUCH_KEY_NUM;
-#endif
-
 	ts->int_trigger_type = INT_TRIGGER_TYPE;
-
 
 	//---set input device info.---
 	ts->input_dev->evbit[0] = BIT_MASK(EV_SYN) | BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
 	ts->input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
 	ts->input_dev->propbit[0] = BIT(INPUT_PROP_DIRECT);
 
-#if MT_PROTOCOL_B
-	input_mt_init_slots(ts->input_dev, ts->max_touch_num, 0);
-#endif
-
-	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0);    //pressure = TOUCH_FORCE_NUM
-
-#if TOUCH_MAX_FINGER_NUM > 1
-	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);    //area = 255
-
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, ts->abs_x_max, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, ts->abs_y_max, 0, 0);
-#if MT_PROTOCOL_B
-	// no need to set ABS_MT_TRACKING_ID, input_mt_init_slots() already set it
-#else
-	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, ts->max_touch_num, 0, 0);
-#endif //MT_PROTOCOL_B
-#endif //TOUCH_MAX_FINGER_NUM > 1
+	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);    //area = 255
+	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0);    //pressure = TOUCH_FORCE_NUM
 
-#if TOUCH_KEY_NUM > 0
-	for (retry = 0; retry < ts->max_button_num; retry++) {
-		input_set_capability(ts->input_dev, EV_KEY, touch_key_array[retry]);
-	}
-#endif
+	ret = input_mt_init_slots(ts->input_dev, ts->max_touch_num, INPUT_MT_DIRECT);
+	if (ret)
+		return ret;
 
 #if WAKEUP_GESTURE
 	for (retry = 0; retry < (sizeof(gesture_key_array) / sizeof(gesture_key_array[0])); retry++) {
@@ -1761,34 +1725,41 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	ts->input_dev->phys = ts->phys;
 	ts->input_dev->id.bustype = BUS_SPI;
 
+	touchscreen_parse_properties(ts->input_dev, true, &ts->prop);
+
 	//---register input device---
 	ret = input_register_device(ts->input_dev);
-	if (ret) {
-		NVT_ERR("register input device (%s) failed. ret=%d\n", ts->input_dev->name, ret);
-		goto err_input_register_device_failed;
-	}
+	if (ret)
+		return ret;
 
 	if (ts->pen_support) {
 		//---allocate pen input device---
-		ts->pen_input_dev = input_allocate_device();
+		ts->pen_input_dev = devm_input_allocate_device(dev);
 		if (ts->pen_input_dev == NULL) {
 			NVT_ERR("allocate pen input device failed\n");
-			ret = -ENOMEM;
-			goto err_pen_input_dev_alloc_failed;
+			return -ENOMEM;
 		}
 
 		//---set pen input device info.---
-		ts->pen_input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
-		ts->pen_input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
-		ts->pen_input_dev->keybit[BIT_WORD(BTN_TOOL_PEN)] |= BIT_MASK(BTN_TOOL_PEN);
-		//ts->pen_input_dev->keybit[BIT_WORD(BTN_TOOL_RUBBER)] |= BIT_MASK(BTN_TOOL_RUBBER);
-		ts->pen_input_dev->keybit[BIT_WORD(BTN_STYLUS)] |= BIT_MASK(BTN_STYLUS);
-		ts->pen_input_dev->keybit[BIT_WORD(BTN_STYLUS2)] |= BIT_MASK(BTN_STYLUS2);
+		set_bit(EV_ABS, ts->pen_input_dev->evbit);
+		set_bit(EV_KEY, ts->pen_input_dev->evbit);
+
+		set_bit(BTN_TOUCH, ts->pen_input_dev->keybit);
+		set_bit(BTN_TOOL_PEN, ts->pen_input_dev->keybit);
+		// set_bit(BTN_TOOL_RUBBER, ts->pen_input_dev->keybit);
+		set_bit(BTN_STYLUS, ts->pen_input_dev->keybit);
+		set_bit(BTN_STYLUS2, ts->pen_input_dev->keybit);
+
+		set_bit(BTN_TOOL_MOUSE, ts->pen_input_dev->keybit);
+
+
 		/* Kernel document event-codes.txt suggest tablet device need to add property INPUT_PROP_DIRECT,
 		 * but if add this property, pen cursor will not shown when hover.
 		 * Customer need to decide whehter to add this INPUT_PROP_DIRECT property themselves.
 		 */
-		ts->pen_input_dev->propbit[0] = BIT(INPUT_PROP_DIRECT);
+		set_bit(INPUT_PROP_DIRECT, ts->pen_input_dev->propbit);
+
+		set_bit(INPUT_PROP_POINTER, ts->pen_input_dev->propbit);
 
 		if (ts->wgp_stylus) {
 			input_set_abs_params(ts->pen_input_dev, ABS_X, 0, ts->abs_x_max * 2, 0, 0);
@@ -1809,10 +1780,8 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 
 		//---register pen input device---
 		ret = input_register_device(ts->pen_input_dev);
-		if (ret) {
-			NVT_ERR("register pen input device (%s) failed. ret=%d\n", ts->pen_input_dev->name, ret);
-			goto err_pen_input_register_device_failed;
-		}
+		if (ret)
+			return ret;
 	} /* if (ts->pen_support) */
 
 	//---set int-pin & request irq---
@@ -1824,7 +1793,7 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 				ts->int_trigger_type | IRQF_ONESHOT, "nt36xxx-spi", ts);
 		if (ret != 0) {
 			NVT_ERR("request irq failed. ret=%d\n", ret);
-			goto err_int_request_failed;
+			return ret;
 		} else {
 			nvt_irq_enable(false);
 			NVT_LOG("request irq %d succeed\n", client->irq);
@@ -1901,50 +1870,9 @@ err_create_nvt_fwu_wq_failed:
 #if WAKEUP_GESTURE
 	device_init_wakeup(&ts->input_dev->dev, 0);
 #endif
-	free_irq(client->irq, ts);
-err_int_request_failed:
-	if (ts->pen_support) {
-		input_unregister_device(ts->pen_input_dev);
-		ts->pen_input_dev = NULL;
-	}
-err_pen_input_register_device_failed:
-	if (ts->pen_support) {
-		if (ts->pen_input_dev) {
-			input_free_device(ts->pen_input_dev);
-			ts->pen_input_dev = NULL;
-		}
-	}
-err_pen_input_dev_alloc_failed:
-	input_unregister_device(ts->input_dev);
-	ts->input_dev = NULL;
-err_input_register_device_failed:
-	if (ts->input_dev) {
-		input_free_device(ts->input_dev);
-		ts->input_dev = NULL;
-	}
-err_input_dev_alloc_failed:
-err_chipvertrim_failed:
-	mutex_destroy(&ts->xbuf_lock);
-	mutex_destroy(&ts->lock);
-	nvt_gpio_deconfig(ts);
-err_gpio_config_failed:
-err_spi_setup:
-err_ckeck_full_duplex:
+
 	spi_set_drvdata(client, NULL);
-	if (ts->rbuf) {
-		kfree(ts->rbuf);
-		ts->rbuf = NULL;
-	}
-err_malloc_rbuf:
-	if (ts->xbuf) {
-		kfree(ts->xbuf);
-		ts->xbuf = NULL;
-	}
-err_malloc_xbuf:
-	if (ts) {
-		kfree(ts);
-		ts = NULL;
-	}
+
 	return ret;
 }
 

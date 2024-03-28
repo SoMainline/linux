@@ -148,7 +148,8 @@ struct nvt_ts_data {
 #if WAKEUP_GESTURE
 	bool gesture_enabled;
 #endif
-	struct touchscreen_properties props;
+	struct touchscreen_properties prop;
+	struct touchscreen_properties pen_prop;
 };
 
 #if NVT_TOUCH_PROC
