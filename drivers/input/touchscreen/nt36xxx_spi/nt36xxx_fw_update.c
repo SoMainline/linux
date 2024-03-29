@@ -9,13 +9,13 @@
 
 #include "nt36xxx.h"
 
-#if BOOT_UPDATE_FIRMWARE
+#define FLASH_SECTOR_SIZE		SZ_4K
 
-#define FLASH_SECTOR_SIZE SZ_4K
-#define FW_BIN_VER_OFFSET (fw_need_write_size - SZ_4K)
-#define FW_BIN_VER_BAR_OFFSET (FW_BIN_VER_OFFSET + 1)
-#define NVT_FLASH_END_FLAG_LEN 3
-#define NVT_FLASH_END_FLAG_ADDR (fw_need_write_size - NVT_FLASH_END_FLAG_LEN)
+#define FW_BIN_VER_OFFSET		(fw_need_write_size - SZ_4K)
+#define FW_BIN_VER_BAR_OFFSET		(FW_BIN_VER_OFFSET + 1)
+
+#define NVT_FLASH_END_FLAG_ADDR		(fw_need_write_size - NVT_FLASH_END_FLAG_LEN)
+#define NVT_FLASH_END_FLAG_LEN		3
 
 const struct firmware *fw_entry = NULL;
 static size_t fw_need_write_size = 0;
@@ -859,4 +859,3 @@ void Boot_Update_Firmware(struct work_struct *work)
 	nvt_update_firmware(BOOT_UPDATE_FIRMWARE_NAME);
 	mutex_unlock(&ts->lock);
 }
-#endif /* BOOT_UPDATE_FIRMWARE */
