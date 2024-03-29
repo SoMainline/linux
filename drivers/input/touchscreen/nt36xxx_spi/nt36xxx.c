@@ -1158,7 +1158,6 @@ static int8_t nvt_ts_check_chip_ver_trim(uint32_t chip_ver_trim_addr)
 	NVT_LOG("%s:enter\n",__func__);
 	//---Check for 5 times---
 	for (retry = 5; retry > 0; retry--) {
-
 		nvt_bootloader_reset();
 
 		nvt_set_page(chip_ver_trim_addr);
@@ -1210,10 +1209,112 @@ out:
 	return ret;
 }
 
+static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
+{
+	struct device *dev = &ts->client->dev;
+	int retry = 0;
+	int ret;
+
+	//---allocate input device---
+	ts->input_dev = devm_input_allocate_device(dev);
+	if (!ts->input_dev)
+		return -ENOMEM;
+
+	ts->max_touch_num = TOUCH_MAX_FINGER_NUM;
+	ts->int_trigger_type = INT_TRIGGER_TYPE;
+
+	set_bit(EV_ABS, ts->input_dev->evbit);
+	set_bit(EV_KEY, ts->input_dev->evbit);
+	set_bit(EV_SYN, ts->input_dev->evbit);
+	set_bit(BTN_TOUCH, ts->input_dev->keybit);
+	set_bit(INPUT_PROP_DIRECT, ts->input_dev->propbit);
+
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, ts->abs_x_max, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, ts->abs_y_max, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);    //area = 255
+	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0);    //pressure = TOUCH_FORCE_NUM
+
+	ret = input_mt_init_slots(ts->input_dev, ts->max_touch_num, INPUT_MT_DIRECT);
+	if (ret)
+		return ret;
+
+#if WAKEUP_GESTURE
+	for (retry = 0; retry < (sizeof(gesture_key_array) / sizeof(gesture_key_array[0])); retry++) {
+		input_set_capability(ts->input_dev, EV_KEY, gesture_key_array[retry]);
+	}
+#endif
+
+	sprintf(ts->phys, "input/ts");
+	ts->input_dev->name = NVT_TS_NAME;
+	ts->input_dev->phys = ts->phys;
+	ts->input_dev->id.bustype = BUS_SPI;
+
+	touchscreen_parse_properties(ts->input_dev, true, &ts->prop);
+
+	ret = input_register_device(ts->input_dev);
+	if (ret)
+		return dev_err_probe(dev, ret, "Couldn't register touchscreen input device\n");
+
+	return 0;
+}
+
+static int nt36xxx_pen_inputdev_init(struct nvt_ts_data *ts)
+{
+	struct device *dev = &ts->client->dev;
+	int ret;
+
+	ts->pen_input_dev = devm_input_allocate_device(dev);
+	if (!ts->pen_input_dev)
+		return -ENOMEM;
+
+	//---set pen input device info.---
+	set_bit(EV_ABS, ts->pen_input_dev->evbit);
+	set_bit(EV_KEY, ts->pen_input_dev->evbit);
+
+	set_bit(BTN_TOUCH, ts->pen_input_dev->keybit);
+	set_bit(BTN_TOOL_PEN, ts->pen_input_dev->keybit);
+	set_bit(BTN_STYLUS, ts->pen_input_dev->keybit);
+	set_bit(BTN_STYLUS2, ts->pen_input_dev->keybit);
+
+	set_bit(BTN_TOOL_MOUSE, ts->pen_input_dev->keybit);
+
+
+	/* Kernel document event-codes.txt suggest tablet device need to add property INPUT_PROP_DIRECT,
+		* but if add this property, pen cursor will not shown when hover.
+		* Customer need to decide whehter to add this INPUT_PROP_DIRECT property themselves.
+		*/
+	set_bit(INPUT_PROP_DIRECT, ts->pen_input_dev->propbit);
+
+	set_bit(INPUT_PROP_POINTER, ts->pen_input_dev->propbit);
+
+	if (ts->wgp_stylus) {
+		input_set_abs_params(ts->pen_input_dev, ABS_X, 0, ts->abs_x_max * 2, 0, 0);
+		input_set_abs_params(ts->pen_input_dev, ABS_Y, 0, ts->abs_y_max * 2, 0, 0);
+	} else {
+		input_set_abs_params(ts->pen_input_dev, ABS_X, 0, ts->abs_x_max, 0, 0);
+		input_set_abs_params(ts->pen_input_dev, ABS_Y, 0, ts->abs_y_max, 0, 0);
+	}
+	input_set_abs_params(ts->pen_input_dev, ABS_PRESSURE, 0, PEN_PRESSURE_MAX, 0, 0);
+	input_set_abs_params(ts->pen_input_dev, ABS_DISTANCE, 0, PEN_DISTANCE_MAX, 0, 0);
+	input_set_abs_params(ts->pen_input_dev, ABS_TILT_X, PEN_TILT_MIN, PEN_TILT_MAX, 0, 0);
+	input_set_abs_params(ts->pen_input_dev, ABS_TILT_Y, PEN_TILT_MIN, PEN_TILT_MAX, 0, 0);
+
+	sprintf(ts->pen_phys, "input/pen");
+	ts->pen_input_dev->name = NVT_PEN_NAME;
+	ts->pen_input_dev->phys = ts->pen_phys;
+	ts->pen_input_dev->id.bustype = BUS_SPI;
+
+	//---register pen input device---
+	ret = input_register_device(ts->pen_input_dev);
+	if (ret)
+		return dev_err_probe(dev, ret, "Couldn't register pen input device\n");
+
+	return 0;
+}
+
 static int nvt_ts_probe(struct spi_device *client)
 {
 	struct device *dev = &client->dev;
-	int retry = 0;
 	int ret;
 
 	if (client->controller->flags & SPI_CONTROLLER_HALF_DUPLEX)
@@ -1276,96 +1377,14 @@ static int nvt_ts_probe(struct spi_device *client)
 	ts->abs_x_max = TOUCH_DEFAULT_MAX_WIDTH;
 	ts->abs_y_max = TOUCH_DEFAULT_MAX_HEIGHT;
 
-	//---allocate input device---
-	ts->input_dev = devm_input_allocate_device(dev);
-	if (!ts->input_dev)
-		return -ENOMEM;
-
-	ts->max_touch_num = TOUCH_MAX_FINGER_NUM;
-	ts->int_trigger_type = INT_TRIGGER_TYPE;
-
-	set_bit(EV_ABS, ts->input_dev->evbit);
-	set_bit(EV_KEY, ts->input_dev->evbit);
-	set_bit(EV_SYN, ts->input_dev->evbit);
-
-	set_bit(BTN_TOUCH, ts->input_dev->keybit);
-
-	set_bit(INPUT_PROP_DIRECT, ts->input_dev->propbit);
-
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, ts->abs_x_max, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, ts->abs_y_max, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);    //area = 255
-	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0);    //pressure = TOUCH_FORCE_NUM
-
-	ret = input_mt_init_slots(ts->input_dev, ts->max_touch_num, INPUT_MT_DIRECT);
+	ret = nt36xxx_touch_inputdev_init(ts);
 	if (ret)
 		return ret;
 
-#if WAKEUP_GESTURE
-	for (retry = 0; retry < (sizeof(gesture_key_array) / sizeof(gesture_key_array[0])); retry++) {
-		input_set_capability(ts->input_dev, EV_KEY, gesture_key_array[retry]);
-	}
-#endif
-
-	sprintf(ts->phys, "input/ts");
-	ts->input_dev->name = NVT_TS_NAME;
-	ts->input_dev->phys = ts->phys;
-	ts->input_dev->id.bustype = BUS_SPI;
-
-	touchscreen_parse_properties(ts->input_dev, true, &ts->prop);
-
-	//---register input device---
-	ret = input_register_device(ts->input_dev);
-	if (ret)
-		return dev_err_probe(dev, ret, "Couldn't register touchscreen input device\n");
-
 	if (ts->pen_support) {
-		//---allocate pen input device---
-		ts->pen_input_dev = devm_input_allocate_device(dev);
-		if (!ts->pen_input_dev)
-			return -ENOMEM;
-
-		//---set pen input device info.---
-		set_bit(EV_ABS, ts->pen_input_dev->evbit);
-		set_bit(EV_KEY, ts->pen_input_dev->evbit);
-
-		set_bit(BTN_TOUCH, ts->pen_input_dev->keybit);
-		set_bit(BTN_TOOL_PEN, ts->pen_input_dev->keybit);
-		set_bit(BTN_STYLUS, ts->pen_input_dev->keybit);
-		set_bit(BTN_STYLUS2, ts->pen_input_dev->keybit);
-
-		set_bit(BTN_TOOL_MOUSE, ts->pen_input_dev->keybit);
-
-
-		/* Kernel document event-codes.txt suggest tablet device need to add property INPUT_PROP_DIRECT,
-		 * but if add this property, pen cursor will not shown when hover.
-		 * Customer need to decide whehter to add this INPUT_PROP_DIRECT property themselves.
-		 */
-		set_bit(INPUT_PROP_DIRECT, ts->pen_input_dev->propbit);
-
-		set_bit(INPUT_PROP_POINTER, ts->pen_input_dev->propbit);
-
-		if (ts->wgp_stylus) {
-			input_set_abs_params(ts->pen_input_dev, ABS_X, 0, ts->abs_x_max * 2, 0, 0);
-			input_set_abs_params(ts->pen_input_dev, ABS_Y, 0, ts->abs_y_max * 2, 0, 0);
-		} else {
-			input_set_abs_params(ts->pen_input_dev, ABS_X, 0, ts->abs_x_max, 0, 0);
-			input_set_abs_params(ts->pen_input_dev, ABS_Y, 0, ts->abs_y_max, 0, 0);
-		}
-		input_set_abs_params(ts->pen_input_dev, ABS_PRESSURE, 0, PEN_PRESSURE_MAX, 0, 0);
-		input_set_abs_params(ts->pen_input_dev, ABS_DISTANCE, 0, PEN_DISTANCE_MAX, 0, 0);
-		input_set_abs_params(ts->pen_input_dev, ABS_TILT_X, PEN_TILT_MIN, PEN_TILT_MAX, 0, 0);
-		input_set_abs_params(ts->pen_input_dev, ABS_TILT_Y, PEN_TILT_MIN, PEN_TILT_MAX, 0, 0);
-
-		sprintf(ts->pen_phys, "input/pen");
-		ts->pen_input_dev->name = NVT_PEN_NAME;
-		ts->pen_input_dev->phys = ts->pen_phys;
-		ts->pen_input_dev->id.bustype = BUS_SPI;
-
-		//---register pen input device---
-		ret = input_register_device(ts->pen_input_dev);
+		ret = nt36xxx_pen_inputdev_init(ts);
 		if (ret)
-			return dev_err_probe(dev, ret, "Couldn't register pen input device\n");
+			return ret;
 	}
 
 	//---set int-pin & request irq---
