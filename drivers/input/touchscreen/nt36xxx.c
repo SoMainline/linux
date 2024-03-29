@@ -429,7 +429,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 				max_touch_pressure = (u32)(point_data[index + 5]) + (u32)(point_data[i + 63] << 8);
 				max_touch_pressure = min_t(u32, max_touch_pressure, TOUCH_FORCE_NUM);
 			} else {
-				max_touch_pressure = (u32)(point_data[index + 5]);
+				max_touch_pressure = point_data[index + 5];
 			}
 
 			finger_present[input_id - 1] = true;
@@ -487,11 +487,11 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			pen_x = (u32)(point_data[67] << 8) + (u32)(point_data[68]);
 			pen_y = (u32)(point_data[69] << 8) + (u32)(point_data[70]);
 			pen_pressure = (u32)(point_data[71] << 8) + (u32)(point_data[72]);
-			pen_tilt_x = (int32_t)point_data[73];
-			pen_tilt_y = (int32_t)point_data[74];
+			pen_tilt_x = point_data[73];
+			pen_tilt_y = point_data[74];
 			pen_distance = (u32)(point_data[75] << 8) + (u32)(point_data[76]);
-			pen_button1 = (u32)(point_data[77] & 0x01);
-			pen_button2 = (u32)((point_data[77] >> 1) & 0x01);
+			pen_button1 = point_data[77] & BIT(0);
+			pen_button2 = point_data[77] & BIT(1);
 
 			// TODO: returns 0x10 when the pen works ok, maybe check for "low bat" warnings?
 			pen_battery = (u32)point_data[78];
@@ -580,7 +580,6 @@ static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 	int ret;
 	int i;
 
-	//---allocate input device---
 	ts->input_dev = devm_input_allocate_device(dev);
 	if (!ts->input_dev)
 		return -ENOMEM;
@@ -639,12 +638,7 @@ static int nt36xxx_pen_inputdev_init(struct nvt_ts_data *ts)
 	set_bit(BTN_STYLUS, ts->pen_input_dev->keybit);
 	set_bit(BTN_STYLUS2, ts->pen_input_dev->keybit);
 
-	/* Kernel document event-codes.txt suggest tablet device need to add property INPUT_PROP_DIRECT,
-		* but if add this property, pen cursor will not shown when hover.
-		* Customer need to decide whehter to add this INPUT_PROP_DIRECT property themselves.
-		*/
 	set_bit(INPUT_PROP_DIRECT, ts->pen_input_dev->propbit);
-
 	set_bit(INPUT_PROP_POINTER, ts->pen_input_dev->propbit);
 
 	if (ts->wgp_stylus) {
@@ -720,12 +714,12 @@ static int nvt_ts_probe(struct spi_device *client)
 	mutex_init(&ts->lock);
 	mutex_init(&ts->xbuf_lock);
 
-	//---eng reset before TP_RESX high
+	/* Perform a software reset before pulling the reset pin */
 	nvt_eng_reset(ts);
 
 	gpiod_set_value_cansleep(ts->reset_gpio, 1);
 
-	// need 10ms delay after POR(power on reset)
+	/* Wait at least 10ms after reset */
 	usleep_range(10000, 11000);
 
 	//---check chip version trim---
