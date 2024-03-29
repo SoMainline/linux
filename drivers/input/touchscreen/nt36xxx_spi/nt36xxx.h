@@ -53,11 +53,6 @@
 #define NVTTOUCH_INT_PIN 943
 
 #define CHECK_TOUCH_VENDOR
-//---INT trigger mode---
-//#define IRQ_TYPE_EDGE_RISING 1
-//#define IRQ_TYPE_EDGE_FALLING 2
-#define INT_TRIGGER_TYPE IRQ_TYPE_EDGE_RISING
-
 //---SPI driver info.---
 #define NVT_LOG(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
 #define NVT_ERR(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
@@ -115,7 +110,6 @@ struct nvt_ts_data {
 	uint16_t abs_y_max;
 	uint8_t max_touch_num;
 	uint8_t max_button_num;
-	uint32_t int_trigger_type;
 	int32_t irq_gpio;
 	int32_t reset_gpio;
 	struct mutex lock;

@@ -50,17 +50,11 @@ const uint16_t gesture_key_array[] = {
 
 static bool bTouchIsAwake = 0;
 
-/*******************************************************
-Description:
-	Novatek touchscreen irq enable/disable function.
-
-return:
-	n.a.
-*******************************************************/
 static void nvt_irq_enable(bool enable)
 {
 	struct irq_desc *desc;
 
+	// TODO: cleanup at the end of the journey
 	if (enable) {
 		if (!WARN_ON(ts->irq_enabled))
 			enable_irq(ts->client->irq);
@@ -75,13 +69,6 @@ static void nvt_irq_enable(bool enable)
 	NVT_LOG("enable=%d, desc->depth=%d\n", enable, desc->depth);
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen spi read/write core function.
-
-return:
-	Executive outcomes. 0---succeed.
-*******************************************************/
 static inline int32_t spi_read_write(struct spi_device *client,
 				     uint8_t *buf, size_t len,
 				     NVT_SPI_RW rw)
@@ -110,13 +97,6 @@ static inline int32_t spi_read_write(struct spi_device *client,
 	return spi_sync(client, &m);
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen spi read function.
-
-return:
-	Executive outcomes. 2---succeed. -5---I/O error
-*******************************************************/
 int32_t CTP_SPI_READ(struct spi_device *client, uint8_t *buf, uint16_t len)
 {
 	int32_t ret = -1;
@@ -142,13 +122,6 @@ int32_t CTP_SPI_READ(struct spi_device *client, uint8_t *buf, uint16_t len)
 	return ret;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen spi write function.
-
-return:
-	Executive outcomes. 1---succeed. -5---I/O error
-*******************************************************/
 #define SPI_WRITE_MAX_RETRIES		5
 int32_t CTP_SPI_WRITE(struct spi_device *client, uint8_t *buf, uint16_t len)
 {
@@ -1199,7 +1172,6 @@ static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 		return -ENOMEM;
 
 	ts->max_touch_num = TOUCH_MAX_FINGER_NUM;
-	ts->int_trigger_type = INT_TRIGGER_TYPE;
 
 	set_bit(EV_ABS, ts->input_dev->evbit);
 	set_bit(EV_KEY, ts->input_dev->evbit);
@@ -1366,17 +1338,14 @@ static int nvt_ts_probe(struct spi_device *client)
 
 	//---set int-pin & request irq---
 	client->irq = gpio_to_irq(ts->irq_gpio);
-	if (client->irq) {
-		NVT_LOG("int_trigger_type=%d\n", ts->int_trigger_type);
-		ret = request_threaded_irq(client->irq, NULL, nvt_ts_work_func,
-				ts->int_trigger_type | IRQF_NO_AUTOEN | IRQF_ONESHOT, "nt36xxx-spi", ts);
-		if (ret != 0) {
-			NVT_ERR("request irq failed. ret=%d\n", ret);
-			return ret;
-		} else {
-			NVT_LOG("request irq %d succeed\n", client->irq);
-		}
-	}
+	if (!client->irq)
+		return dev_err_probe(dev, -EINVAL, "tragic\n"); //
+
+	ret = devm_request_threaded_irq(dev, client->irq, NULL, nvt_ts_work_func,
+					IRQ_TYPE_EDGE_RISING | IRQF_NO_AUTOEN | IRQF_ONESHOT,
+					"nt36xxx-spi", ts);
+	if (ret)
+		return dev_err_probe(dev, ret, "Failed to request IRQ\n");
 
 #if WAKEUP_GESTURE
 	ts->gesture_enabled = false;
@@ -1434,20 +1403,14 @@ static void nvt_ts_remove(struct spi_device *client)
 #endif
 
 	nvt_irq_enable(false);
-	free_irq(client->irq, ts);
 
 	mutex_destroy(&ts->xbuf_lock);
 	mutex_destroy(&ts->lock);
 
-	if (ts->pen_input_dev) {
+	if (ts->pen_input_dev)
 		input_unregister_device(ts->pen_input_dev);
-		ts->pen_input_dev = NULL;
-	}
 
-	if (ts->input_dev) {
-		input_unregister_device(ts->input_dev);
-		ts->input_dev = NULL;
-	}
+	input_unregister_device(ts->input_dev);
 }
 
 static void nvt_ts_shutdown(struct spi_device *client)
@@ -1474,6 +1437,8 @@ Description:
 return:
 	Executive outcomes. 0---succeed.
 *******************************************************/
+#define NVT_TS_SUSPEND_DEEP_SLEEP_MODE			0x11
+#define NVT_TS_SUSPEND_WAKEUP_GESTURE_MODE		0x13
 static int32_t nvt_ts_suspend(struct device *dev)
 {
 	uint8_t buf[4] = {0};
@@ -1495,14 +1460,12 @@ static int32_t nvt_ts_suspend(struct device *dev)
 
 	buf[0] = EVENT_MAP_HOST_CMD;
 	if (ts->gesture_enabled) {
-		//---write command to enter "wakeup gesture mode"---
-		buf[1] = 0x13;
+		buf[1] = NVT_TS_SUSPEND_WAKEUP_GESTURE_MODE;
 		CTP_SPI_WRITE(ts->client, buf, 2);
 		enable_irq_wake(ts->client->irq);
 		NVT_LOG("Enabled touch wakeup gesture\n");
 	} else {
-		//---write command to enter "deep sleep mode"---
-		buf[1] = 0x11;
+		buf[1] = NVT_TS_SUSPEND_DEEP_SLEEP_MODE;
 		CTP_SPI_WRITE(ts->client, buf, 2);
 		NVT_LOG("deep sleep mode\n");
 	} 
@@ -1555,9 +1518,8 @@ static int32_t nvt_ts_resume(struct device *dev)
 		nvt_check_fw_reset_state(RESET_STATE_REK);
 	}
 
-	if (!ts->gesture_enabled) {
+	if (!ts->gesture_enabled)
 		nvt_irq_enable(true);
-	}
 
 	bTouchIsAwake = true;
 
