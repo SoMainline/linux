@@ -149,24 +149,19 @@ Description:
 return:
 	Executive outcomes. 1---succeed. -5---I/O error
 *******************************************************/
+#define SPI_WRITE_MAX_RETRIES		5
 int32_t CTP_SPI_WRITE(struct spi_device *client, uint8_t *buf, uint16_t len)
 {
-	int32_t ret = -1;
 	int32_t retries = 0;
+	int32_t ret = -1;
 
 	guard(mutex)(&ts->xbuf_lock);
 
 	buf[0] = SPI_WRITE_MASK(buf[0]);
 
-	while (retries < 5) {
+	while (retries < SPI_WRITE_MAX_RETRIES && ret) {
 		ret = spi_read_write(client, buf, len, NVTWRITE);
-		if (ret == 0)	break;
 		retries++;
-	}
-
-	if (unlikely(retries == 5)) {
-		NVT_ERR("error, ret=%d\n", ret);
-		ret = -EIO;
 	}
 
 	return ret;
@@ -233,7 +228,7 @@ return:
 *******************************************************/
 void nvt_bld_crc_enable(void)
 {
-	uint8_t buf[4] = {0};
+	uint8_t buf[4] = { 0 };
 
 	//---set xdata index to BLD_CRC_EN_ADDR---
 	nvt_set_page(ts->mmap->BLD_CRC_EN_ADDR);
@@ -258,7 +253,7 @@ return:
 *******************************************************/
 void nvt_fw_crc_enable(void)
 {
-	uint8_t buf[4] = {0};
+	uint8_t buf[4] = { 0 };
 
 	//---set xdata index to EVENT BUF ADDR---
 	nvt_set_page(ts->mmap->EVENT_BUF_ADDR);
@@ -319,13 +314,13 @@ Description:
 return:
 	N/A.
 *******************************************************/
-int32_t nvt_check_spi_dma_tx_info(void)
+#define SPI_DMA_TX_INFO_MAX_RETRIES	200
+int nvt_check_spi_dma_tx_info(void)
 {
-	uint8_t buf[8] = {0};
-	int32_t i = 0;
-	const int32_t retry = 200;
+	uint8_t buf[8] = { 0 };
+	int i;
 
-	for (i = 0; i < retry; i++) {
+	for (i = 0; i < SPI_DMA_TX_INFO_MAX_RETRIES; i++) {
 		//---set xdata index to EVENT BUF ADDR---
 		nvt_set_page(ts->mmap->SPI_DMA_TX_INFO);
 
@@ -337,15 +332,10 @@ int32_t nvt_check_spi_dma_tx_info(void)
 		if (buf[1] == 0x00)
 			break;
 
-		usleep_range(1000, 1000);
+		usleep_range(1000, 1010);
 	}
 
-	if (i >= retry) {
-		NVT_ERR("failed, i=%d, buf[1]=0x%02X\n", i, buf[1]);
-		return -1;
-	} else {
-		return 0;
-	}
+	return i == SPI_DMA_TX_INFO_MAX_RETRIES;
 }
 
 /*******************************************************
@@ -423,13 +413,13 @@ Description:
 return:
 	Executive outcomes. 0---succeed. -1---fail.
 *******************************************************/
+#define CLEAR_FW_STATUS_MAX_RETRIES	20
 int32_t nvt_clear_fw_status(void)
 {
-	uint8_t buf[8] = {0};
-	int32_t i = 0;
-	const int32_t retry = 20;
+	uint8_t buf[8] = { 0 };
+	int i;
 
-	for (i = 0; i < retry; i++) {
+	for (i = 0; i < CLEAR_FW_STATUS_MAX_RETRIES; i++) {
 		//---set xdata index to EVENT BUF ADDR---
 		nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
 
@@ -449,12 +439,7 @@ int32_t nvt_clear_fw_status(void)
 		usleep_range(10000, 10000);
 	}
 
-	if (i >= retry) {
-		NVT_ERR("failed, i=%d, buf[1]=0x%02X\n", i, buf[1]);
-		return -1;
-	} else {
-		return 0;
-	}
+	return i == CLEAR_FW_STATUS_MAX_RETRIES;
 }
 
 /*******************************************************
@@ -464,13 +449,13 @@ Description:
 return:
 	Executive outcomes. 0---succeed. -1---failed.
 *******************************************************/
+#define CHECK_FW_STATUS_MAX_RETRIES	20
 int32_t nvt_check_fw_status(void)
 {
-	uint8_t buf[8] = {0};
-	int32_t i = 0;
-	const int32_t retry = 50;
+	uint8_t buf[8] = { 0 };
+	int i = 0;
 
-	for (i = 0; i < retry; i++) {
+	for (i = 0; i < CHECK_FW_STATUS_MAX_RETRIES; i++) {
 		//---set xdata index to EVENT BUF ADDR---
 		nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
 
@@ -485,12 +470,7 @@ int32_t nvt_check_fw_status(void)
 		usleep_range(10000, 10000);
 	}
 
-	if (i >= retry) {
-		NVT_ERR("failed, i=%d, buf[1]=0x%02X\n", i, buf[1]);
-		return -1;
-	} else {
-		return 0;
-	}
+	return i == CHECK_FW_STATUS_MAX_RETRIES;
 }
 
 /*******************************************************
@@ -941,33 +921,18 @@ static int32_t nvt_ts_pen_data_checksum(uint8_t *buf, uint8_t length)
 }
 #endif // #if CHECK_PEN_DATA_CHECKSUM
 
-static int32_t nvt_ts_point_data_checksum(uint8_t *buf, uint8_t length)
+static int nvt_ts_point_data_checksum(uint8_t *buf, uint8_t length)
 {
-   uint8_t checksum = 0;
-   int32_t i = 0;
+	u8 checksum = 0;
+	int i;
 
-   // Generate checksum
-   for (i = 0; i < length - 1; i++) {
-       checksum += buf[i + 1];
-   }
-   checksum = (~checksum + 1);
+	// Generate checksum
+	for (i = 0; i < length - 1; i++)
+		checksum += buf[i + 1];
 
-   // Compare ckecksum and dump fail data
-   if (checksum != buf[length]) {
-       NVT_ERR("i2c/spi packet checksum not match. (point_data[%d]=0x%02X, checksum=0x%02X)\n",
-               length, buf[length], checksum);
+	checksum = (~checksum + 1);
 
-       for (i = 0; i < 10; i++) {
-           NVT_LOG("%02X %02X %02X %02X %02X %02X\n",
-                   buf[1 + i*6], buf[2 + i*6], buf[3 + i*6], buf[4 + i*6], buf[5 + i*6], buf[6 + i*6]);
-       }
-
-       NVT_LOG("%02X %02X %02X %02X %02X\n", buf[61], buf[62], buf[63], buf[64], buf[65]);
-
-       return -1;
-   }
-
-   return 0;
+	return checksum != buf[length] ? -EINVAL : 0;
 }
 
 #define POINT_DATA_LEN 65
@@ -1005,9 +970,8 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	uint32_t pen_battery = 0;
 
 #if WAKEUP_GESTURE
-	if (bTouchIsAwake == 0) {
+	if (!bTouchIsAwake)
 		pm_wakeup_event(&ts->input_dev->dev, 5000);
-	}
 #endif
 
 	mutex_lock(&ts->lock);
@@ -1020,14 +984,6 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		NVT_ERR("CTP_SPI_READ failed.(%d)\n", ret);
 		goto XFER_ERROR;
 	}
-/*
-	//--- dump SPI buf ---
-	for (i = 0; i < 10; i++) {
-		printk("%02X %02X %02X %02X %02X %02X  ",
-			point_data[1+i*6], point_data[2+i*6], point_data[3+i*6], point_data[4+i*6], point_data[5+i*6], point_data[6+i*6]);
-	}
-	printk("\n");
-*/
 
 	/* ESD protect by WDT */
 	if (nvt_wdt_fw_recovery(point_data)) {
@@ -1041,15 +997,14 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		goto XFER_ERROR;
 	}
 
-   if (POINT_DATA_LEN >= POINT_DATA_CHECKSUM_LEN) {
-       ret = nvt_ts_point_data_checksum(point_data, POINT_DATA_CHECKSUM_LEN);
-       if (ret) {
-           goto XFER_ERROR;
-       }
-   }
+	if (POINT_DATA_LEN >= POINT_DATA_CHECKSUM_LEN) {
+		ret = nvt_ts_point_data_checksum(point_data, POINT_DATA_CHECKSUM_LEN);
+		if (ret)
+			goto XFER_ERROR;
+	}
 
 #if WAKEUP_GESTURE
-	if (bTouchIsAwake == 0) {
+	if (!bTouchIsAwake) {
 		input_id = (uint8_t)(point_data[1] >> 3);
 #if NVT_WAKEUP_GESTURE_CUSTOMIZE
 		nvt_ts_wakeup_gesture_report_customize(input_id, point_data);
@@ -1157,8 +1112,6 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 				pen_btn1 = (uint32_t)(point_data[77] & 0x01);
 				pen_btn2 = (uint32_t)((point_data[77] >> 1) & 0x01);
 				pen_battery = (uint32_t)point_data[78];
-//				printk("x=%d,y=%d,p=%d,tx=%d,ty=%d,d=%d,b1=%d,b2=%d,bat=%d\n", pen_x, pen_y, pen_pressure,
-//						pen_tilt_x, pen_tilt_y, pen_distance, pen_btn1, pen_btn2, pen_battery);
 
 				// HACK invert xy
 				input_report_abs(ts->pen_input_dev, ABS_X, ts->abs_x_max * 2 - pen_x);
@@ -1187,6 +1140,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			input_report_abs(ts->pen_input_dev, ABS_TILT_X, 0);
 			input_report_abs(ts->pen_input_dev, ABS_TILT_Y, 0);
 			input_report_abs(ts->pen_input_dev, ABS_DISTANCE, 0);
+
 			input_report_key(ts->pen_input_dev, BTN_TOUCH, 0);
 			input_report_key(ts->pen_input_dev, BTN_TOOL_PEN, 0);
 			input_report_key(ts->pen_input_dev, BTN_STYLUS, 0);
@@ -1466,15 +1420,6 @@ static int nvt_ts_probe(struct spi_device *client)
 	// please make sure boot update start after display reset(RESX) sequence
 	queue_delayed_work(nvt_fwu_wq, &ts->nvt_fwu_work, msecs_to_jiffies(14000));
 
-#ifdef CHECK_TOUCH_VENDOR
-		// ret = init_lct_tp_info("[Vendor]unkown,[FW]unkown,[IC]unkown\n", NULL);
-		// if (ret < 0) {
-		// 	NVT_ERR("init_lct_tp_info Failed!\n");
-		// } else {
-		// 	NVT_LOG("init_lct_tp_info Succeeded!\n");
-		// }
-#endif
-
 	bTouchIsAwake = 1;
 
 	nvt_irq_enable(true);
@@ -1523,11 +1468,9 @@ static void nvt_ts_remove(struct spi_device *client)
 	mutex_destroy(&ts->xbuf_lock);
 	mutex_destroy(&ts->lock);
 
-	if (ts->pen_support) {
-		if (ts->pen_input_dev) {
-			input_unregister_device(ts->pen_input_dev);
-			ts->pen_input_dev = NULL;
-		}
+	if (ts->pen_input_dev) {
+		input_unregister_device(ts->pen_input_dev);
+		ts->pen_input_dev = NULL;
 	}
 
 	if (ts->input_dev) {
@@ -1536,11 +1479,6 @@ static void nvt_ts_remove(struct spi_device *client)
 	}
 
 	spi_set_drvdata(client, NULL);
-
-	if (ts) {
-		kfree(ts);
-		ts = NULL;
-	}
 }
 
 static void nvt_ts_shutdown(struct spi_device *client)
@@ -1642,7 +1580,7 @@ static int32_t nvt_ts_resume(struct device *dev)
 		return 0;
 	}
 
-	mutex_lock(&ts->lock);
+	guard(mutex)(&ts->lock);
 
 	NVT_LOG("start\n");
 
@@ -1659,16 +1597,7 @@ static int32_t nvt_ts_resume(struct device *dev)
 		nvt_irq_enable(true);
 	}
 
-#ifdef LCT_TP_WORK_EN
-	if (get_lct_tp_work_status())
-		nvt_irq_enable(true);
-	else
-		NVT_ERR("Touchscreen Disabled, Can't enable irq!");
-#endif
-
-	bTouchIsAwake = 1;
-
-	mutex_unlock(&ts->lock);
+	bTouchIsAwake = true;
 
 	NVT_LOG("end\n");
 
