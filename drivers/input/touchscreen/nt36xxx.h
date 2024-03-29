@@ -83,7 +83,7 @@ struct nvt_ts_data {
 	uint8_t y_num;
 	uint16_t abs_x_max;
 	uint16_t abs_y_max;
-	uint8_t max_touch_num;
+	uint8_t max_finger_num;
 	uint8_t max_button_num;
 	struct gpio_desc *reset_gpio;
 	struct mutex lock;

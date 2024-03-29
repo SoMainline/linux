@@ -325,8 +325,7 @@
 		reg = <0>;
 		interrupts-extended = <&tlmm 86 IRQ_TYPE_EDGE_BOTH>;
 		spi-max-frequency = <9600000>;
-		novatek,reset-gpio = <&tlmm 54 0>;
-		novatek,irq-gpio = <&tlmm 86 0x2008>;
+		reset-gpios = <&tlmm 54 0>;
 		novatek,spi-rd-fast-addr = <0x3f310>;
 		novatek,swrst-n8-addr = <0x3f0fe>;
 		novatek,pen-support;

@@ -342,6 +342,7 @@ Description:
 return:
 	n.a.
 *******************************************************/
+#define PEN_FORMAT_ID_NO_PEN			0xFF
 static irqreturn_t nvt_ts_work_func(int irq, void *data)
 {
 	struct nvt_ts_data *ts = data;
@@ -351,7 +352,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	uint32_t input_x = 0;
 	uint32_t input_y = 0;
 	uint32_t input_w = 0;
-	uint32_t input_p = 0;
+	u32 max_touch_pressure = 0;
 	uint8_t input_id = 0;
 	uint8_t press_id[TOUCH_MAX_FINGER_NUM] = {0};
 	int32_t i = 0;
@@ -415,10 +416,10 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 
 	finger_cnt = 0;
 
-	for (i = 0; i < ts->max_touch_num; i++) {
+	for (i = 0; i < ts->max_finger_num; i++) {
 		position = 1 + 6 * i;
 		input_id = (uint8_t)(point_data[position + 0] >> 3);
-		if ((input_id == 0) || (input_id > ts->max_touch_num))
+		if ((input_id == 0) || (input_id > ts->max_finger_num))
 			continue;
 
 		if (((point_data[position] & 0x07) == 0x01) || ((point_data[position] & 0x07) == 0x02)) {	//finger down (enter & moving)
@@ -432,32 +433,25 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			if (input_w == 0)
 				input_w = 1;
 			if (i < 2) {
-				input_p = (uint32_t)(point_data[position + 5]) + (uint32_t)(point_data[i + 63] << 8);
-				if (input_p > TOUCH_FORCE_NUM)
-					input_p = TOUCH_FORCE_NUM;
+				max_touch_pressure = (uint32_t)(point_data[position + 5]) + (uint32_t)(point_data[i + 63] << 8);
+				max_touch_pressure = min_t(u32, max_touch_pressure, TOUCH_FORCE_NUM);
 			} else {
-				input_p = (uint32_t)(point_data[position + 5]);
+				max_touch_pressure = (uint32_t)(point_data[position + 5]);
 			}
-			if (input_p == 0)
-				input_p = 1;
 
 			press_id[input_id - 1] = 1;
 			input_mt_slot(ts->input_dev, input_id - 1);
 			input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, true);
-
-			// input_report_abs(ts->input_dev, ABS_MT_POSITION_X, input_x);
-			// input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, input_y);
-
-			// TODO: touchscreen_set_mt_pos
 			touchscreen_report_pos(ts->input_dev, &ts->prop, input_x, input_y, true);
+
 			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, input_w);
-			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, input_p);
+			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, max_touch_pressure ?: 1);
 
 			finger_cnt++;
 		}
 	}
 
-	for (i = 0; i < ts->max_touch_num; i++) {
+	for (i = 0; i < ts->max_finger_num; i++) {
 		if (press_id[i] != 1) {
 			input_mt_slot(ts->input_dev, i);
 			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
@@ -480,7 +474,19 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 
 		// parse and handle pen report
 		pen_format_id = point_data[66];
-		if (pen_format_id != 0xFF) {
+		if (pen_format_id == PEN_FORMAT_ID_NO_PEN) {
+			input_report_abs(ts->pen_input_dev, ABS_X, 0);
+			input_report_abs(ts->pen_input_dev, ABS_Y, 0);
+			input_report_abs(ts->pen_input_dev, ABS_PRESSURE, 0);
+			input_report_abs(ts->pen_input_dev, ABS_TILT_X, 0);
+			input_report_abs(ts->pen_input_dev, ABS_TILT_Y, 0);
+			input_report_abs(ts->pen_input_dev, ABS_DISTANCE, 0);
+
+			input_report_key(ts->pen_input_dev, BTN_TOUCH, 0);
+			input_report_key(ts->pen_input_dev, BTN_TOOL_PEN, 0);
+			input_report_key(ts->pen_input_dev, BTN_STYLUS, 0);
+			input_report_key(ts->pen_input_dev, BTN_STYLUS2, 0);
+		} else {
 			if (pen_format_id == 0x01) {
 				// report pen data
 				pen_x = (uint32_t)(point_data[67] << 8) + (uint32_t)(point_data[68]);
@@ -513,18 +519,6 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 				NVT_ERR("Unknown pen format id!\n");
 				return IRQ_HANDLED;
 			}
-		} else { // pen_format_id = 0xFF, i.e. no pen present
-			input_report_abs(ts->pen_input_dev, ABS_X, 0);
-			input_report_abs(ts->pen_input_dev, ABS_Y, 0);
-			input_report_abs(ts->pen_input_dev, ABS_PRESSURE, 0);
-			input_report_abs(ts->pen_input_dev, ABS_TILT_X, 0);
-			input_report_abs(ts->pen_input_dev, ABS_TILT_Y, 0);
-			input_report_abs(ts->pen_input_dev, ABS_DISTANCE, 0);
-
-			input_report_key(ts->pen_input_dev, BTN_TOUCH, 0);
-			input_report_key(ts->pen_input_dev, BTN_TOOL_PEN, 0);
-			input_report_key(ts->pen_input_dev, BTN_STYLUS, 0);
-			input_report_key(ts->pen_input_dev, BTN_STYLUS2, 0);
 		}
 
 		input_sync(ts->pen_input_dev);
@@ -598,7 +592,7 @@ static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 	if (!ts->input_dev)
 		return -ENOMEM;
 
-	ts->max_touch_num = TOUCH_MAX_FINGER_NUM;
+	ts->max_finger_num = TOUCH_MAX_FINGER_NUM;
 
 	set_bit(EV_ABS, ts->input_dev->evbit);
 	set_bit(EV_KEY, ts->input_dev->evbit);
@@ -611,7 +605,7 @@ static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0); //area = 255
 	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0); //pressure = TOUCH_FORCE_NUM
 
-	ret = input_mt_init_slots(ts->input_dev, ts->max_touch_num, INPUT_MT_DIRECT);
+	ret = input_mt_init_slots(ts->input_dev, ts->max_finger_num, INPUT_MT_DIRECT);
 	if (ret)
 		return ret;
 
@@ -651,9 +645,6 @@ static int nt36xxx_pen_inputdev_init(struct nvt_ts_data *ts)
 	set_bit(BTN_TOOL_PEN, ts->pen_input_dev->keybit);
 	set_bit(BTN_STYLUS, ts->pen_input_dev->keybit);
 	set_bit(BTN_STYLUS2, ts->pen_input_dev->keybit);
-
-	set_bit(BTN_TOOL_MOUSE, ts->pen_input_dev->keybit);
-
 
 	/* Kernel document event-codes.txt suggest tablet device need to add property INPUT_PROP_DIRECT,
 		* but if add this property, pen cursor will not shown when hover.
@@ -904,7 +895,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	mutex_unlock(&ts->lock);
 
 	/* Release all touches */
-	for (i = 0; i < ts->max_touch_num; i++) {
+	for (i = 0; i < ts->max_finger_num; i++) {
 		input_mt_slot(ts->input_dev, i);
 		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 		input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
