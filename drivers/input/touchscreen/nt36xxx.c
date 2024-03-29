@@ -881,7 +881,8 @@ static void nvt_ts_remove(struct spi_device *client)
 		ts->nvt_fwu_wq = NULL;
 	}
 
-	nvt_irq_enable(ts, false);
+	if (ts->irq_enabled)
+		nvt_irq_enable(ts, false);
 
 	if (ts->pen_input_dev)
 		input_unregister_device(ts->pen_input_dev);
@@ -898,7 +899,8 @@ static void nvt_ts_shutdown(struct spi_device *client)
 
 	NVT_LOG("Shutdown driver...\n");
 
-	nvt_irq_enable(ts, false);
+	if (ts->irq_enabled)
+		nvt_irq_enable(ts, false);
 
 	if (ts->nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
