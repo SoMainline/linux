@@ -74,7 +74,7 @@ return:
 	n.a.
 *******************************************************/
 static void nvt_ts_wakeup_gesture_report_customize(struct nvt_ts_data *ts,
-						   uint8_t gesture_id, uint8_t *data)
+						   u8 gesture_id, u8 *data)
 {
 	u8 func_type = data[2];
 	u8 func_id = data[3];
@@ -127,11 +127,11 @@ Description:
 return:
 	n.a.
 *******************************************************/
-static void nvt_ts_wakeup_gesture_report(uint8_t gesture_id, uint8_t *data)
+static void nvt_ts_wakeup_gesture_report(u8 gesture_id, u8 *data)
 {
-	uint32_t keycode = 0;
-	uint8_t func_type = data[2];
-	uint8_t func_id = data[3];
+	u32 keycode = 0;
+	u8 func_type = data[2];
+	u8 func_id = data[3];
 
 	/* support fw specifal data protocol */
 	if ((gesture_id == DATA_PROTOCOL) && (func_type == FUNCPAGE_GESTURE)) {
@@ -253,7 +253,7 @@ static int32_t nvt_parse_dt(struct nvt_ts_data *ts)
 	return ret;
 }
 
-static uint8_t nvt_fw_recovery(uint8_t *point_data)
+static u8 nvt_fw_recovery(u8 *point_data)
 {
 	int i;
 
@@ -266,7 +266,7 @@ static uint8_t nvt_fw_recovery(uint8_t *point_data)
 }
 
 #define RECOVERY_COUNT_MAX		10
-static uint8_t nvt_wdt_fw_recovery(uint8_t *point_data)
+static u8 nvt_wdt_fw_recovery(u8 *point_data)
 {
 	bool recovery_enable = false;
 	static u8 recovery_cnt = 0;
@@ -292,9 +292,9 @@ static uint8_t nvt_wdt_fw_recovery(uint8_t *point_data)
 
 #define PEN_DATA_LEN 14
 #if CHECK_PEN_DATA_CHECKSUM
-static int32_t nvt_ts_pen_data_checksum(uint8_t *buf, uint8_t length)
+static int32_t nvt_ts_pen_data_checksum(u8 *buf, u8 length)
 {
-	uint8_t checksum = 0;
+	u8 checksum = 0;
 	int32_t i = 0;
 
 	// Calculate checksum
@@ -320,7 +320,7 @@ static int32_t nvt_ts_pen_data_checksum(uint8_t *buf, uint8_t length)
 }
 #endif // #if CHECK_PEN_DATA_CHECKSUM
 
-static int nvt_ts_point_data_checksum(uint8_t *buf, uint8_t length)
+static int nvt_ts_point_data_checksum(u8 *buf, u8 length)
 {
 	u8 checksum = 0;
 	int i;
@@ -345,28 +345,22 @@ return:
 #define PEN_FORMAT_ID_NO_PEN			0xFF
 static irqreturn_t nvt_ts_work_func(int irq, void *data)
 {
+	u8 point_data[POINT_DATA_LEN + PEN_DATA_LEN + 1 + DUMMY_BYTES] = { 0 };
+	bool finger_present[TOUCH_MAX_FINGER_NUM] = { false };
+	u32 touch_x, touch_y, touch_major;
+	bool any_finger_present = false;
+	u32 pen_pressure, pen_distance;
 	struct nvt_ts_data *ts = data;
-	int32_t ret = -1;
-	uint8_t point_data[POINT_DATA_LEN + PEN_DATA_LEN + 1 + DUMMY_BYTES] = { 0 };
-	uint32_t position = 0;
-	uint32_t input_x = 0;
-	uint32_t input_y = 0;
-	uint32_t input_w = 0;
-	u32 max_touch_pressure = 0;
-	uint8_t input_id = 0;
-	uint8_t press_id[TOUCH_MAX_FINGER_NUM] = {0};
-	int32_t i = 0;
-	int32_t finger_cnt = 0;
-	uint8_t pen_format_id = 0;
-	uint32_t pen_x = 0;
-	uint32_t pen_y = 0;
-	uint32_t pen_pressure = 0;
-	uint32_t pen_distance = 0;
-	int8_t pen_tilt_x = 0;
-	int8_t pen_tilt_y = 0;
-	uint32_t pen_btn1 = 0;
-	uint32_t pen_btn2 = 0;
-	uint32_t pen_battery = 0;
+	u32 pen_button1, pen_button2;
+	s8 pen_tilt_x, pen_tilt_y;
+	u32 max_touch_pressure;
+	u8 pen_format_id;
+	u32 pen_x, pen_y;
+	u32 pen_battery;
+	u8 input_id;
+	u32 index;
+	int ret;
+	int i;
 
 #if WAKEUP_GESTURE
 	if (!bTouchIsAwake)
@@ -404,7 +398,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 
 #if WAKEUP_GESTURE
 	if (!bTouchIsAwake) {
-		input_id = (uint8_t)(point_data[1] >> 3);
+		input_id = (u8)(point_data[1] >> 3);
 #if NVT_WAKEUP_GESTURE_CUSTOMIZE
 		nvt_ts_wakeup_gesture_report_customize(ts, input_id, point_data);
 #else
@@ -414,45 +408,45 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	}
 #endif
 
-	finger_cnt = 0;
-
 	for (i = 0; i < ts->max_finger_num; i++) {
-		position = 1 + 6 * i;
-		input_id = (uint8_t)(point_data[position + 0] >> 3);
-		if ((input_id == 0) || (input_id > ts->max_finger_num))
+		index = 1 + 6 * i;
+		input_id = (u8)(point_data[index + 0] >> 3);
+		if ((!input_id) || (input_id > ts->max_finger_num))
 			continue;
 
-		if (((point_data[position] & 0x07) == 0x01) || ((point_data[position] & 0x07) == 0x02)) {	//finger down (enter & moving)
-			input_x = (uint32_t)(point_data[position + 1] << 4) + (uint32_t) (point_data[position + 3] >> 4);
-			input_y = (uint32_t)(point_data[position + 2] << 4) + (uint32_t) (point_data[position + 3] & 0x0F);
-			if ((input_x < 0) || (input_y < 0))
+		if (((point_data[index] & 0x07) == 0x01) || ((point_data[index] & 0x07) == 0x02)) {	//finger down (enter & moving)
+			touch_x = (u32)(point_data[index + 1] << 4) + (u32) (point_data[index + 3] >> 4);
+			if (touch_x > ts->abs_x_max)
 				continue;
-			if ((input_x > ts->abs_x_max) || (input_y > ts->abs_y_max))
+
+			touch_y = (u32)(point_data[index + 2] << 4) + (u32) (point_data[index + 3] & 0x0F);
+			if (touch_y > ts->abs_y_max)
 				continue;
-			input_w = (uint32_t)(point_data[position + 4]);
-			if (input_w == 0)
-				input_w = 1;
+
+			touch_major = (u32)(point_data[index + 4]);
+
 			if (i < 2) {
-				max_touch_pressure = (uint32_t)(point_data[position + 5]) + (uint32_t)(point_data[i + 63] << 8);
+				max_touch_pressure = (u32)(point_data[index + 5]) + (u32)(point_data[i + 63] << 8);
 				max_touch_pressure = min_t(u32, max_touch_pressure, TOUCH_FORCE_NUM);
 			} else {
-				max_touch_pressure = (uint32_t)(point_data[position + 5]);
+				max_touch_pressure = (u32)(point_data[index + 5]);
 			}
 
-			press_id[input_id - 1] = 1;
+			finger_present[input_id - 1] = true;
 			input_mt_slot(ts->input_dev, input_id - 1);
 			input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, true);
-			touchscreen_report_pos(ts->input_dev, &ts->prop, input_x, input_y, true);
+			touchscreen_report_pos(ts->input_dev, &ts->prop, touch_x, touch_y, true);
 
-			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, input_w);
+			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, touch_major ?: 1);
 			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, max_touch_pressure ?: 1);
 
-			finger_cnt++;
+			any_finger_present = true;
 		}
 	}
 
+	/* "Untouch" all fingers that weren't reported with this irq */
 	for (i = 0; i < ts->max_finger_num; i++) {
-		if (press_id[i] != 1) {
+		if (!finger_present[i]) {
 			input_mt_slot(ts->input_dev, i);
 			input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
@@ -460,73 +454,72 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		}
 	}
 
-	input_report_key(ts->input_dev, BTN_TOUCH, (finger_cnt > 0));
-
+	input_report_key(ts->input_dev, BTN_TOUCH, any_finger_present);
 	input_sync(ts->input_dev);
 
-	if (ts->pen_support) {
+	if (!ts->pen_support)
+		return IRQ_HANDLED;
+
 #if CHECK_PEN_DATA_CHECKSUM
-		if (nvt_ts_pen_data_checksum(&point_data[66], PEN_DATA_LEN)) {
-			// pen data packet checksum not match, skip it
-			goto XFER_ERROR;
-		}
+	if (nvt_ts_pen_data_checksum(&point_data[66], PEN_DATA_LEN)) {
+		// pen data packet checksum not match, skip it
+		goto XFER_ERROR;
+	}
 #endif // #if CHECK_PEN_DATA_CHECKSUM
 
-		// parse and handle pen report
-		pen_format_id = point_data[66];
-		if (pen_format_id == PEN_FORMAT_ID_NO_PEN) {
-			input_report_abs(ts->pen_input_dev, ABS_X, 0);
-			input_report_abs(ts->pen_input_dev, ABS_Y, 0);
-			input_report_abs(ts->pen_input_dev, ABS_PRESSURE, 0);
-			input_report_abs(ts->pen_input_dev, ABS_TILT_X, 0);
-			input_report_abs(ts->pen_input_dev, ABS_TILT_Y, 0);
-			input_report_abs(ts->pen_input_dev, ABS_DISTANCE, 0);
+	// parse and handle pen report
+	pen_format_id = point_data[66];
+	if (pen_format_id == PEN_FORMAT_ID_NO_PEN) {
+		input_report_abs(ts->pen_input_dev, ABS_X, 0);
+		input_report_abs(ts->pen_input_dev, ABS_Y, 0);
+		input_report_abs(ts->pen_input_dev, ABS_PRESSURE, 0);
+		input_report_abs(ts->pen_input_dev, ABS_TILT_X, 0);
+		input_report_abs(ts->pen_input_dev, ABS_TILT_Y, 0);
+		input_report_abs(ts->pen_input_dev, ABS_DISTANCE, 0);
 
-			input_report_key(ts->pen_input_dev, BTN_TOUCH, 0);
-			input_report_key(ts->pen_input_dev, BTN_TOOL_PEN, 0);
-			input_report_key(ts->pen_input_dev, BTN_STYLUS, 0);
-			input_report_key(ts->pen_input_dev, BTN_STYLUS2, 0);
+		input_report_key(ts->pen_input_dev, BTN_TOUCH, 0);
+		input_report_key(ts->pen_input_dev, BTN_TOOL_PEN, 0);
+		input_report_key(ts->pen_input_dev, BTN_STYLUS, 0);
+		input_report_key(ts->pen_input_dev, BTN_STYLUS2, 0);
+	} else {
+		if (pen_format_id == 0x01) {
+			// report pen data
+			pen_x = (u32)(point_data[67] << 8) + (u32)(point_data[68]);
+			pen_y = (u32)(point_data[69] << 8) + (u32)(point_data[70]);
+			pen_pressure = (u32)(point_data[71] << 8) + (u32)(point_data[72]);
+			pen_tilt_x = (int32_t)point_data[73];
+			pen_tilt_y = (int32_t)point_data[74];
+			pen_distance = (u32)(point_data[75] << 8) + (u32)(point_data[76]);
+			pen_button1 = (u32)(point_data[77] & 0x01);
+			pen_button2 = (u32)((point_data[77] >> 1) & 0x01);
+
+			// TODO: returns 0x10 when the pen works ok, maybe check for "low bat" warnings?
+			pen_battery = (u32)point_data[78];
+
+			// HACK invert xy
+			input_report_abs(ts->pen_input_dev, ABS_X, ts->abs_x_max * 2 - pen_x);
+			input_report_abs(ts->pen_input_dev, ABS_Y, ts->abs_y_max * 2 - pen_y);
+
+			input_report_abs(ts->pen_input_dev, ABS_PRESSURE, pen_pressure);
+			input_report_key(ts->pen_input_dev, BTN_TOUCH, !!pen_pressure);
+			input_report_abs(ts->pen_input_dev, ABS_TILT_X, pen_tilt_x);
+			input_report_abs(ts->pen_input_dev, ABS_TILT_Y, pen_tilt_y);
+			input_report_abs(ts->pen_input_dev, ABS_DISTANCE, pen_distance);
+			input_report_key(ts->pen_input_dev, BTN_TOOL_PEN, !!pen_distance || !!pen_pressure);
+			input_report_key(ts->pen_input_dev, BTN_STYLUS, pen_button1);
+			input_report_key(ts->pen_input_dev, BTN_STYLUS2, pen_button2);
+		} else if (pen_format_id == 0xF0) {
+			// report Pen ID
 		} else {
-			if (pen_format_id == 0x01) {
-				// report pen data
-				pen_x = (uint32_t)(point_data[67] << 8) + (uint32_t)(point_data[68]);
-				pen_y = (uint32_t)(point_data[69] << 8) + (uint32_t)(point_data[70]);
-				pen_pressure = (uint32_t)(point_data[71] << 8) + (uint32_t)(point_data[72]);
-				pen_tilt_x = (int32_t)point_data[73];
-				pen_tilt_y = (int32_t)point_data[74];
-				pen_distance = (uint32_t)(point_data[75] << 8) + (uint32_t)(point_data[76]);
-				pen_btn1 = (uint32_t)(point_data[77] & 0x01);
-				pen_btn2 = (uint32_t)((point_data[77] >> 1) & 0x01);
-				pen_battery = (uint32_t)point_data[78];
-
-				// HACK invert xy
-				input_report_abs(ts->pen_input_dev, ABS_X, ts->abs_x_max * 2 - pen_x);
-				input_report_abs(ts->pen_input_dev, ABS_Y, ts->abs_y_max * 2 - pen_y);
-
-				input_report_abs(ts->pen_input_dev, ABS_PRESSURE, pen_pressure);
-				input_report_key(ts->pen_input_dev, BTN_TOUCH, !!pen_pressure);
-				input_report_abs(ts->pen_input_dev, ABS_TILT_X, pen_tilt_x);
-				input_report_abs(ts->pen_input_dev, ABS_TILT_Y, pen_tilt_y);
-				input_report_abs(ts->pen_input_dev, ABS_DISTANCE, pen_distance);
-				input_report_key(ts->pen_input_dev, BTN_TOOL_PEN, !!pen_distance || !!pen_pressure);
-				input_report_key(ts->pen_input_dev, BTN_STYLUS, pen_btn1);
-				input_report_key(ts->pen_input_dev, BTN_STYLUS2, pen_btn2);
-				// TBD: pen battery event report
-				// NVT_LOG("pen_battery=%d\n", pen_battery);
-			} else if (pen_format_id == 0xF0) {
-				// report Pen ID
-			} else {
-				NVT_ERR("Unknown pen format id!\n");
-				return IRQ_HANDLED;
-			}
+			NVT_ERR("Unknown pen format id!\n");
+			return IRQ_HANDLED;
 		}
-
-		input_sync(ts->pen_input_dev);
 	}
+
+	input_sync(ts->pen_input_dev);
 
 	return IRQ_HANDLED;
 }
-
 
 /*******************************************************
 Description:
@@ -535,7 +528,7 @@ Description:
 return:
 	Executive outcomes. 0---NVT IC. -1---not NVT IC.
 *******************************************************/
-static int8_t nvt_ts_check_chip_ver_trim(struct nvt_ts_data *ts, uint32_t chip_ver_trim_addr)
+static int8_t nvt_ts_check_chip_ver_trim(struct nvt_ts_data *ts, u32 chip_ver_trim_addr)
 {
 	u8 buf[8] = { 0 };
 	int retry = 0;
@@ -863,7 +856,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 {
 	struct spi_device *client = to_spi_device(dev);
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
-	uint8_t buf[4] = {0};
+	u8 buf[4] = {0};
 	int i;
 
 	if (!bTouchIsAwake) {
