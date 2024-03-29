@@ -482,7 +482,7 @@ return:
 *******************************************************/
 int32_t nvt_check_fw_reset_state(RST_COMPLETE_STATE check_reset_state)
 {
-	uint8_t buf[8] = {0};
+	uint8_t buf[8] = { 0 };
 	int32_t ret = 0;
 	int32_t retry = 0;
 	int32_t retry_max = (check_reset_state == RESET_STATE_INIT) ? 10 : 50;
@@ -525,7 +525,7 @@ return:
 *******************************************************/
 static int32_t nvt_read_pid(void)
 {
-	uint8_t buf[4] = {0};
+	uint8_t buf[4] = { 0 };
 	int32_t ret = 0;
 
 	//---set xdata index to EVENT BUF ADDR---
@@ -634,9 +634,9 @@ return:
 *******************************************************/
 static void nvt_ts_wakeup_gesture_report_customize(uint8_t gesture_id, uint8_t *data)
 {
-	uint32_t keycode = 0;
-	uint8_t func_type = data[2];
-	uint8_t func_id = data[3];
+	u8 func_type = data[2];
+	u8 func_id = data[3];
+	u32 keycode = 0;
 
 	/* support fw specifal data protocol */
 	if ((gesture_id == DATA_PROTOCOL) && (func_type == FUNCPAGE_GESTURE)) {
@@ -946,7 +946,7 @@ return:
 static irqreturn_t nvt_ts_work_func(int irq, void *data)
 {
 	int32_t ret = -1;
-	uint8_t point_data[POINT_DATA_LEN + PEN_DATA_LEN + 1 + DUMMY_BYTES] = {0};
+	uint8_t point_data[POINT_DATA_LEN + PEN_DATA_LEN + 1 + DUMMY_BYTES] = { 0 };
 	uint32_t position = 0;
 	uint32_t input_x = 0;
 	uint32_t input_y = 0;
@@ -972,7 +972,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		pm_wakeup_event(&ts->input_dev->dev, 5000);
 #endif
 
-	mutex_lock(&ts->lock);
+	guard(mutex)(&ts->lock);
 
 	if (ts->pen_support)
 		ret = CTP_SPI_READ(ts->client, point_data, POINT_DATA_LEN + PEN_DATA_LEN + 1);
@@ -980,25 +980,25 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		ret = CTP_SPI_READ(ts->client, point_data, POINT_DATA_LEN + 1);
 	if (ret < 0) {
 		NVT_ERR("CTP_SPI_READ failed.(%d)\n", ret);
-		goto XFER_ERROR;
+		return IRQ_HANDLED;
 	}
 
 	/* ESD protect by WDT */
 	if (nvt_wdt_fw_recovery(point_data)) {
 		NVT_ERR("Recover for fw reset, %02X\n", point_data[1]);
 		nvt_update_firmware(BOOT_UPDATE_FIRMWARE_NAME);
-		goto XFER_ERROR;
+		return IRQ_HANDLED;
 	}
 
 	/* ESD protect by FW handshake */
 	if (nvt_fw_recovery(point_data)) {
-		goto XFER_ERROR;
+		return IRQ_HANDLED;
 	}
 
 	if (POINT_DATA_LEN >= POINT_DATA_CHECKSUM_LEN) {
 		ret = nvt_ts_point_data_checksum(point_data, POINT_DATA_CHECKSUM_LEN);
 		if (ret)
-			goto XFER_ERROR;
+			return IRQ_HANDLED;
 	}
 
 #if WAKEUP_GESTURE
@@ -1009,7 +1009,6 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 #else
 		nvt_ts_wakeup_gesture_report(input_id, point_data);
 #endif
-		mutex_unlock(&ts->lock);
 		return IRQ_HANDLED;
 	}
 #endif
@@ -1112,7 +1111,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 				// report Pen ID
 			} else {
 				NVT_ERR("Unknown pen format id!\n");
-				goto XFER_ERROR;
+				return IRQ_HANDLED;
 			}
 		} else { // pen_format_id = 0xFF, i.e. no pen present
 			input_report_abs(ts->pen_input_dev, ABS_X, 0);
@@ -1129,11 +1128,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		}
 
 		input_sync(ts->pen_input_dev);
-	} /* if (ts->pen_support) */
-
-XFER_ERROR:
-
-	mutex_unlock(&ts->lock);
+	}
 
 	return IRQ_HANDLED;
 }
@@ -1148,15 +1143,11 @@ return:
 *******************************************************/
 static int8_t nvt_ts_check_chip_ver_trim(uint32_t chip_ver_trim_addr)
 {
-	uint8_t buf[8] = {0};
-	int32_t retry = 0;
-	int32_t list = 0;
-	int32_t i = 0;
-	int32_t found_nvt_chip = 0;
-	int32_t ret = -1;
+	u8 buf[8] = { 0 };
+	int retry = 0;
+	int i, index;
 
 	NVT_LOG("%s:enter\n",__func__);
-	//---Check for 5 times---
 	for (retry = 5; retry > 0; retry--) {
 		nvt_bootloader_reset();
 
@@ -1170,50 +1161,37 @@ static int8_t nvt_ts_check_chip_ver_trim(uint32_t chip_ver_trim_addr)
 		buf[5] = 0x00;
 		buf[6] = 0x00;
 		CTP_SPI_READ(ts->client, buf, 7);
-		NVT_LOG("buf[1]=0x%02X, buf[2]=0x%02X, buf[3]=0x%02X, buf[4]=0x%02X, buf[5]=0x%02X, buf[6]=0x%02X\n",
-			buf[1], buf[2], buf[3], buf[4], buf[5], buf[6]);
 
 		// compare read chip id on supported list
-		for (list = 0; list < (sizeof(trim_id_table) / sizeof(struct nvt_ts_trim_id_table)); list++) {
-			found_nvt_chip = 0;
-
+		for (index = 0; index < ARRAY_SIZE(trim_id_table); index++) {
 			// compare each byte
 			for (i = 0; i < NVT_ID_BYTE_MAX; i++) {
-				if (trim_id_table[list].mask[i]) {
-					if (buf[i + 1] != trim_id_table[list].id[i])
+				if (trim_id_table[index].mask[i]) {
+					if (buf[i + 1] != trim_id_table[index].id[i])
 						break;
 				}
 			}
 
 			if (i == NVT_ID_BYTE_MAX) {
-				found_nvt_chip = 1;
-			}
-
-			if (found_nvt_chip) {
 				NVT_LOG("This is NVT touch IC\n");
-				ts->mmap = trim_id_table[list].mmap;
-				ts->carrier_system = trim_id_table[list].hwinfo->carrier_system;
-				ts->hw_crc = trim_id_table[list].hwinfo->hw_crc;
-				ret = 0;
-				goto out;
-			} else {
-				ts->mmap = NULL;
-				ret = -1;
+				ts->mmap = trim_id_table[index].mmap;
+				ts->carrier_system = trim_id_table[index].hwinfo->carrier_system;
+				ts->hw_crc = trim_id_table[index].hwinfo->hw_crc;
+				return 0;
 			}
 		}
 
-		msleep(10);
+		usleep_range(10000, 11000);
 	}
 
-out:
-	return ret;
+	return -ENODEV;
 }
 
 static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 {
 	struct device *dev = &ts->client->dev;
-	int retry = 0;
 	int ret;
+	int i;
 
 	//---allocate input device---
 	ts->input_dev = devm_input_allocate_device(dev);
@@ -1231,17 +1209,16 @@ static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, ts->abs_x_max, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, ts->abs_y_max, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);    //area = 255
-	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0);    //pressure = TOUCH_FORCE_NUM
+	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0); //area = 255
+	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0); //pressure = TOUCH_FORCE_NUM
 
 	ret = input_mt_init_slots(ts->input_dev, ts->max_touch_num, INPUT_MT_DIRECT);
 	if (ret)
 		return ret;
 
 #if WAKEUP_GESTURE
-	for (retry = 0; retry < (sizeof(gesture_key_array) / sizeof(gesture_key_array[0])); retry++) {
-		input_set_capability(ts->input_dev, EV_KEY, gesture_key_array[retry]);
-	}
+	for (i = 0; i < ARRAY_SIZE(gesture_key_array); i++)
+		input_set_capability(ts->input_dev, EV_KEY, gesture_key_array[i]);
 #endif
 
 	sprintf(ts->phys, "input/ts");
@@ -1513,9 +1490,8 @@ static int32_t nvt_ts_suspend(struct device *dev)
 		return 0;
 	}
 
-	if (!ts->gesture_enabled) {
+	if (!ts->gesture_enabled)
 		nvt_irq_enable(false);
-	}
 
 	mutex_lock(&ts->lock);
 
@@ -1523,16 +1499,15 @@ static int32_t nvt_ts_suspend(struct device *dev)
 
 	bTouchIsAwake = false;
 
+	buf[0] = EVENT_MAP_HOST_CMD;
 	if (ts->gesture_enabled) {
 		//---write command to enter "wakeup gesture mode"---
-		buf[0] = EVENT_MAP_HOST_CMD;
 		buf[1] = 0x13;
 		CTP_SPI_WRITE(ts->client, buf, 2);
 		enable_irq_wake(ts->client->irq);
 		NVT_LOG("Enabled touch wakeup gesture\n");
 	} else {
 		//---write command to enter "deep sleep mode"---
-		buf[0] = EVENT_MAP_HOST_CMD;
 		buf[1] = 0x11;
 		CTP_SPI_WRITE(ts->client, buf, 2);
 		NVT_LOG("deep sleep mode\n");
