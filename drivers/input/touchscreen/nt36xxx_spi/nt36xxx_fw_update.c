@@ -33,11 +33,8 @@ static struct nvt_ts_bin_map *bin_map;
 
 static int nvt_get_fw_need_write_size(const struct firmware *fw_entry)
 {
-	int i = 0;
-	int total_sectors_to_check = 0;
-
-	total_sectors_to_check = fw_entry->size / FLASH_SECTOR_SIZE;
-	/* printk("total_sectors_to_check = %d\n", total_sectors_to_check); */
+	int total_sectors_to_check = fw_entry->size / FLASH_SECTOR_SIZE;
+	int i;
 
 	for (i = total_sectors_to_check; i > 0; i--) {
 		/* printk("current end flag address checked = 0x%X\n", i * FLASH_SECTOR_SIZE - NVT_FLASH_END_FLAG_LEN); */
@@ -57,6 +54,7 @@ static int nvt_get_fw_need_write_size(const struct firmware *fw_entry)
 	}
 
 	NVT_ERR("end flag \"NVT\" \"MOD\" not found!\n");
+
 	return -1;
 }
 
@@ -70,16 +68,12 @@ return:
 *******************************************************/
 static int nvt_download_init(void)
 {
-	/* allocate buffer for transfer firmware */
-	//NVT_LOG("NVT_TRANSFER_LEN = 0x%06X\n", NVT_TRANSFER_LEN);
+	if (fwbuf)
+		return 0;
 
-	if (fwbuf == NULL) {
-		fwbuf = (u8 *)kzalloc((NVT_TRANSFER_LEN + 1 + DUMMY_BYTES), GFP_KERNEL);
-		if(fwbuf == NULL) {
-			NVT_ERR("kzalloc for fwbuf failed!\n");
-			return -ENOMEM;
-		}
-	}
+	fwbuf = kzalloc((NVT_TRANSFER_LEN + 1 + DUMMY_BYTES), GFP_KERNEL);
+	if (!fwbuf)
+		return -ENOMEM;
 
 	return 0;
 }
@@ -94,10 +88,10 @@ return:
 *******************************************************/
 static u32 CheckSum(const u8 *data, size_t len)
 {
-	u32 i = 0;
 	u32 checksum = 0;
+	u32 i;
 
-	for (i = 0 ; i < len+1 ; i++)
+	for (i = 0; i <= len; i++)
 		checksum += data[i];
 
 	checksum += len;
@@ -163,7 +157,7 @@ static int nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 	 * [4]   Overlay Info
 	 */
 	ovly_info = (fwdata[0x28] & 0x10) >> 4;
-	ovly_sec_num = (ovly_info) ? (fwdata[0x28] & 0x0F) : 0;
+	ovly_sec_num = (ovly_info) ? (fwdata[0x28] & GENMASK(3, 0)) : 0;
 
 	/*
 	 * calculate all partition number
@@ -256,7 +250,7 @@ static int nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 			bin_map[list].BIN_addr = byte_to_word(fwdata, pos + 8);
 			if (ts->hw_crc)
 				bin_map[list].crc = byte_to_word(fwdata, pos + 12);
-			else { //ts->hw_crc
+			else {
 				if ((bin_map[list].BIN_addr + bin_map[list].size) < fwsize)
 					bin_map[list].crc = CheckSum(&fwdata[bin_map[list].BIN_addr], bin_map[list].size);
 				else {
@@ -264,7 +258,7 @@ static int nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 							bin_map[list].BIN_addr, bin_map[list].BIN_addr + bin_map[list].size);
 					return -EINVAL;
 				}
-			} //ts->hw_crc
+			}
 			sprintf(bin_map[list].name, "Overlay-%d", (list- ilm_dlm_num - info_sec_num));
 		}
 
@@ -402,7 +396,7 @@ static int nvt_write_sram(const u8 *fwdata,
 		//---write data into SRAM---
 		fwbuf[0] = SRAM_addr & 0x7F;	//offset
 		memcpy(fwbuf+1, &fwdata[BIN_addr], len);	//payload
-		ret = CTP_SPI_WRITE(ts->client, fwbuf, len+1);
+		ret = CTP_SPI_WRITE(ts->client, fwbuf, len + 1);
 		if (ret) {
 			NVT_ERR("write to sram failed, ret = %d\n", ret);
 			return ret;
@@ -413,7 +407,7 @@ static int nvt_write_sram(const u8 *fwdata,
 		size -= NVT_TRANSFER_LEN;
 	}
 
-	return ret;
+	return 0;
 }
 
 /*******************************************************
@@ -426,12 +420,12 @@ return:
 *******************************************************/
 static int nvt_write_firmware(const u8 *fwdata, size_t fwsize)
 {
+	u32 BIN_addr, SRAM_addr, size;
 	u32 list = 0;
 	char *name;
-	u32 BIN_addr, SRAM_addr, size;
-	int ret = 0;
+	int ret;
 
-	memset(fwbuf, 0, (NVT_TRANSFER_LEN+1));
+	memset(fwbuf, 0, (NVT_TRANSFER_LEN + 1));
 
 	for (list = 0; list < partition; list++) {
 		/* initialize variable */
@@ -444,8 +438,7 @@ static int nvt_write_firmware(const u8 *fwdata, size_t fwsize)
 		if ((BIN_addr + size) > fwsize) {
 			NVT_ERR("access range (0x%08X to 0x%08X) is larger than bin size!\n",
 					BIN_addr, BIN_addr + size);
-			ret = -EINVAL;
-			goto out;
+			return -EINVAL;
 		}
 
 		/* ignore reserved partition (Reserved Partition size is zero) */
@@ -458,12 +451,11 @@ static int nvt_write_firmware(const u8 *fwdata, size_t fwsize)
 		ret = nvt_write_sram(fwdata, SRAM_addr, size, BIN_addr);
 		if (ret) {
 			NVT_ERR("sram program failed, ret = %d\n", ret);
-			goto out;
+			return ret;
 		}
 	}
 
-out:
-	return ret;
+	return 0;
 }
 
 /*******************************************************
@@ -476,12 +468,12 @@ return:
 *******************************************************/
 static int nvt_check_fw_checksum(void)
 {
-	u32 fw_checksum = 0;
-	u32 len = partition*4;
+	u32 len = partition * 4;
+	u32 fw_checksum;
 	u32 list = 0;
-	int ret = 0;
+	int ret;
 
-	memset(fwbuf, 0, (len+1));
+	memset(fwbuf, 0, (len + 1));
 
 	//---set xdata index to checksum---
 	nvt_set_page(ts->mmap->R_ILM_CHECKSUM_ADDR);
@@ -503,7 +495,7 @@ static int nvt_check_fw_checksum(void)
 		fw_checksum = byte_to_word(fwbuf, 4 * list + 1);
 
 		/* ignore reserved partition (Reserved Partition size is zero) */
-		if(!bin_map[list].size)
+		if (!bin_map[list].size)
 			continue;
 
 		if (bin_map[list].crc != fw_checksum) {
@@ -525,36 +517,35 @@ return:
 	n.a.
 *******************************************************/
 static void nvt_set_bld_crc_bank(u32 DES_ADDR, u32 SRAM_ADDR,
-		u32 LENGTH_ADDR, u32 size,
-		u32 G_CHECKSUM_ADDR, u32 crc)
+				 u32 LENGTH_ADDR, u32 size,
+				 u32 G_CHECKSUM_ADDR, u32 crc)
 {
 	/* write destination address */
 	nvt_set_page(DES_ADDR);
 	fwbuf[0] = DES_ADDR & 0x7F;
-	fwbuf[1] = (SRAM_ADDR) & 0xFF;
-	fwbuf[2] = (SRAM_ADDR >> 8) & 0xFF;
-	fwbuf[3] = (SRAM_ADDR >> 16) & 0xFF;
+	fwbuf[1] = (SRAM_ADDR) & GENMASK(7, 0);
+	fwbuf[2] = (SRAM_ADDR >> 8) & GENMASK(7, 0);
+	fwbuf[3] = (SRAM_ADDR >> 16) & GENMASK(7, 0);
 	CTP_SPI_WRITE(ts->client, fwbuf, 4);
 
 	/* write length */
 	//nvt_set_page(LENGTH_ADDR);
 	fwbuf[0] = LENGTH_ADDR & 0x7F;
-	fwbuf[1] = (size) & 0xFF;
-	fwbuf[2] = (size >> 8) & 0xFF;
+	fwbuf[1] = (size) & GENMASK(7, 0);
+	fwbuf[2] = (size >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (size >> 16) & 0x01;
-	if (ts->hw_crc == 1) {
+	if (ts->hw_crc == 1)
 		CTP_SPI_WRITE(ts->client, fwbuf, 3);
-	} else if (ts->hw_crc > 1) {
+	else if (ts->hw_crc > 1)
 		CTP_SPI_WRITE(ts->client, fwbuf, 4);
-	}
 
 	/* write golden dlm checksum */
 	//nvt_set_page(G_CHECKSUM_ADDR);
 	fwbuf[0] = G_CHECKSUM_ADDR & 0x7F;
-	fwbuf[1] = (crc) & 0xFF;
-	fwbuf[2] = (crc >> 8) & 0xFF;
-	fwbuf[3] = (crc >> 16) & 0xFF;
-	fwbuf[4] = (crc >> 24) & 0xFF;
+	fwbuf[1] = (crc) & GENMASK(7, 0);
+	fwbuf[2] = (crc >> 8) & GENMASK(7, 0);
+	fwbuf[3] = (crc >> 16) & GENMASK(7, 0);
+	fwbuf[4] = (crc >> 24) & GENMASK(7, 0);
 	CTP_SPI_WRITE(ts->client, fwbuf, 5);
 
 	return;
@@ -612,7 +603,7 @@ static void nvt_read_bld_hw_crc(void)
 	buf[3] = 0x00;
 	buf[4] = 0x00;
 	CTP_SPI_READ(ts->client, buf, 5);
-	g_crc = buf[1] | (buf[2] << 8) | (buf[3] << 16) | (buf[4] << 24);
+	g_crc = byte_to_word(buf, 1);
 
 	nvt_set_page(ts->mmap->R_ILM_CHECKSUM_ADDR);
 	buf[0] = ts->mmap->R_ILM_CHECKSUM_ADDR & 0x7F;
@@ -621,7 +612,7 @@ static void nvt_read_bld_hw_crc(void)
 	buf[3] = 0x00;
 	buf[4] = 0x00;
 	CTP_SPI_READ(ts->client, buf, 5);
-	r_crc = buf[1] | (buf[2] << 8) | (buf[3] << 16) | (buf[4] << 24);
+	r_crc = byte_to_word(buf, 1);
 
 	NVT_ERR("ilm: bin crc = 0x%08X, golden = 0x%08X, result = 0x%08X\n",
 			bin_map[0].crc, g_crc, r_crc);
@@ -634,7 +625,7 @@ static void nvt_read_bld_hw_crc(void)
 	buf[3] = 0x00;
 	buf[4] = 0x00;
 	CTP_SPI_READ(ts->client, buf, 5);
-	g_crc = buf[1] | (buf[2] << 8) | (buf[3] << 16) | (buf[4] << 24);
+	g_crc = byte_to_word(buf, 1);
 
 	nvt_set_page(ts->mmap->R_DLM_CHECKSUM_ADDR);
 	buf[0] = ts->mmap->R_DLM_CHECKSUM_ADDR & 0x7F;
@@ -643,7 +634,7 @@ static void nvt_read_bld_hw_crc(void)
 	buf[3] = 0x00;
 	buf[4] = 0x00;
 	CTP_SPI_READ(ts->client, buf, 5);
-	r_crc = buf[1] | (buf[2] << 8) | (buf[3] << 16) | (buf[4] << 24);
+	r_crc = byte_to_word(buf, 1);
 
 	NVT_ERR("dlm: bin crc = 0x%08X, golden = 0x%08X, result = 0x%08X\n",
 			bin_map[1].crc, g_crc, r_crc);
@@ -829,9 +820,8 @@ int nvt_update_firmware(char *firmware_name)
 
 	/* Get FW Info */
 	ret = nvt_get_fw_info();
-	if (ret) {
+	if (ret)
 		NVT_ERR("nvt_get_fw_info failed. (%d)\n", ret);
-	}
 
 download_fail:
 	if (!IS_ERR_OR_NULL(bin_map)) {
