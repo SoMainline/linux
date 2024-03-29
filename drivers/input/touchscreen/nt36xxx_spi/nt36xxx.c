@@ -4,6 +4,7 @@
  * Copyright (c) 2024, Linaro Ltd.
  */
 
+#include <linux/cleanup.h>
 #include <linux/gpio.h>
 #include <linux/input/mt.h>
 #include <linux/interrupt.h>
@@ -25,7 +26,7 @@ struct nvt_ts_data *ts;
 static struct workqueue_struct *nvt_fwu_wq;
 extern void Boot_Update_Firmware(struct work_struct *work);
 
-uint32_t ENG_RST_ADDR  = 0x7FFF80;
+#define ENG_RST_ADDR		0x7FFF80
 uint32_t SWRST_N8_ADDR = 0; //read from dtsi
 uint32_t SPI_RD_FAST_ADDR = 0;	//read from dtsi
 
@@ -61,16 +62,14 @@ static void nvt_irq_enable(bool enable)
 	struct irq_desc *desc;
 
 	if (enable) {
-		if (!ts->irq_enabled) {
+		if (!ts->irq_enabled)
 			enable_irq(ts->client->irq);
-			ts->irq_enabled = true;
-		}
 	} else {
-		if (ts->irq_enabled) {
+		if (ts->irq_enabled)
 			disable_irq(ts->client->irq);
-			ts->irq_enabled = false;
-		}
 	}
+
+	ts->irq_enabled = enable;
 
 	desc = irq_to_desc(ts->client->irq);
 	NVT_LOG("enable=%d, desc->depth=%d\n", enable, desc->depth);
@@ -107,6 +106,7 @@ static inline int32_t spi_read_write(struct spi_device *client,
 
 	spi_message_init(&m);
 	spi_message_add_tail(&t, &m);
+
 	return spi_sync(client, &m);
 }
 
@@ -122,7 +122,7 @@ int32_t CTP_SPI_READ(struct spi_device *client, uint8_t *buf, uint16_t len)
 	int32_t ret = -1;
 	int32_t retries = 0;
 
-	mutex_lock(&ts->xbuf_lock);
+	guard(mutex)(&ts->xbuf_lock);
 
 	buf[0] = SPI_READ_MASK(buf[0]);
 
@@ -139,8 +139,6 @@ int32_t CTP_SPI_READ(struct spi_device *client, uint8_t *buf, uint16_t len)
 		memcpy((buf+1), (ts->rbuf+2), (len-1));
 	}
 
-	mutex_unlock(&ts->xbuf_lock);
-
 	return ret;
 }
 
@@ -156,7 +154,7 @@ int32_t CTP_SPI_WRITE(struct spi_device *client, uint8_t *buf, uint16_t len)
 	int32_t ret = -1;
 	int32_t retries = 0;
 
-	mutex_lock(&ts->xbuf_lock);
+	guard(mutex)(&ts->xbuf_lock);
 
 	buf[0] = SPI_WRITE_MASK(buf[0]);
 
@@ -170,8 +168,6 @@ int32_t CTP_SPI_WRITE(struct spi_device *client, uint8_t *buf, uint16_t len)
 		NVT_ERR("error, ret=%d\n", ret);
 		ret = -EIO;
 	}
-
-	mutex_unlock(&ts->xbuf_lock);
 
 	return ret;
 }
@@ -581,10 +577,10 @@ return:
 *******************************************************/
 int32_t nvt_get_fw_info(void)
 {
+	char fw_version[64] = { 0 };
 	uint8_t buf[64] = {0};
 	uint32_t retry_count = 0;
 	int32_t ret = 0;
-	char fw_version[64];
 
 info_retry:
 	//---set xdata index to EVENT BUF ADDR---
@@ -629,12 +625,9 @@ info_retry:
 		ret = 0;
 	}
 
-#ifdef CHECK_TOUCH_VENDOR
-	memset(fw_version,0,sizeof(fw_version));
-	sprintf(fw_version,"[Vendor]novatek,[FW]0x%02x,[IC]nt36523w\n",ts->fw_ver);
+	sprintf(fw_version, "[Vendor]novatek,[FW]0x%02x,[IC]nt36523w\n", ts->fw_ver);
 	// memcpy/strcpy
 	// update_lct_tp_info(fw_version,NULL);
-#endif
 
 	NVT_LOG("fw_ver = 0x%02X, fw_type = 0x%02X\n", ts->fw_ver, buf[14]);
 
@@ -856,7 +849,6 @@ static int nvt_gpio_config(struct nvt_ts_data *ts)
 		ret = gpio_request_one(ts->reset_gpio, GPIOF_OUT_INIT_LOW, "NVT-tp-rst");
 		if (ret) {
 			NVT_ERR("Failed to request NVT-tp-rst GPIO\n");
-			goto err_request_reset_gpio;
 		}
 	}
 #endif
@@ -874,7 +866,7 @@ static int nvt_gpio_config(struct nvt_ts_data *ts)
 
 err_request_irq_gpio:
 	gpio_free(ts->reset_gpio);
-err_request_reset_gpio:
+
 	return ret;
 }
 
@@ -894,7 +886,6 @@ static uint8_t nvt_fw_recovery(uint8_t *point_data)
 	return detected;
 }
 
-#if NVT_TOUCH_WDT_RECOVERY
 #define RECOVERY_COUNT_MAX		10
 static uint8_t nvt_wdt_fw_recovery(uint8_t *point_data)
 {
@@ -919,7 +910,6 @@ static uint8_t nvt_wdt_fw_recovery(uint8_t *point_data)
 
 	return recovery_enable;
 }
-#endif	/* #if NVT_TOUCH_WDT_RECOVERY */
 
 #define PEN_DATA_LEN 14
 #if CHECK_PEN_DATA_CHECKSUM
@@ -1039,14 +1029,12 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	printk("\n");
 */
 
-#if NVT_TOUCH_WDT_RECOVERY
-   /* ESD protect by WDT */
-   if (nvt_wdt_fw_recovery(point_data)) {
-       NVT_ERR("Recover for fw reset, %02X\n", point_data[1]);
-       nvt_update_firmware(BOOT_UPDATE_FIRMWARE_NAME);
-       goto XFER_ERROR;
-   }
-#endif /* #if NVT_TOUCH_WDT_RECOVERY */
+	/* ESD protect by WDT */
+	if (nvt_wdt_fw_recovery(point_data)) {
+		NVT_ERR("Recover for fw reset, %02X\n", point_data[1]);
+		nvt_update_firmware(BOOT_UPDATE_FIRMWARE_NAME);
+		goto XFER_ERROR;
+	}
 
 	/* ESD protect by FW handshake */
 	if (nvt_fw_recovery(point_data)) {
@@ -1286,41 +1274,6 @@ static int8_t nvt_ts_check_chip_ver_trim(uint32_t chip_ver_trim_addr)
 out:
 	return ret;
 }
-
-#if LCT_TP_WORK_EN
-static void nvt_ts_release_all_finger(void)
-{
-	struct input_dev *input_dev = ts->input_dev;
-#if MT_PROTOCOL_B
-	u32 finger_count = 0;
-	u32 max_touches = ts->max_touch_num;
-#endif
-
-	mutex_lock(&ts->lock);
-#if MT_PROTOCOL_B
-	for (finger_count = 0; finger_count < max_touches; finger_count++) {
-		input_mt_slot(input_dev, finger_count);
-		input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, false);
-	}
-#else
-	input_mt_sync(input_dev);
-#endif
-	input_report_key(input_dev, BTN_TOUCH, 0);
-	input_sync(input_dev);
-	mutex_unlock(&ts->lock);
-	NVT_LOG("release all finger\n");
-}
-
-static int lct_nvt_tp_work_callback(bool en)
-{
-	nvt_irq_enable(en);
-	if (!en)
-		nvt_ts_release_all_finger();
-	set_lct_tp_work_status(en);
-	NVT_LOG("%s Touchpad\n", en?"Enable":"Disable");
-	return 0;
-}
-#endif
 
 static int nvt_ts_probe(struct spi_device *client)
 {
