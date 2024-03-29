@@ -1240,7 +1240,6 @@ static int nvt_ts_probe(struct spi_device *client)
 	if (ret < 0)
 		return dev_err_probe(dev, ret, "Failed to perform SPI setup\n");
 
-	//---parse dts---
 	ret = nvt_parse_dt(&client->dev);
 	if (ret) {
 		NVT_ERR("parse dt error\n");
@@ -1332,7 +1331,6 @@ static int nvt_ts_probe(struct spi_device *client)
 
 		set_bit(BTN_TOUCH, ts->pen_input_dev->keybit);
 		set_bit(BTN_TOOL_PEN, ts->pen_input_dev->keybit);
-		// set_bit(BTN_TOOL_RUBBER, ts->pen_input_dev->keybit);
 		set_bit(BTN_STYLUS, ts->pen_input_dev->keybit);
 		set_bit(BTN_STYLUS2, ts->pen_input_dev->keybit);
 
@@ -1496,7 +1494,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 		return 0;
 	}
 
-	if(!ts->gesture_enabled) {
+	if (!ts->gesture_enabled) {
 		nvt_irq_enable(false);
 	}
 

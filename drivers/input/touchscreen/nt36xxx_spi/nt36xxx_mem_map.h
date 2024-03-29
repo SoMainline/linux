@@ -64,7 +64,7 @@ struct nvt_ts_hw_info {
 	uint8_t hw_crc;
 };
 
-static const struct nvt_ts_mem_map NT36523_memory_map = {
+static const struct nvt_ts_mem_map nt36523_memory_map = {
 	.EVENT_BUF_ADDR           = 0x2FE00,
 	.RAW_PIPE0_ADDR           = 0x30FA0,
 	.RAW_PIPE1_ADDR           = 0x30FA0,
@@ -115,7 +115,7 @@ static const struct nvt_ts_mem_map NT36523_memory_map = {
 	.DMA_CRC_FLAG_ADDR        = 0x3F134,
 };
 
-static const struct nvt_ts_mem_map NT36526_memory_map = {
+static const struct nvt_ts_mem_map nt36526_memory_map = {
 	.EVENT_BUF_ADDR           = 0x22D00,
 	.RAW_PIPE0_ADDR           = 0x24000,
 	.RAW_PIPE1_ADDR           = 0x24000,
@@ -149,7 +149,7 @@ static const struct nvt_ts_mem_map NT36526_memory_map = {
 };
 
 
-static const struct nvt_ts_mem_map NT36675_memory_map = {
+static const struct nvt_ts_mem_map nt36675_memory_map = {
 	.EVENT_BUF_ADDR           = 0x22D00,
 	.RAW_PIPE0_ADDR           = 0x24000,
 	.RAW_PIPE1_ADDR           = 0x24000,
@@ -183,7 +183,7 @@ static const struct nvt_ts_mem_map NT36675_memory_map = {
 };
 
 
-static const struct nvt_ts_mem_map NT36672A_memory_map = {
+static const struct nvt_ts_mem_map nt36672a_memory_map = {
 	.EVENT_BUF_ADDR           = 0x21C00,
 	.RAW_PIPE0_ADDR           = 0x20000,
 	.RAW_PIPE1_ADDR           = 0x23000,
@@ -216,7 +216,7 @@ static const struct nvt_ts_mem_map NT36672A_memory_map = {
 	.DMA_CRC_FLAG_ADDR        = 0x3F134,
 };
 
-static const struct nvt_ts_mem_map NT36772_memory_map = {
+static const struct nvt_ts_mem_map nt36772_memory_map = {
 	.EVENT_BUF_ADDR           = 0x11E00,
 	.RAW_PIPE0_ADDR           = 0x10000,
 	.RAW_PIPE1_ADDR           = 0x12000,
@@ -237,7 +237,7 @@ static const struct nvt_ts_mem_map NT36772_memory_map = {
 	.R_ILM_CHECKSUM_ADDR      = 0x1BF00,
 };
 
-static const struct nvt_ts_mem_map NT36525_memory_map = {
+static const struct nvt_ts_mem_map nt36525_memory_map = {
 	.EVENT_BUF_ADDR           = 0x11A00,
 	.RAW_PIPE0_ADDR           = 0x10000,
 	.RAW_PIPE1_ADDR           = 0x12000,
@@ -258,7 +258,7 @@ static const struct nvt_ts_mem_map NT36525_memory_map = {
 	.R_ILM_CHECKSUM_ADDR      = 0x1BF00,
 };
 
-static const struct nvt_ts_mem_map NT36676F_memory_map = {
+static const struct nvt_ts_mem_map nt36676f_memory_map = {
 	.EVENT_BUF_ADDR           = 0x11A00,
 	.RAW_PIPE0_ADDR           = 0x10000,
 	.RAW_PIPE1_ADDR           = 0x12000,
@@ -274,39 +274,19 @@ static const struct nvt_ts_mem_map NT36676F_memory_map = {
 	.RW_FLASH_DATA_ADDR       = 0x14002,
 };
 
-static struct nvt_ts_hw_info NT36523_hw_info = {
+static const struct nvt_ts_hw_info hw_info_2_2 = {
 	.carrier_system = 2,
-	.hw_crc         = 2,
+	.hw_crc = 2,
 };
 
-static struct nvt_ts_hw_info NT36526_hw_info = {
-	.carrier_system = 2,
-	.hw_crc         = 2,
-};
-
-static struct nvt_ts_hw_info NT36675_hw_info = {
-	.carrier_system = 2,
-	.hw_crc         = 2,
-};
-
-static struct nvt_ts_hw_info NT36672A_hw_info = {
+static const struct nvt_ts_hw_info hw_info_0_1 = {
 	.carrier_system = 0,
-	.hw_crc         = 1,
+	.hw_crc = 1,
 };
 
-static struct nvt_ts_hw_info NT36772_hw_info = {
+static const struct nvt_ts_hw_info hw_info_0_0 = {
 	.carrier_system = 0,
-	.hw_crc         = 0,
-};
-
-static struct nvt_ts_hw_info NT36525_hw_info = {
-	.carrier_system = 0,
-	.hw_crc         = 0,
-};
-
-static struct nvt_ts_hw_info NT36676F_hw_info = {
-	.carrier_system = 0,
-	.hw_crc         = 0,
+	.hw_crc = 0,
 };
 
 #define NVT_ID_BYTE_MAX 6
@@ -318,58 +298,167 @@ struct nvt_ts_trim_id_table {
 };
 
 static const struct nvt_ts_trim_id_table trim_id_table[] = {
-	{.id = {0x20, 0xFF, 0xFF, 0x23, 0x65, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36523_memory_map,  .hwinfo = &NT36523_hw_info},
-	{.id = {0x0C, 0xFF, 0xFF, 0x23, 0x65, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36523_memory_map,  .hwinfo = &NT36523_hw_info},
-	{.id = {0x0B, 0xFF, 0xFF, 0x23, 0x65, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36523_memory_map,  .hwinfo = &NT36523_hw_info},
-	{.id = {0x0A, 0xFF, 0xFF, 0x23, 0x65, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36523_memory_map,  .hwinfo = &NT36523_hw_info},
-	{.id = {0xFF, 0xFF, 0xFF, 0x23, 0x65, 0x03}, .mask = {0, 0, 0, 1, 1, 1},
-		.mmap = &NT36523_memory_map,  .hwinfo = &NT36523_hw_info},
-	{.id = {0x0C, 0xFF, 0xFF, 0x72, 0x66, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36675_memory_map,  .hwinfo = &NT36675_hw_info},
-	{.id = {0xFF, 0xFF, 0xFF, 0x26, 0x65, 0x03}, .mask = {0, 0, 0, 1, 1, 1},
-		.mmap = &NT36526_memory_map,  .hwinfo = &NT36526_hw_info},
-	{.id = {0xFF, 0xFF, 0xFF, 0x75, 0x66, 0x03}, .mask = {0, 0, 0, 1, 1, 1},
-		.mmap = &NT36675_memory_map,  .hwinfo = &NT36675_hw_info},
-	{.id = {0x0B, 0xFF, 0xFF, 0x72, 0x66, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36672A_memory_map, .hwinfo = &NT36672A_hw_info},
-	{.id = {0x0B, 0xFF, 0xFF, 0x82, 0x66, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36672A_memory_map, .hwinfo = &NT36672A_hw_info},
-	{.id = {0x0B, 0xFF, 0xFF, 0x25, 0x65, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36672A_memory_map, .hwinfo = &NT36672A_hw_info},
-	{.id = {0x0A, 0xFF, 0xFF, 0x72, 0x65, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36672A_memory_map, .hwinfo = &NT36672A_hw_info},
-	{.id = {0x0A, 0xFF, 0xFF, 0x72, 0x66, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36672A_memory_map, .hwinfo = &NT36672A_hw_info},
-	{.id = {0x0A, 0xFF, 0xFF, 0x82, 0x66, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36672A_memory_map, .hwinfo = &NT36672A_hw_info},
-	{.id = {0x0A, 0xFF, 0xFF, 0x70, 0x66, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36672A_memory_map, .hwinfo = &NT36672A_hw_info},
-	{.id = {0x0B, 0xFF, 0xFF, 0x70, 0x66, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36672A_memory_map, .hwinfo = &NT36672A_hw_info},
-	{.id = {0x0A, 0xFF, 0xFF, 0x72, 0x67, 0x03}, .mask = {1, 0, 0, 1, 1, 1},
-		.mmap = &NT36672A_memory_map, .hwinfo = &NT36672A_hw_info},
-	{.id = {0x55, 0x00, 0xFF, 0x00, 0x00, 0x00}, .mask = {1, 1, 0, 1, 1, 1},
-		.mmap = &NT36772_memory_map,  .hwinfo = &NT36772_hw_info},
-	{.id = {0x55, 0x72, 0xFF, 0x00, 0x00, 0x00}, .mask = {1, 1, 0, 1, 1, 1},
-		.mmap = &NT36772_memory_map,  .hwinfo = &NT36772_hw_info},
-	{.id = {0xAA, 0x00, 0xFF, 0x00, 0x00, 0x00}, .mask = {1, 1, 0, 1, 1, 1},
-		.mmap = &NT36772_memory_map,  .hwinfo = &NT36772_hw_info},
-	{.id = {0xAA, 0x72, 0xFF, 0x00, 0x00, 0x00}, .mask = {1, 1, 0, 1, 1, 1},
-		.mmap = &NT36772_memory_map,  .hwinfo = &NT36772_hw_info},
-	{.id = {0xFF, 0xFF, 0xFF, 0x72, 0x67, 0x03}, .mask = {0, 0, 0, 1, 1, 1},
-		.mmap = &NT36772_memory_map,  .hwinfo = &NT36772_hw_info},
-	{.id = {0xFF, 0xFF, 0xFF, 0x70, 0x66, 0x03}, .mask = {0, 0, 0, 1, 1, 1},
-		.mmap = &NT36772_memory_map,  .hwinfo = &NT36772_hw_info},
-	{.id = {0xFF, 0xFF, 0xFF, 0x70, 0x67, 0x03}, .mask = {0, 0, 0, 1, 1, 1},
-		.mmap = &NT36772_memory_map,  .hwinfo = &NT36772_hw_info},
-	{.id = {0xFF, 0xFF, 0xFF, 0x72, 0x66, 0x03}, .mask = {0, 0, 0, 1, 1, 1},
-		.mmap = &NT36772_memory_map,  .hwinfo = &NT36772_hw_info},
-	{.id = {0xFF, 0xFF, 0xFF, 0x25, 0x65, 0x03}, .mask = {0, 0, 0, 1, 1, 1},
-		.mmap = &NT36525_memory_map,  .hwinfo = &NT36525_hw_info},
-	{.id = {0xFF, 0xFF, 0xFF, 0x76, 0x66, 0x03}, .mask = {0, 0, 0, 1, 1, 1},
-		.mmap = &NT36676F_memory_map, .hwinfo = &NT36676F_hw_info}
+	{
+		/* nt36523 */
+		.id = { 0x20, 0xff, 0xff, 0x23, 0x65, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36523_memory_map,
+		.hwinfo = &hw_info_2_2,
+	}, {
+		/* nt36523 */
+		.id = { 0x0c, 0xff, 0xff, 0x23, 0x65, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36523_memory_map,
+		.hwinfo = &hw_info_2_2,
+	}, {
+		/* nt36523 */
+		.id = { 0x0b, 0xff, 0xff, 0x23, 0x65, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36523_memory_map,
+		.hwinfo = &hw_info_2_2,
+	}, {
+		/* nt36523 */
+		.id = { 0x0a, 0xff, 0xff, 0x23, 0x65, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36523_memory_map,
+		.hwinfo = &hw_info_2_2,
+	}, {
+		/* nt36523 */
+		.id = { 0xff, 0xff, 0xff, 0x23, 0x65, 0x03 },
+		.mask = { 0, 0, 0, 1, 1, 1 },
+		.mmap = &nt36523_memory_map,
+		.hwinfo = &hw_info_2_2,
+	}, {
+		/* nt36675 */
+		.id = { 0x0c, 0xff, 0xff, 0x72, 0x66, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36675_memory_map,
+		.hwinfo = &hw_info_2_2,
+	}, {
+		/* nt36526 */
+		.id = { 0xff, 0xff, 0xff, 0x26, 0x65, 0x03 },
+		.mask = { 0, 0, 0, 1, 1, 1 },
+		.mmap = &nt36526_memory_map,
+		.hwinfo = &hw_info_2_2,
+	}, {
+		/* nt36675 */
+		.id = { 0xff, 0xff, 0xff, 0x75, 0x66, 0x03 },
+		.mask = { 0, 0, 0, 1, 1, 1 },
+		.mmap = &nt36675_memory_map,
+		.hwinfo = &hw_info_2_2,
+	}, {
+		/* nt36672a */
+		.id = { 0x0b, 0xff, 0xff, 0x72, 0x66, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36672a_memory_map,
+		.hwinfo = &hw_info_0_1,
+	}, {
+		/* nt36672a */
+		.id = { 0x0b, 0xff, 0xff, 0x82, 0x66, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36672a_memory_map,
+		.hwinfo = &hw_info_0_1,
+	}, {
+		/* nt36672a */
+		.id = { 0x0b, 0xff, 0xff, 0x25, 0x65, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36672a_memory_map,
+		.hwinfo = &hw_info_0_1,
+	}, {
+		/* nt36672a */
+		.id = { 0x0a, 0xff, 0xff, 0x72, 0x65, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36672a_memory_map,
+		.hwinfo = &hw_info_0_1,
+	}, {
+		/* nt36672a */
+		.id = { 0x0a, 0xff, 0xff, 0x72, 0x66, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36672a_memory_map,
+		.hwinfo = &hw_info_0_1,
+	}, {
+		/* nt36672a */
+		.id = { 0x0a, 0xff, 0xff, 0x82, 0x66, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36672a_memory_map,
+		.hwinfo = &hw_info_0_1,
+	}, {
+		/* nt36672a */
+		.id = { 0x0a, 0xff, 0xff, 0x70, 0x66, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36672a_memory_map,
+		.hwinfo = &hw_info_0_1,
+	}, {
+		/* nt36672a */
+		.id = { 0x0b, 0xff, 0xff, 0x70, 0x66, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36672a_memory_map,
+		.hwinfo = &hw_info_0_1,
+	}, {
+		/* nt36672a */
+		.id = { 0x0a, 0xff, 0xff, 0x72, 0x67, 0x03 },
+		.mask = { 1, 0, 0, 1, 1, 1 },
+		.mmap = &nt36672a_memory_map,
+		.hwinfo = &hw_info_0_1,
+	}, {
+		/* nt36772 */
+		.id = { 0x55, 0x00, 0xff, 0x00, 0x00, 0x00 },
+		.mask = { 1, 1, 0, 1, 1, 1 },
+		.mmap = &nt36772_memory_map,
+		.hwinfo = &hw_info_0_0,
+	}, {
+		/* nt36772 */
+		.id = { 0x55, 0x72, 0xff, 0x00, 0x00, 0x00 },
+		.mask = { 1, 1, 0, 1, 1, 1 },
+		.mmap = &nt36772_memory_map,
+		.hwinfo = &hw_info_0_0,
+	}, {
+		/* nt36772 */
+		.id = { 0xaa, 0x00, 0xff, 0x00, 0x00, 0x00 },
+		.mask = { 1, 1, 0, 1, 1, 1 },
+		.mmap = &nt36772_memory_map,
+		.hwinfo = &hw_info_0_0,
+	}, {
+		/* nt36772 */
+		.id = { 0xaa, 0x72, 0xff, 0x00, 0x00, 0x00 },
+		.mask = { 1, 1, 0, 1, 1, 1 },
+		.mmap = &nt36772_memory_map,
+		.hwinfo = &hw_info_0_0,
+	}, {
+		/* nt36772 */
+		.id = { 0xff, 0xff, 0xff, 0x72, 0x67, 0x03 },
+		.mask = { 0, 0, 0, 1, 1, 1 },
+		.mmap = &nt36772_memory_map,
+		.hwinfo = &hw_info_0_0,
+	}, {
+		/* nt36772 */
+		.id = { 0xff, 0xff, 0xff, 0x70, 0x66, 0x03 },
+		.mask = { 0, 0, 0, 1, 1, 1 },
+		.mmap = &nt36772_memory_map,
+		.hwinfo = &hw_info_0_0,
+	}, {
+		/* nt36772 */
+		.id = { 0xff, 0xff, 0xff, 0x70, 0x67, 0x03 },
+		.mask = { 0, 0, 0, 1, 1, 1 },
+		.mmap = &nt36772_memory_map,
+		.hwinfo = &hw_info_0_0,
+	}, {
+		/* nt36772 */
+		.id = { 0xff, 0xff, 0xff, 0x72, 0x66, 0x03 },
+		.mask = { 0, 0, 0, 1, 1, 1 },
+		.mmap = &nt36772_memory_map,
+		.hwinfo = &hw_info_0_0,
+	}, {
+		/* nt36525 */
+		.id = { 0xff, 0xff, 0xff, 0x25, 0x65, 0x03 },
+		.mask = { 0, 0, 0, 1, 1, 1 },
+		.mmap = &nt36525_memory_map,
+		.hwinfo = &hw_info_0_0,
+	}, {
+		/* nt36676f */
+		.id = { 0xff, 0xff, 0xff, 0x76, 0x66, 0x03 },
+		.mask = { 0, 0, 0, 1, 1, 1 },
+		.mmap = &nt36676f_memory_map,
+		.hwinfo = &hw_info_0_0,
+	}
 };
