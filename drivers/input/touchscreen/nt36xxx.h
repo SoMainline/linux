@@ -24,27 +24,8 @@
 #include <linux/spi/spi.h>
 #include <linux/uaccess.h>
 #include <linux/input/touchscreen.h>
-#define LCT_TP_WORK_EN 1
-#include "../lct_tp_info.h"
-#include "../lct_tp_selftest.h"
-#ifdef LCT_TP_WORK_EN
-#include "../lct_tp_work.h"
-#endif
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/earlysuspend.h>
-#endif
 
 #include "nt36xxx_mem_map.h"
-
-#ifdef CONFIG_MTK_SPI
-/* Please copy mt_spi.h file under mtk spi driver folder */
-#include "mt_spi.h"
-#endif
-
-#ifdef CONFIG_SPI_MT65XX
-#include <linux/platform_data/spi-mt65xx.h>
-#endif
 
 #define NVT_DEBUG 1
 
@@ -92,15 +73,9 @@ extern const uint16_t gesture_key_array[];
 #define POINT_DATA_CHECKSUM_LEN 65
 #define CHECK_PEN_DATA_CHECKSUM 0
 
-//---ESD Protect.---
-#define NVT_TOUCH_ESD_PROTECT 0
-#define NVT_TOUCH_ESD_CHECK_PERIOD 1500	/* ms */
-#define NVT_TOUCH_WDT_RECOVERY 1
-
 struct nvt_ts_data {
 	struct spi_device *client;
 	struct input_dev *input_dev;
-	struct delayed_work nvt_fwu_work;
 	uint16_t addr;
 	int8_t phys[32];
 	uint8_t fw_ver;
@@ -133,6 +108,10 @@ struct nvt_ts_data {
 #endif
 	struct touchscreen_properties prop;
 	struct touchscreen_properties pen_prop;
+	u32 swrst_n8_addr;
+	u32 spi_rd_fast_addr;
+	struct workqueue_struct *nvt_fwu_wq;
+	struct delayed_work nvt_fwu_work;
 };
 
 #if NVT_TOUCH_PROC
@@ -170,30 +149,24 @@ typedef enum {
 	NVTREAD  = 1
 } NVT_SPI_RW;
 
-//---extern structures---
-extern struct nvt_ts_data *ts;
-
 //---extern functions---
-int32_t CTP_SPI_READ(struct spi_device *client, uint8_t *buf, uint16_t len);
-int32_t CTP_SPI_WRITE(struct spi_device *client, uint8_t *buf, uint16_t len);
-void nvt_bootloader_reset(void);
-void nvt_eng_reset(void);
-void nvt_sw_reset(void);
-void nvt_sw_reset_idle(void);
-void nvt_boot_ready(void);
-void nvt_bld_crc_enable(void);
-void nvt_fw_crc_enable(void);
-void nvt_tx_auto_copy_mode(void);
-int32_t nvt_update_firmware(char *firmware_name);
-int32_t nvt_check_fw_reset_state(RST_COMPLETE_STATE check_reset_state);
-int32_t nvt_get_fw_info(void);
-int32_t nvt_clear_fw_status(void);
-int32_t nvt_check_fw_status(void);
-int32_t nvt_check_spi_dma_tx_info(void);
-int32_t nvt_set_page(uint32_t addr);
-int32_t nvt_write_addr(uint32_t addr, uint8_t data);
-#if NVT_TOUCH_ESD_PROTECT
-extern void nvt_esd_check_enable(uint8_t enable);
-#endif /* #if NVT_TOUCH_ESD_PROTECT */
+extern int CTP_SPI_READ(struct spi_device *client, uint8_t *buf, uint16_t len);
+extern int CTP_SPI_WRITE(struct spi_device *client, uint8_t *buf, uint16_t len);
+void nvt_bootloader_reset(struct nvt_ts_data *ts);
+void nvt_eng_reset(struct nvt_ts_data *ts);
+void nvt_sw_reset(struct nvt_ts_data *ts);
+void nvt_sw_reset_idle(struct nvt_ts_data *ts);
+void nvt_boot_ready(struct nvt_ts_data *ts);
+void nvt_bld_crc_enable(struct nvt_ts_data *ts);
+void nvt_fw_crc_enable(struct nvt_ts_data *ts);
+void nvt_tx_auto_copy_mode(struct nvt_ts_data *ts);
+int nvt_update_firmware(struct nvt_ts_data *ts, char *firmware_name);
+int nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_reset_state);
+int nvt_get_fw_info(struct nvt_ts_data *ts);
+int nvt_clear_fw_status(struct nvt_ts_data *ts);
+int nvt_check_fw_status(struct nvt_ts_data *ts);
+int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts);
+int nvt_set_page(struct nvt_ts_data *ts, uint32_t addr);
+int nvt_write_addr(struct nvt_ts_data *ts, uint32_t addr, uint8_t data);
 
-#endif /* _LINUX_NVT_TOUCH_H */
+#endif

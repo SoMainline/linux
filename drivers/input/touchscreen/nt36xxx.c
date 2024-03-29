@@ -9,6 +9,7 @@
 #include <linux/input/mt.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
+#include <linux/irqnr.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of_gpio.h>
@@ -19,16 +20,8 @@
 
 #include "nt36xxx.h"
 
-struct nvt_ts_data *ts;
-
 // TODO: BOOT_UPDATE_FIRMWARE should prob be a module parameter
 // obv true for flashless chips, default to false for flash-equipped ones
-static struct workqueue_struct *nvt_fwu_wq;
-extern void Boot_Update_Firmware(struct work_struct *work);
-
-#define ENG_RST_ADDR		0x7FFF80
-uint32_t SWRST_N8_ADDR = 0; //read from dtsi
-uint32_t SPI_RD_FAST_ADDR = 0;	//read from dtsi
 
 #if WAKEUP_GESTURE
 const uint16_t gesture_key_array[] = {
@@ -50,7 +43,7 @@ const uint16_t gesture_key_array[] = {
 
 static bool bTouchIsAwake = 0;
 
-static void nvt_irq_enable(bool enable)
+static void nvt_irq_enable(struct nvt_ts_data *ts, bool enable)
 {
 	struct irq_desc *desc;
 
@@ -65,529 +58,8 @@ static void nvt_irq_enable(bool enable)
 
 	ts->irq_enabled = enable;
 
-	desc = irq_to_desc(ts->client->irq);
+	desc = irq_data_to_desc(irq_get_irq_data(ts->client->irq));
 	NVT_LOG("enable=%d, desc->depth=%d\n", enable, desc->depth);
-}
-
-static inline int32_t spi_read_write(struct spi_device *client,
-				     uint8_t *buf, size_t len,
-				     NVT_SPI_RW rw)
-{
-	struct spi_transfer t = { .len = len };
-	struct spi_message m;
-
-	memset(ts->xbuf, 0, len + DUMMY_BYTES);
-	memcpy(ts->xbuf, buf, len);
-
-	switch (rw) {
-		case NVTREAD:
-			t.tx_buf = ts->xbuf;
-			t.rx_buf = ts->rbuf;
-			t.len = (len + DUMMY_BYTES);
-			break;
-
-		case NVTWRITE:
-			t.tx_buf = ts->xbuf;
-			break;
-	}
-
-	spi_message_init(&m);
-	spi_message_add_tail(&t, &m);
-
-	return spi_sync(client, &m);
-}
-
-int32_t CTP_SPI_READ(struct spi_device *client, uint8_t *buf, uint16_t len)
-{
-	int32_t ret = -1;
-	int32_t retries = 0;
-
-	guard(mutex)(&ts->xbuf_lock);
-
-	buf[0] = SPI_READ_MASK(buf[0]);
-
-	while (retries < 5) {
-		ret = spi_read_write(client, buf, len, NVTREAD);
-		if (ret == 0) break;
-		retries++;
-	}
-
-	if (unlikely(retries == 5)) {
-		NVT_ERR("read error, ret=%d\n", ret);
-		ret = -EIO;
-	} else {
-		memcpy((buf+1), (ts->rbuf+2), (len-1));
-	}
-
-	return ret;
-}
-
-#define SPI_WRITE_MAX_RETRIES		5
-int32_t CTP_SPI_WRITE(struct spi_device *client, uint8_t *buf, uint16_t len)
-{
-	int32_t retries = 0;
-	int32_t ret = -1;
-
-	guard(mutex)(&ts->xbuf_lock);
-
-	buf[0] = SPI_WRITE_MASK(buf[0]);
-
-	while (retries < SPI_WRITE_MAX_RETRIES && ret) {
-		ret = spi_read_write(client, buf, len, NVTWRITE);
-		retries++;
-	}
-
-	return ret;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen set index/page/addr address.
-
-return:
-	Executive outcomes. 0---succeed. -5---access fail.
-*******************************************************/
-int32_t nvt_set_page(uint32_t addr)
-{
-	uint8_t buf[4] = {0};
-
-	buf[0] = 0xFF;	//set index/page/addr command
-	buf[1] = (addr >> 15) & 0xFF;
-	buf[2] = (addr >> 7) & 0xFF;
-
-	return CTP_SPI_WRITE(ts->client, buf, 3);
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen write data to specify address.
-
-return:
-	Executive outcomes. 0---succeed. -5---access fail.
-*******************************************************/
-int32_t nvt_write_addr(uint32_t addr, uint8_t data)
-{
-	int32_t ret = 0;
-	uint8_t buf[4] = {0};
-
-	//---set xdata index---
-	buf[0] = 0xFF;	//set index/page/addr command
-	buf[1] = (addr >> 15) & 0xFF;
-	buf[2] = (addr >> 7) & 0xFF;
-	ret = CTP_SPI_WRITE(ts->client, buf, 3);
-	if (ret) {
-		NVT_ERR("set page 0x%06X failed, ret = %d\n", addr, ret);
-		return ret;
-	}
-
-	//---write data to index---
-	buf[0] = addr & (0x7F);
-	buf[1] = data;
-	ret = CTP_SPI_WRITE(ts->client, buf, 2);
-	if (ret) {
-		NVT_ERR("write data to 0x%06X failed, ret = %d\n", addr, ret);
-		return ret;
-	}
-
-	return ret;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen enable hw bld crc function.
-
-return:
-	N/A.
-*******************************************************/
-void nvt_bld_crc_enable(void)
-{
-	uint8_t buf[4] = { 0 };
-
-	//---set xdata index to BLD_CRC_EN_ADDR---
-	nvt_set_page(ts->mmap->BLD_CRC_EN_ADDR);
-
-	//---read data from index---
-	buf[0] = ts->mmap->BLD_CRC_EN_ADDR & (0x7F);
-	buf[1] = 0xFF;
-	CTP_SPI_READ(ts->client, buf, 2);
-
-	//---write data to index---
-	buf[0] = ts->mmap->BLD_CRC_EN_ADDR & (0x7F);
-	buf[1] = buf[1] | (0x01 << 7);
-	CTP_SPI_WRITE(ts->client, buf, 2);
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen clear status & enable fw crc function.
-
-return:
-	N/A.
-*******************************************************/
-void nvt_fw_crc_enable(void)
-{
-	uint8_t buf[4] = { 0 };
-
-	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts->mmap->EVENT_BUF_ADDR);
-
-	//---clear fw reset status---
-	buf[0] = EVENT_MAP_RESET_COMPLETE & (0x7F);
-	buf[1] = 0x00;
-	CTP_SPI_WRITE(ts->client, buf, 2);
-
-	//---enable fw crc---
-	buf[0] = EVENT_MAP_HOST_CMD & (0x7F);
-	buf[1] = 0xAE;	//enable fw crc command
-	CTP_SPI_WRITE(ts->client, buf, 2);
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen set boot ready function.
-
-return:
-	N/A.
-*******************************************************/
-void nvt_boot_ready(void)
-{
-	//---write BOOT_RDY status cmds---
-	nvt_write_addr(ts->mmap->BOOT_RDY_ADDR, 1);
-
-	mdelay(5);
-
-	if (!ts->hw_crc) {
-		//---write BOOT_RDY status cmds---
-		nvt_write_addr(ts->mmap->BOOT_RDY_ADDR, 0);
-
-		//---write POR_CD cmds---
-		nvt_write_addr(ts->mmap->POR_CD_ADDR, 0xA0);
-	}
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen enable auto copy mode function.
-
-return:
-	N/A.
-*******************************************************/
-void nvt_tx_auto_copy_mode(void)
-{
-	//---write TX_AUTO_COPY_EN cmds---
-	nvt_write_addr(ts->mmap->TX_AUTO_COPY_EN, 0x69);
-
-	NVT_ERR("tx auto copy mode enable\n");
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen check spi dma tx info function.
-
-return:
-	N/A.
-*******************************************************/
-#define SPI_DMA_TX_INFO_MAX_RETRIES	200
-int nvt_check_spi_dma_tx_info(void)
-{
-	uint8_t buf[8] = { 0 };
-	int i;
-
-	for (i = 0; i < SPI_DMA_TX_INFO_MAX_RETRIES; i++) {
-		//---set xdata index to EVENT BUF ADDR---
-		nvt_set_page(ts->mmap->SPI_DMA_TX_INFO);
-
-		//---read fw status---
-		buf[0] = ts->mmap->SPI_DMA_TX_INFO & 0x7F;
-		buf[1] = 0xFF;
-		CTP_SPI_READ(ts->client, buf, 2);
-
-		if (buf[1] == 0x00)
-			break;
-
-		usleep_range(1000, 1010);
-	}
-
-	return i == SPI_DMA_TX_INFO_MAX_RETRIES;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen eng reset cmd
-    function.
-
-return:
-	n.a.
-*******************************************************/
-void nvt_eng_reset(void)
-{
-	//---eng reset cmds to ENG_RST_ADDR---
-	nvt_write_addr(ENG_RST_ADDR, 0x5A);
-
-	mdelay(1);	//wait tMCU_Idle2TP_REX_Hi after TP_RST
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen reset MCU
-    function.
-
-return:
-	n.a.
-*******************************************************/
-void nvt_sw_reset(void)
-{
-	//---software reset cmds to SWRST_N8_ADDR---
-	nvt_write_addr(SWRST_N8_ADDR, 0x55);
-
-	msleep(10);
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen reset MCU then into idle mode
-    function.
-
-return:
-	n.a.
-*******************************************************/
-void nvt_sw_reset_idle(void)
-{
-	//---MCU idle cmds to SWRST_N8_ADDR---
-	nvt_write_addr(SWRST_N8_ADDR, 0xAA);
-
-	msleep(15);
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen reset MCU (boot) function.
-
-return:
-	n.a.
-*******************************************************/
-void nvt_bootloader_reset(void)
-{
-	//---reset cmds to SWRST_N8_ADDR---
-	nvt_write_addr(SWRST_N8_ADDR, 0x69);
-
-	mdelay(5);	//wait tBRST2FR after Bootload RST
-
-	if (SPI_RD_FAST_ADDR) {
-		/* disable SPI_RD_FAST */
-		nvt_write_addr(SPI_RD_FAST_ADDR, 0x00);
-	}
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen clear FW status function.
-
-return:
-	Executive outcomes. 0---succeed. -1---fail.
-*******************************************************/
-#define CLEAR_FW_STATUS_MAX_RETRIES	20
-int32_t nvt_clear_fw_status(void)
-{
-	uint8_t buf[8] = { 0 };
-	int i;
-
-	for (i = 0; i < CLEAR_FW_STATUS_MAX_RETRIES; i++) {
-		//---set xdata index to EVENT BUF ADDR---
-		nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
-
-		//---clear fw status---
-		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
-		buf[1] = 0x00;
-		CTP_SPI_WRITE(ts->client, buf, 2);
-
-		//---read fw status---
-		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
-		buf[1] = 0xFF;
-		CTP_SPI_READ(ts->client, buf, 2);
-
-		if (buf[1] == 0x00)
-			break;
-
-		usleep_range(10000, 10000);
-	}
-
-	return i == CLEAR_FW_STATUS_MAX_RETRIES;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen check FW status function.
-
-return:
-	Executive outcomes. 0---succeed. -1---failed.
-*******************************************************/
-#define CHECK_FW_STATUS_MAX_RETRIES	20
-int32_t nvt_check_fw_status(void)
-{
-	uint8_t buf[8] = { 0 };
-	int i = 0;
-
-	for (i = 0; i < CHECK_FW_STATUS_MAX_RETRIES; i++) {
-		//---set xdata index to EVENT BUF ADDR---
-		nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
-
-		//---read fw status---
-		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
-		buf[1] = 0x00;
-		CTP_SPI_READ(ts->client, buf, 2);
-
-		if ((buf[1] & 0xF0) == 0xA0)
-			break;
-
-		usleep_range(10000, 10000);
-	}
-
-	return i == CHECK_FW_STATUS_MAX_RETRIES;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen check FW reset state function.
-
-return:
-	Executive outcomes. 0---succeed. -1---failed.
-*******************************************************/
-int32_t nvt_check_fw_reset_state(RST_COMPLETE_STATE check_reset_state)
-{
-	uint8_t buf[8] = { 0 };
-	int32_t ret = 0;
-	int32_t retry = 0;
-	int32_t retry_max = (check_reset_state == RESET_STATE_INIT) ? 10 : 50;
-
-	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_RESET_COMPLETE);
-
-	while (1) {
-		//---read reset state---
-		buf[0] = EVENT_MAP_RESET_COMPLETE;
-		buf[1] = 0x00;
-		CTP_SPI_READ(ts->client, buf, 6);
-
-		if ((buf[1] >= check_reset_state) && (buf[1] <= RESET_STATE_MAX)) {
-			ret = 0;
-			break;
-		}
-
-		retry++;
-		if(unlikely(retry > retry_max)) {
-			NVT_ERR("error, retry=%d, buf[1]=0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X\n",
-				retry, buf[1], buf[2], buf[3], buf[4], buf[5]);
-			ret = -1;
-			break;
-		}
-
-		usleep_range(10000, 10000);
-	}
-
-	return ret;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen get novatek project id information
-	function.
-
-return:
-	Executive outcomes. 0---success. -1---fail.
-*******************************************************/
-static int32_t nvt_read_pid(void)
-{
-	uint8_t buf[4] = { 0 };
-	int32_t ret = 0;
-
-	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_PROJECTID);
-
-	//---read project id---
-	buf[0] = EVENT_MAP_PROJECTID;
-	buf[1] = 0x00;
-	buf[2] = 0x00;
-	CTP_SPI_READ(ts->client, buf, 3);
-
-	ts->nvt_pid = (buf[2] << 8) + buf[1];
-
-	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts->mmap->EVENT_BUF_ADDR);
-
-	NVT_LOG("PID=%04X\n", ts->nvt_pid);
-
-	return ret;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen get firmware related information
-	function.
-
-return:
-	Executive outcomes. 0---success. -1---fail.
-*******************************************************/
-int32_t nvt_get_fw_info(void)
-{
-	char fw_version[64] = { 0 };
-	uint8_t buf[64] = {0};
-	uint32_t retry_count = 0;
-	int32_t ret = 0;
-
-info_retry:
-	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_FWINFO);
-
-	//---read fw info---
-	buf[0] = EVENT_MAP_FWINFO;
-	CTP_SPI_READ(ts->client, buf, 39);
-	ts->fw_ver = buf[1];
-	ts->x_num = buf[3];
-	ts->y_num = buf[4];
-	ts->abs_x_max = (uint16_t)((buf[5] << 8) | buf[6]);
-	ts->abs_y_max = (uint16_t)((buf[7] << 8) | buf[8]);
-	ts->max_button_num = buf[11];
-	ts->cascade = buf[34] & 0x01;
-	if (ts->pen_support) {
-		ts->x_gang_num = buf[37];
-		ts->y_gang_num = buf[38];
-	}
-
-	//---clear x_num, y_num if fw info is broken---
-	if ((buf[1] + buf[2]) != 0xFF) {
-		NVT_ERR("FW info is broken! fw_ver=0x%02X, ~fw_ver=0x%02X\n", buf[1], buf[2]);
-		ts->fw_ver = 0;
-		ts->x_num = 18;
-		ts->y_num = 32;
-		ts->abs_x_max = TOUCH_DEFAULT_MAX_WIDTH;
-		ts->abs_y_max = TOUCH_DEFAULT_MAX_HEIGHT;
-
-		if(retry_count < 3) {
-			retry_count++;
-			NVT_ERR("retry_count=%d\n", retry_count);
-			goto info_retry;
-		} else {
-			NVT_ERR("Set default fw_ver=%d, x_num=%d, y_num=%d, "
-					"abs_x_max=%d, abs_y_max=%d, max_button_num=%d!\n",
-					ts->fw_ver, ts->x_num, ts->y_num,
-					ts->abs_x_max, ts->abs_y_max, ts->max_button_num);
-			ret = -1;
-		}
-	} else {
-		ret = 0;
-	}
-
-	sprintf(fw_version, "[Vendor]novatek,[FW]0x%02x,[IC]nt36523w\n", ts->fw_ver);
-	// memcpy/strcpy
-	// update_lct_tp_info(fw_version,NULL);
-
-	NVT_LOG("fw_ver = 0x%02X, fw_type = 0x%02X\n", ts->fw_ver, buf[14]);
-
-	//---Get Novatek PID---
-	nvt_read_pid();
-
-	return ret;
 }
 
 #if WAKEUP_GESTURE
@@ -605,7 +77,8 @@ Description:
 return:
 	n.a.
 *******************************************************/
-static void nvt_ts_wakeup_gesture_report_customize(uint8_t gesture_id, uint8_t *data)
+static void nvt_ts_wakeup_gesture_report_customize(struct nvt_ts_data *ts,
+						   uint8_t gesture_id, uint8_t *data)
 {
 	u8 func_type = data[2];
 	u8 func_id = data[3];
@@ -748,9 +221,9 @@ Description:
 return:
 	n.a.
 *******************************************************/
-static int32_t nvt_parse_dt(struct device *dev)
+static int32_t nvt_parse_dt(struct nvt_ts_data *ts)
 {
-	struct device_node *np = dev->of_node;
+	struct device_node *np = ts->client->dev.of_node;
 	int32_t ret = 0;
 
 	ts->reset_gpio = of_get_named_gpio(np, "novatek,reset-gpio", 0);
@@ -765,21 +238,21 @@ static int32_t nvt_parse_dt(struct device *dev)
 	ts->wgp_stylus = of_property_read_bool(np, "novatek,wgp-stylus");
 	NVT_LOG("novatek,wgp-stylus=%d\n", ts->wgp_stylus);
 
-	ret = of_property_read_u32(np, "novatek,swrst-n8-addr", &SWRST_N8_ADDR);
+	ret = of_property_read_u32(np, "novatek,swrst-n8-addr", &ts->swrst_n8_addr);
 	if (ret) {
 		NVT_ERR("error reading novatek,swrst-n8-addr. ret=%d\n", ret);
 		return ret;
 	} else {
-		NVT_LOG("SWRST_N8_ADDR=0x%06X\n", SWRST_N8_ADDR);
+		NVT_LOG("swrst_n8_addr=0x%06X\n", ts->swrst_n8_addr);
 	}
 
-	ret = of_property_read_u32(np, "novatek,spi-rd-fast-addr", &SPI_RD_FAST_ADDR);
+	ret = of_property_read_u32(np, "novatek,spi-rd-fast-addr", &ts->spi_rd_fast_addr);
 	if (ret) {
 		NVT_LOG("not support novatek,spi-rd-fast-addr\n");
-		SPI_RD_FAST_ADDR = 0;
+		ts->spi_rd_fast_addr = 0;
 		ret = 0;
 	} else {
-		NVT_LOG("SPI_RD_FAST_ADDR=0x%06X\n", SPI_RD_FAST_ADDR);
+		NVT_LOG("spi_rd_fast_addr=0x%06X\n", ts->spi_rd_fast_addr);
 	}
 
 	return ret;
@@ -918,6 +391,7 @@ return:
 *******************************************************/
 static irqreturn_t nvt_ts_work_func(int irq, void *data)
 {
+	struct nvt_ts_data *ts = data;
 	int32_t ret = -1;
 	uint8_t point_data[POINT_DATA_LEN + PEN_DATA_LEN + 1 + DUMMY_BYTES] = { 0 };
 	uint32_t position = 0;
@@ -959,7 +433,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	/* ESD protect by WDT */
 	if (nvt_wdt_fw_recovery(point_data)) {
 		NVT_ERR("Recover for fw reset, %02X\n", point_data[1]);
-		nvt_update_firmware(BOOT_UPDATE_FIRMWARE_NAME);
+		nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME);
 		return IRQ_HANDLED;
 	}
 
@@ -978,7 +452,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	if (!bTouchIsAwake) {
 		input_id = (uint8_t)(point_data[1] >> 3);
 #if NVT_WAKEUP_GESTURE_CUSTOMIZE
-		nvt_ts_wakeup_gesture_report_customize(input_id, point_data);
+		nvt_ts_wakeup_gesture_report_customize(ts, input_id, point_data);
 #else
 		nvt_ts_wakeup_gesture_report(input_id, point_data);
 #endif
@@ -1114,7 +588,7 @@ Description:
 return:
 	Executive outcomes. 0---NVT IC. -1---not NVT IC.
 *******************************************************/
-static int8_t nvt_ts_check_chip_ver_trim(uint32_t chip_ver_trim_addr)
+static int8_t nvt_ts_check_chip_ver_trim(struct nvt_ts_data *ts, uint32_t chip_ver_trim_addr)
 {
 	u8 buf[8] = { 0 };
 	int retry = 0;
@@ -1122,9 +596,9 @@ static int8_t nvt_ts_check_chip_ver_trim(uint32_t chip_ver_trim_addr)
 
 	NVT_LOG("%s:enter\n",__func__);
 	for (retry = 5; retry > 0; retry--) {
-		nvt_bootloader_reset();
+		nvt_bootloader_reset(ts);
 
-		nvt_set_page(chip_ver_trim_addr);
+		nvt_set_page(ts, chip_ver_trim_addr);
 
 		buf[0] = chip_ver_trim_addr & 0x7F;
 		buf[1] = 0x00;
@@ -1261,9 +735,19 @@ static int nt36xxx_pen_inputdev_init(struct nvt_ts_data *ts)
 	return 0;
 }
 
+static void Boot_Update_Firmware(struct work_struct *work)
+{
+	struct nvt_ts_data *ts = container_of(work, struct nvt_ts_data, nvt_fwu_work.work);
+
+	mutex_lock(&ts->lock);
+	nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME);
+	mutex_unlock(&ts->lock);
+}
+
 static int nvt_ts_probe(struct spi_device *client)
 {
 	struct device *dev = &client->dev;
+	struct nvt_ts_data *ts;
 	int ret;
 
 	if (client->controller->flags & SPI_CONTROLLER_HALF_DUPLEX)
@@ -1290,7 +774,7 @@ static int nvt_ts_probe(struct spi_device *client)
 	if (ret < 0)
 		return dev_err_probe(dev, ret, "Failed to perform SPI setup\n");
 
-	ret = nvt_parse_dt(&client->dev);
+	ret = nvt_parse_dt(ts);
 	if (ret) {
 		NVT_ERR("parse dt error\n");
 		return ret;
@@ -1307,7 +791,7 @@ static int nvt_ts_probe(struct spi_device *client)
 	mutex_init(&ts->xbuf_lock);
 
 	//---eng reset before TP_RESX high
-	nvt_eng_reset();
+	nvt_eng_reset(ts);
 
 	gpio_set_value(ts->reset_gpio, 1);
 
@@ -1315,10 +799,10 @@ static int nvt_ts_probe(struct spi_device *client)
 	usleep_range(10000, 11000);
 
 	//---check chip version trim---
-	ret = nvt_ts_check_chip_ver_trim(CHIP_VER_TRIM_ADDR);
+	ret = nvt_ts_check_chip_ver_trim(ts, CHIP_VER_TRIM_ADDR);
 	if (ret) {
 		NVT_LOG("try to check from old chip ver trim address\n");
-		ret = nvt_ts_check_chip_ver_trim(CHIP_VER_TRIM_OLD_ADDR);
+		ret = nvt_ts_check_chip_ver_trim(ts, CHIP_VER_TRIM_OLD_ADDR);
 		if (ret)
 			return dev_err_probe(dev, -ENODEV, "Unknown chip id\n"); // TODO: what chip id?
 	}
@@ -1352,27 +836,22 @@ static int nvt_ts_probe(struct spi_device *client)
 	device_init_wakeup(&ts->input_dev->dev, true);
 #endif
 
-	nvt_fwu_wq = alloc_workqueue("nvt_fwu_wq", WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
-	if (!nvt_fwu_wq) {
+	ts->nvt_fwu_wq = alloc_workqueue("nvt_fwu_wq", WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
+	if (!ts->nvt_fwu_wq) {
 		NVT_ERR("nvt_fwu_wq create workqueue failed\n");
 		ret = -ENOMEM;
 		goto err_create_nvt_fwu_wq_failed;
 	}
 	INIT_DELAYED_WORK(&ts->nvt_fwu_work, Boot_Update_Firmware);
 	// please make sure boot update start after display reset(RESX) sequence
-	queue_delayed_work(nvt_fwu_wq, &ts->nvt_fwu_work, msecs_to_jiffies(14000));
+	queue_delayed_work(ts->nvt_fwu_wq, &ts->nvt_fwu_work, msecs_to_jiffies(14000));
 
 	bTouchIsAwake = 1;
 
-	nvt_irq_enable(true);
+	nvt_irq_enable(ts, true);
 
 	return 0;
 
-	if (nvt_fwu_wq) {
-		cancel_delayed_work_sync(&ts->nvt_fwu_work);
-		destroy_workqueue(nvt_fwu_wq);
-		nvt_fwu_wq = NULL;
-	}
 err_create_nvt_fwu_wq_failed:
 #if WAKEUP_GESTURE
 	device_init_wakeup(&ts->input_dev->dev, false);
@@ -1390,39 +869,41 @@ return:
 *******************************************************/
 static void nvt_ts_remove(struct spi_device *client)
 {
-	NVT_LOG("Removing driver...\n");
-
-	if (nvt_fwu_wq) {
-		cancel_delayed_work_sync(&ts->nvt_fwu_work);
-		destroy_workqueue(nvt_fwu_wq);
-		nvt_fwu_wq = NULL;
-	}
+	struct nvt_ts_data *ts = spi_get_drvdata(client);
 
 #if WAKEUP_GESTURE
 	device_init_wakeup(&ts->input_dev->dev, false);
 #endif
 
-	nvt_irq_enable(false);
+	if (ts->nvt_fwu_wq) {
+		cancel_delayed_work_sync(&ts->nvt_fwu_work);
+		destroy_workqueue(ts->nvt_fwu_wq);
+		ts->nvt_fwu_wq = NULL;
+	}
 
-	mutex_destroy(&ts->xbuf_lock);
-	mutex_destroy(&ts->lock);
+	nvt_irq_enable(ts, false);
 
 	if (ts->pen_input_dev)
 		input_unregister_device(ts->pen_input_dev);
 
 	input_unregister_device(ts->input_dev);
+
+	mutex_destroy(&ts->lock);
+	mutex_destroy(&ts->xbuf_lock);
 }
 
 static void nvt_ts_shutdown(struct spi_device *client)
 {
+	struct nvt_ts_data *ts = spi_get_drvdata(client);
+
 	NVT_LOG("Shutdown driver...\n");
 
-	nvt_irq_enable(false);
+	nvt_irq_enable(ts, false);
 
-	if (nvt_fwu_wq) {
+	if (ts->nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
-		destroy_workqueue(nvt_fwu_wq);
-		nvt_fwu_wq = NULL;
+		destroy_workqueue(ts->nvt_fwu_wq);
+		ts->nvt_fwu_wq = NULL;
 	}
 
 #if WAKEUP_GESTURE
@@ -1441,6 +922,8 @@ return:
 #define NVT_TS_SUSPEND_WAKEUP_GESTURE_MODE		0x13
 static int32_t nvt_ts_suspend(struct device *dev)
 {
+	struct spi_device *client = to_spi_device(dev);
+	struct nvt_ts_data *ts = spi_get_drvdata(client);
 	uint8_t buf[4] = {0};
 	int i;
 
@@ -1450,7 +933,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	}
 
 	if (!ts->gesture_enabled)
-		nvt_irq_enable(false);
+		nvt_irq_enable(ts, false);
 
 	mutex_lock(&ts->lock);
 
@@ -1500,6 +983,9 @@ return:
 *******************************************************/
 static int32_t nvt_ts_resume(struct device *dev)
 {
+	struct spi_device *client = to_spi_device(dev);
+	struct nvt_ts_data *ts = spi_get_drvdata(client);
+
 	if (bTouchIsAwake) {
 		NVT_LOG("Touch is already resume\n");
 		return 0;
@@ -1512,14 +998,14 @@ static int32_t nvt_ts_resume(struct device *dev)
 	// please make sure display reset(RESX) sequence and mipi dsi cmds sent before this
 	gpio_set_value(ts->reset_gpio, 1);
 
-	if (nvt_update_firmware(BOOT_UPDATE_FIRMWARE_NAME)) {
+	if (nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME)) {
 		NVT_ERR("download firmware failed, ignore check fw state\n");
 	} else {
-		nvt_check_fw_reset_state(RESET_STATE_REK);
+		nvt_check_fw_reset_state(ts, RESET_STATE_REK);
 	}
 
 	if (!ts->gesture_enabled)
-		nvt_irq_enable(true);
+		nvt_irq_enable(ts, true);
 
 	bTouchIsAwake = true;
 
@@ -1546,7 +1032,7 @@ static struct spi_driver nvt_spi_driver = {
 		.of_match_table = nt36xxx_of_match_table,
 	},
 	.probe = nvt_ts_probe,
-	// .remove = nvt_ts_remove,
+	.remove = nvt_ts_remove,
 	// .shutdown = nvt_ts_shutdown,
 	.id_table = nvt_ts_id,
 };

@@ -121,4 +121,5 @@ obj-$(CONFIG_TOUCHSCREEN_IQS5XX)	+= iqs5xx.o
 obj-$(CONFIG_TOUCHSCREEN_IQS7211)	+= iqs7211.o
 obj-$(CONFIG_TOUCHSCREEN_ZINITIX)	+= zinitix.o
 obj-$(CONFIG_TOUCHSCREEN_HIMAX_HX83112B)	+= himax_hx83112b.o
-obj-y += nt36xxx_spi/
+nt36xxx_ts-y := nt36xxx.o nt36xxx_core.o nt36xxx_fw_update.o
+obj-$(CONFIG_TOUCHSCREEN_NT36XXX_SPI) += nt36xxx_ts.o

@@ -66,7 +66,7 @@ for download firmware function.
 return:
 	n.a.
 *******************************************************/
-static int nvt_download_init(void)
+static int nvt_download_init(struct nvt_ts_data *ts)
 {
 	if (fwbuf)
 		return 0;
@@ -118,7 +118,7 @@ return:
 static u32 partition = 0;
 static u8 ilm_dlm_num = 2;
 static u8 cascade_2nd_header_info = 0;
-static int nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
+static int nvt_bin_header_parser(struct nvt_ts_data *ts, const u8 *fwdata, size_t fwsize)
 {
 	u32 list = 0;
 	u32 pos = 0x00;
@@ -296,7 +296,7 @@ Description:
 return:
 	Executive outcomes. 0---succeed. -1,-22---failed.
 *******************************************************/
-static int update_firmware_request(char *filename)
+static int update_firmware_request(struct nvt_ts_data *ts, char *filename)
 {
 	u8 retry = 0;
 	int ret = 0;
@@ -330,7 +330,7 @@ static int update_firmware_request(char *filename)
 		}
 
 		/* BIN Header Parser */
-		ret = nvt_bin_header_parser(fw_entry->data, fw_entry->size);
+		ret = nvt_bin_header_parser(ts, fw_entry->data, fw_entry->size);
 		if (ret) {
 			NVT_ERR("bin header parser failed\n");
 			goto invalid;
@@ -368,10 +368,11 @@ Description:
 return:
 	Executive outcomes. 0---succeed. else---fail.
 *******************************************************/
-static int nvt_write_sram(const u8 *fwdata,
-			      u32 SRAM_addr,
-			      u32 size,
-			      u32 BIN_addr)
+static int nvt_write_sram(struct nvt_ts_data *ts,
+			  const u8 *fwdata,
+			  u32 SRAM_addr,
+			  u32 size,
+			  u32 BIN_addr)
 {
 	int ret = 0;
 	u32 i = 0;
@@ -387,7 +388,7 @@ static int nvt_write_sram(const u8 *fwdata,
 		len = (size < NVT_TRANSFER_LEN) ? size : NVT_TRANSFER_LEN;
 
 		//---set xdata index to start address of SRAM---
-		ret = nvt_set_page(SRAM_addr);
+		ret = nvt_set_page(ts, SRAM_addr);
 		if (ret) {
 			NVT_ERR("set page failed, ret = %d\n", ret);
 			return ret;
@@ -418,7 +419,7 @@ firmware into each partition.
 return:
 	n.a.
 *******************************************************/
-static int nvt_write_firmware(const u8 *fwdata, size_t fwsize)
+static int nvt_write_firmware(struct nvt_ts_data *ts, const u8 *fwdata, size_t fwsize)
 {
 	u32 BIN_addr, SRAM_addr, size;
 	u32 list = 0;
@@ -448,7 +449,7 @@ static int nvt_write_firmware(const u8 *fwdata, size_t fwsize)
 			size = size +1;
 
 		/* write data to SRAM */
-		ret = nvt_write_sram(fwdata, SRAM_addr, size, BIN_addr);
+		ret = nvt_write_sram(ts, fwdata, SRAM_addr, size, BIN_addr);
 		if (ret) {
 			NVT_ERR("sram program failed, ret = %d\n", ret);
 			return ret;
@@ -466,7 +467,7 @@ This function will compare file checksum and fw checksum.
 return:
 	n.a.
 *******************************************************/
-static int nvt_check_fw_checksum(void)
+static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 {
 	u32 len = partition * 4;
 	u32 fw_checksum;
@@ -476,7 +477,7 @@ static int nvt_check_fw_checksum(void)
 	memset(fwbuf, 0, (len + 1));
 
 	//---set xdata index to checksum---
-	nvt_set_page(ts->mmap->R_ILM_CHECKSUM_ADDR);
+	nvt_set_page(ts, ts->mmap->R_ILM_CHECKSUM_ADDR);
 
 	/* read checksum */
 	fwbuf[0] = (ts->mmap->R_ILM_CHECKSUM_ADDR) & 0x7F;
@@ -516,12 +517,13 @@ This function will set hw crc reg before enable crc function.
 return:
 	n.a.
 *******************************************************/
-static void nvt_set_bld_crc_bank(u32 DES_ADDR, u32 SRAM_ADDR,
+static void nvt_set_bld_crc_bank(struct nvt_ts_data *ts,
+				 u32 DES_ADDR, u32 SRAM_ADDR,
 				 u32 LENGTH_ADDR, u32 size,
 				 u32 G_CHECKSUM_ADDR, u32 crc)
 {
 	/* write destination address */
-	nvt_set_page(DES_ADDR);
+	nvt_set_page(ts, DES_ADDR);
 	fwbuf[0] = DES_ADDR & 0x7F;
 	fwbuf[1] = (SRAM_ADDR) & GENMASK(7, 0);
 	fwbuf[2] = (SRAM_ADDR >> 8) & GENMASK(7, 0);
@@ -559,19 +561,19 @@ This function will set ILM and DLM crc information to register.
 return:
 	n.a.
 *******************************************************/
-static void nvt_set_bld_hw_crc(void)
+static void nvt_set_bld_hw_crc(struct nvt_ts_data *ts)
 {
 	/* [0] ILM */
 	/* write register bank */
-	nvt_set_bld_crc_bank(ts->mmap->ILM_DES_ADDR, bin_map[0].SRAM_addr,
-			ts->mmap->ILM_LENGTH_ADDR, bin_map[0].size,
-			ts->mmap->G_ILM_CHECKSUM_ADDR, bin_map[0].crc);
+	nvt_set_bld_crc_bank(ts, ts->mmap->ILM_DES_ADDR, bin_map[0].SRAM_addr,
+			     ts->mmap->ILM_LENGTH_ADDR, bin_map[0].size,
+			     ts->mmap->G_ILM_CHECKSUM_ADDR, bin_map[0].crc);
 
 	/* [1] DLM */
 	/* write register bank */
-	nvt_set_bld_crc_bank(ts->mmap->DLM_DES_ADDR, bin_map[1].SRAM_addr,
-			ts->mmap->DLM_LENGTH_ADDR, bin_map[1].size,
-			ts->mmap->G_DLM_CHECKSUM_ADDR, bin_map[1].crc);
+	nvt_set_bld_crc_bank(ts, ts->mmap->DLM_DES_ADDR, bin_map[1].SRAM_addr,
+			     ts->mmap->DLM_LENGTH_ADDR, bin_map[1].size,
+			     ts->mmap->G_DLM_CHECKSUM_ADDR, bin_map[1].crc);
 }
 
 /*******************************************************
@@ -582,13 +584,13 @@ This function will check crc results from register.
 return:
 	n.a.
 *******************************************************/
-static void nvt_read_bld_hw_crc(void)
+static void nvt_read_bld_hw_crc(struct nvt_ts_data *ts)
 {
 	u8 buf[8] = {0};
 	u32 g_crc = 0, r_crc = 0;
 
 	/* CRC Flag */
-	nvt_set_page(ts->mmap->BLD_ILM_DLM_CRC_ADDR);
+	nvt_set_page(ts, ts->mmap->BLD_ILM_DLM_CRC_ADDR);
 	buf[0] = ts->mmap->BLD_ILM_DLM_CRC_ADDR & 0x7F;
 	buf[1] = 0x00;
 	CTP_SPI_READ(ts->client, buf, 2);
@@ -596,7 +598,7 @@ static void nvt_read_bld_hw_crc(void)
 			(buf[1] >> 2) & 0x01, (buf[1] >> 0) & 0x01, (buf[1] >> 1) & 0x01);
 
 	/* ILM CRC */
-	nvt_set_page(ts->mmap->G_ILM_CHECKSUM_ADDR);
+	nvt_set_page(ts, ts->mmap->G_ILM_CHECKSUM_ADDR);
 	buf[0] = ts->mmap->G_ILM_CHECKSUM_ADDR & 0x7F;
 	buf[1] = 0x00;
 	buf[2] = 0x00;
@@ -605,7 +607,7 @@ static void nvt_read_bld_hw_crc(void)
 	CTP_SPI_READ(ts->client, buf, 5);
 	g_crc = byte_to_word(buf, 1);
 
-	nvt_set_page(ts->mmap->R_ILM_CHECKSUM_ADDR);
+	nvt_set_page(ts, ts->mmap->R_ILM_CHECKSUM_ADDR);
 	buf[0] = ts->mmap->R_ILM_CHECKSUM_ADDR & 0x7F;
 	buf[1] = 0x00;
 	buf[2] = 0x00;
@@ -618,7 +620,7 @@ static void nvt_read_bld_hw_crc(void)
 			bin_map[0].crc, g_crc, r_crc);
 
 	/* DLM CRC */
-	nvt_set_page(ts->mmap->G_DLM_CHECKSUM_ADDR);
+	nvt_set_page(ts, ts->mmap->G_DLM_CHECKSUM_ADDR);
 	buf[0] = ts->mmap->G_DLM_CHECKSUM_ADDR & 0x7F;
 	buf[1] = 0x00;
 	buf[2] = 0x00;
@@ -627,7 +629,7 @@ static void nvt_read_bld_hw_crc(void)
 	CTP_SPI_READ(ts->client, buf, 5);
 	g_crc = byte_to_word(buf, 1);
 
-	nvt_set_page(ts->mmap->R_DLM_CHECKSUM_ADDR);
+	nvt_set_page(ts, ts->mmap->R_DLM_CHECKSUM_ADDR);
 	buf[0] = ts->mmap->R_DLM_CHECKSUM_ADDR & 0x7F;
 	buf[1] = 0x00;
 	buf[2] = 0x00;
@@ -650,36 +652,36 @@ function. It's complete download firmware flow.
 return:
 	Executive outcomes. 0---succeed. else---fail.
 *******************************************************/
-static int nvt_download_firmware_hw_crc(void)
+static int nvt_download_firmware_hw_crc(struct nvt_ts_data *ts)
 {
 	u8 retry = 0;
 	int ret = 0;
 
 	while (1) {
 		/* bootloader reset to reset MCU */
-		nvt_bootloader_reset();
+		nvt_bootloader_reset(ts);
 
 		/* set ilm & dlm reg bank */
-		nvt_set_bld_hw_crc();
+		nvt_set_bld_hw_crc(ts);
 
 		/* Start to write firmware process */
 		if (cascade_2nd_header_info) {
 			/* for cascade */
-			nvt_tx_auto_copy_mode();
+			nvt_tx_auto_copy_mode(ts);
 
-			ret = nvt_write_firmware(fw_entry->data, fw_entry->size);
+			ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
 			if (ret) {
 				NVT_ERR("Write_Firmware failed. (%d)\n", ret);
 				goto fail;
 			}
 
-			ret = nvt_check_spi_dma_tx_info();
+			ret = nvt_check_spi_dma_tx_info(ts);
 			if (ret) {
 				NVT_ERR("spi dma tx info failed. (%d)\n", ret);
 				goto fail;
 			}
 		} else {
-			ret = nvt_write_firmware(fw_entry->data, fw_entry->size);
+			ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
 			if (ret) {
 				NVT_ERR("Write_Firmware failed. (%d)\n", ret);
 				goto fail;
@@ -687,15 +689,15 @@ static int nvt_download_firmware_hw_crc(void)
 		}
 
 		/* enable hw bld crc function */
-		nvt_bld_crc_enable();
+		nvt_bld_crc_enable(ts);
 
 		/* clear fw reset status & enable fw crc check */
-		nvt_fw_crc_enable();
+		nvt_fw_crc_enable(ts);
 
 		/* Set Boot Ready Bit */
-		nvt_boot_ready();
+		nvt_boot_ready(ts);
 
-		ret = nvt_check_fw_reset_state(RESET_STATE_INIT);
+		ret = nvt_check_fw_reset_state(ts, RESET_STATE_INIT);
 		if (ret) {
 			NVT_ERR("nvt_check_fw_reset_state failed. (%d)\n", ret);
 			goto fail;
@@ -707,7 +709,7 @@ fail:
 		retry++;
 		if (unlikely(retry > 2)) {
 			NVT_ERR("error, retry=%d\n", retry);
-			nvt_read_bld_hw_crc();
+			nvt_read_bld_hw_crc(ts);
 			break;
 		}
 	}
@@ -723,7 +725,7 @@ complete download firmware flow.
 return:
 	n.a.
 *******************************************************/
-static int nvt_download_firmware(void)
+static int nvt_download_firmware(struct nvt_ts_data *ts)
 {
 	u8 retry = 0;
 	int ret = 0;
@@ -737,34 +739,34 @@ static int nvt_download_firmware(void)
 		gpio_set_value(ts->reset_gpio, 0);
 		mdelay(1);	//wait 1ms
 #endif
-		nvt_eng_reset();
+		nvt_eng_reset(ts);
 #if NVT_TOUCH_SUPPORT_HW_RST
 		gpio_set_value(ts->reset_gpio, 1);
 		mdelay(10);	//wait tRT2BRST after TP_RST
 #endif
-		nvt_bootloader_reset();
+		nvt_bootloader_reset(ts);
 
 		/* clear fw reset status */
-		nvt_write_addr(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_RESET_COMPLETE, 0x00);
+		nvt_write_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_RESET_COMPLETE, 0x00);
 
 		/* Start to write firmware process */
-		ret = nvt_write_firmware(fw_entry->data, fw_entry->size);
+		ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
 		if (ret) {
 			NVT_ERR("Write_Firmware failed. (%d)\n", ret);
 			goto fail;
 		}
 
 		/* Set Boot Ready Bit */
-		nvt_boot_ready();
+		nvt_boot_ready(ts);
 
-		ret = nvt_check_fw_reset_state(RESET_STATE_INIT);
+		ret = nvt_check_fw_reset_state(ts, RESET_STATE_INIT);
 		if (ret) {
 			NVT_ERR("nvt_check_fw_reset_state failed. (%d)\n", ret);
 			goto fail;
 		}
 
 		/* check fw checksum result */
-		ret = nvt_check_fw_checksum();
+		ret = nvt_check_fw_checksum(ts);
 		if (ret) {
 			NVT_ERR("firmware checksum not match, retry=%d\n", retry);
 			goto fail;
@@ -790,19 +792,19 @@ Description:
 return:
 	n.a.
 *******************************************************/
-int nvt_update_firmware(char *firmware_name)
+int nvt_update_firmware(struct nvt_ts_data *ts, char *firmware_name)
 {
 	int ret = 0;
 
 	// request bin file in "/etc/firmware"
-	ret = update_firmware_request(firmware_name);
+	ret = update_firmware_request(ts, firmware_name);
 	if (ret) {
 		NVT_ERR("update_firmware_request failed. (%d)\n", ret);
 		goto request_firmware_fail;
 	}
 
 	/* initial buffer and variable */
-	ret = nvt_download_init();
+	ret = nvt_download_init(ts);
 	if (ret) {
 		NVT_ERR("Download Init failed. (%d)\n", ret);
 		goto download_fail;
@@ -810,16 +812,16 @@ int nvt_update_firmware(char *firmware_name)
 
 	/* download firmware process */
 	if (ts->hw_crc)
-		ret = nvt_download_firmware_hw_crc();
+		ret = nvt_download_firmware_hw_crc(ts);
 	else
-		ret = nvt_download_firmware();
+		ret = nvt_download_firmware(ts);
 	if (ret) {
 		NVT_ERR("Download Firmware failed. (%d)\n", ret);
 		goto download_fail;
 	}
 
 	/* Get FW Info */
-	ret = nvt_get_fw_info();
+	ret = nvt_get_fw_info(ts);
 	if (ret)
 		NVT_ERR("nvt_get_fw_info failed. (%d)\n", ret);
 
@@ -833,19 +835,4 @@ download_fail:
 request_firmware_fail:
 
 	return ret;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen update firmware when booting
-	function.
-
-return:
-	n.a.
-*******************************************************/
-void Boot_Update_Firmware(struct work_struct *work)
-{
-	mutex_lock(&ts->lock);
-	nvt_update_firmware(BOOT_UPDATE_FIRMWARE_NAME);
-	mutex_unlock(&ts->lock);
 }
