@@ -19,22 +19,22 @@
 
 const struct firmware *fw_entry = NULL;
 static size_t fw_need_write_size = 0;
-static uint8_t *fwbuf = NULL;
+static u8 *fwbuf = NULL;
 
 struct nvt_ts_bin_map {
 	char name[12];
-	uint32_t BIN_addr;
-	uint32_t SRAM_addr;
-	uint32_t size;
-	uint32_t crc;
+	u32 BIN_addr;
+	u32 SRAM_addr;
+	u32 size;
+	u32 crc;
 };
 
 static struct nvt_ts_bin_map *bin_map;
 
-static int32_t nvt_get_fw_need_write_size(const struct firmware *fw_entry)
+static int nvt_get_fw_need_write_size(const struct firmware *fw_entry)
 {
-	int32_t i = 0;
-	int32_t total_sectors_to_check = 0;
+	int i = 0;
+	int total_sectors_to_check = 0;
 
 	total_sectors_to_check = fw_entry->size / FLASH_SECTOR_SIZE;
 	/* printk("total_sectors_to_check = %d\n", total_sectors_to_check); */
@@ -68,13 +68,13 @@ for download firmware function.
 return:
 	n.a.
 *******************************************************/
-static int32_t nvt_download_init(void)
+static int nvt_download_init(void)
 {
 	/* allocate buffer for transfer firmware */
 	//NVT_LOG("NVT_TRANSFER_LEN = 0x%06X\n", NVT_TRANSFER_LEN);
 
 	if (fwbuf == NULL) {
-		fwbuf = (uint8_t *)kzalloc((NVT_TRANSFER_LEN + 1 + DUMMY_BYTES), GFP_KERNEL);
+		fwbuf = (u8 *)kzalloc((NVT_TRANSFER_LEN + 1 + DUMMY_BYTES), GFP_KERNEL);
 		if(fwbuf == NULL) {
 			NVT_ERR("kzalloc for fwbuf failed!\n");
 			return -ENOMEM;
@@ -92,10 +92,10 @@ file checksum for comparison.
 return:
 	n.a.
 *******************************************************/
-static uint32_t CheckSum(const u8 *data, size_t len)
+static u32 CheckSum(const u8 *data, size_t len)
 {
-	uint32_t i = 0;
-	uint32_t checksum = 0;
+	u32 i = 0;
+	u32 checksum = 0;
 
 	for (i = 0 ; i < len+1 ; i++)
 		checksum += data[i];
@@ -106,7 +106,7 @@ static uint32_t CheckSum(const u8 *data, size_t len)
 	return checksum;
 }
 
-static uint32_t byte_to_word(const uint8_t *data, unsigned int start_idx)
+static u32 byte_to_word(const u8 *data, unsigned int start_idx)
 {
 	return (data[start_idx] << 0) |
 	       (data[start_idx + 1] << 8) |
@@ -121,18 +121,18 @@ Description:
 return:
 	n.a.
 *******************************************************/
-static uint32_t partition = 0;
-static uint8_t ilm_dlm_num = 2;
-static uint8_t cascade_2nd_header_info = 0;
-static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
+static u32 partition = 0;
+static u8 ilm_dlm_num = 2;
+static u8 cascade_2nd_header_info = 0;
+static int nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 {
-	uint32_t list = 0;
-	uint32_t pos = 0x00;
-	uint32_t end = 0x00;
-	uint8_t info_sec_num = 0;
-	uint8_t ovly_sec_num = 0;
-	uint8_t ovly_info = 0;
-	uint8_t find_bin_header = 0;
+	u32 list = 0;
+	u32 pos = 0x00;
+	u32 end = 0x00;
+	u8 info_sec_num = 0;
+	u8 ovly_sec_num = 0;
+	u8 ovly_info = 0;
+	u8 find_bin_header = 0;
 
 	/* Find the header size */
 	end = byte_to_word(fwdata, 0);
@@ -302,10 +302,10 @@ Description:
 return:
 	Executive outcomes. 0---succeed. -1,-22---failed.
 *******************************************************/
-static int32_t update_firmware_request(char *filename)
+static int update_firmware_request(char *filename)
 {
-	uint8_t retry = 0;
-	int32_t ret = 0;
+	u8 retry = 0;
+	int ret = 0;
 
 	if (NULL == filename) {
 		return -ENOENT;
@@ -374,13 +374,15 @@ Description:
 return:
 	Executive outcomes. 0---succeed. else---fail.
 *******************************************************/
-static int32_t nvt_write_sram(const u8 *fwdata,
-		uint32_t SRAM_addr, uint32_t size, uint32_t BIN_addr)
+static int nvt_write_sram(const u8 *fwdata,
+			      u32 SRAM_addr,
+			      u32 size,
+			      u32 BIN_addr)
 {
-	int32_t ret = 0;
-	uint32_t i = 0;
-	uint16_t len = 0;
-	int32_t count = 0;
+	int ret = 0;
+	u32 i = 0;
+	u16 len = 0;
+	int count = 0;
 
 	if (size % NVT_TRANSFER_LEN)
 		count = (size / NVT_TRANSFER_LEN) + 1;
@@ -422,12 +424,12 @@ firmware into each partition.
 return:
 	n.a.
 *******************************************************/
-static int32_t nvt_write_firmware(const u8 *fwdata, size_t fwsize)
+static int nvt_write_firmware(const u8 *fwdata, size_t fwsize)
 {
-	uint32_t list = 0;
+	u32 list = 0;
 	char *name;
-	uint32_t BIN_addr, SRAM_addr, size;
-	int32_t ret = 0;
+	u32 BIN_addr, SRAM_addr, size;
+	int ret = 0;
 
 	memset(fwbuf, 0, (NVT_TRANSFER_LEN+1));
 
@@ -472,12 +474,12 @@ This function will compare file checksum and fw checksum.
 return:
 	n.a.
 *******************************************************/
-static int32_t nvt_check_fw_checksum(void)
+static int nvt_check_fw_checksum(void)
 {
-	uint32_t fw_checksum = 0;
-	uint32_t len = partition*4;
-	uint32_t list = 0;
-	int32_t ret = 0;
+	u32 fw_checksum = 0;
+	u32 len = partition*4;
+	u32 list = 0;
+	int ret = 0;
 
 	memset(fwbuf, 0, (len+1));
 
@@ -522,9 +524,9 @@ This function will set hw crc reg before enable crc function.
 return:
 	n.a.
 *******************************************************/
-static void nvt_set_bld_crc_bank(uint32_t DES_ADDR, uint32_t SRAM_ADDR,
-		uint32_t LENGTH_ADDR, uint32_t size,
-		uint32_t G_CHECKSUM_ADDR, uint32_t crc)
+static void nvt_set_bld_crc_bank(u32 DES_ADDR, u32 SRAM_ADDR,
+		u32 LENGTH_ADDR, u32 size,
+		u32 G_CHECKSUM_ADDR, u32 crc)
 {
 	/* write destination address */
 	nvt_set_page(DES_ADDR);
@@ -591,8 +593,8 @@ return:
 *******************************************************/
 static void nvt_read_bld_hw_crc(void)
 {
-	uint8_t buf[8] = {0};
-	uint32_t g_crc = 0, r_crc = 0;
+	u8 buf[8] = {0};
+	u32 g_crc = 0, r_crc = 0;
 
 	/* CRC Flag */
 	nvt_set_page(ts->mmap->BLD_ILM_DLM_CRC_ADDR);
@@ -657,10 +659,10 @@ function. It's complete download firmware flow.
 return:
 	Executive outcomes. 0---succeed. else---fail.
 *******************************************************/
-static int32_t nvt_download_firmware_hw_crc(void)
+static int nvt_download_firmware_hw_crc(void)
 {
-	uint8_t retry = 0;
-	int32_t ret = 0;
+	u8 retry = 0;
+	int ret = 0;
 
 	while (1) {
 		/* bootloader reset to reset MCU */
@@ -730,10 +732,10 @@ complete download firmware flow.
 return:
 	n.a.
 *******************************************************/
-static int32_t nvt_download_firmware(void)
+static int nvt_download_firmware(void)
 {
-	uint8_t retry = 0;
-	int32_t ret = 0;
+	u8 retry = 0;
+	int ret = 0;
 
 	while (1) {
 		/*
@@ -797,9 +799,9 @@ Description:
 return:
 	n.a.
 *******************************************************/
-int32_t nvt_update_firmware(char *firmware_name)
+int nvt_update_firmware(char *firmware_name)
 {
-	int32_t ret = 0;
+	int ret = 0;
 
 	// request bin file in "/etc/firmware"
 	ret = update_firmware_request(firmware_name);
