@@ -8,13 +8,9 @@
 #include <linux/gpio.h>
 #include <linux/input/mt.h>
 #include <linux/interrupt.h>
-#include <linux/irq.h>
-#include <linux/irqnr.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/of_gpio.h>
-#include <linux/of_irq.h>
-#include <linux/proc_fs.h>
+#include <linux/platform_device.h>
 
 #include <drm/drm_panel.h>
 
@@ -223,14 +219,13 @@ return:
 *******************************************************/
 static int32_t nvt_parse_dt(struct nvt_ts_data *ts)
 {
-	struct device_node *np = ts->client->dev.of_node;
+	struct device *dev = &ts->client->dev;
+	struct device_node *np = dev->of_node;
 	int32_t ret = 0;
 
-	ts->reset_gpio = of_get_named_gpio(np, "novatek,reset-gpio", 0);
-	NVT_LOG("novatek,reset-gpio=%d\n", ts->reset_gpio);
-
-	ts->irq_gpio = of_get_named_gpio(np, "novatek,irq-gpio", 0);
-	NVT_LOG("novatek,irq-gpio=%d\n", ts->irq_gpio);
+	ts->reset_gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
+	if (IS_ERR(ts->reset_gpio))
+		return dev_err_probe(dev, PTR_ERR(ts->reset_gpio), "Couldn't get reset gpio\n");
 
 	ts->pen_support = of_property_read_bool(np, "novatek,pen-support");
 	NVT_LOG("novatek,pen-support=%d\n", ts->pen_support);
@@ -258,58 +253,16 @@ static int32_t nvt_parse_dt(struct nvt_ts_data *ts)
 	return ret;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen config and request gpio
-
-return:
-	Executive outcomes. 0---succeed. not 0---failed.
-*******************************************************/
-static int nvt_gpio_config(struct nvt_ts_data *ts)
-{
-	int32_t ret = 0;
-
-#if NVT_TOUCH_SUPPORT_HW_RST
-	/* request RST-pin (Output/High) */
-	if (gpio_is_valid(ts->reset_gpio)) {
-		ret = gpio_request_one(ts->reset_gpio, GPIOF_OUT_INIT_LOW, "NVT-tp-rst");
-		if (ret) {
-			NVT_ERR("Failed to request NVT-tp-rst GPIO\n");
-		}
-	}
-#endif
-
-	/* request INT-pin (Input) */
-	if (gpio_is_valid(ts->irq_gpio)) {
-		ret = gpio_request_one(ts->irq_gpio, GPIOF_IN, "NVT-int");
-		if (ret) {
-			NVT_ERR("Failed to request NVT-int GPIO\n");
-			goto err_request_irq_gpio;
-		}
-	}
-
-	return ret;
-
-err_request_irq_gpio:
-	gpio_free(ts->reset_gpio);
-
-	return ret;
-}
-
 static uint8_t nvt_fw_recovery(uint8_t *point_data)
 {
-	uint8_t i = 0;
-	uint8_t detected = true;
+	int i;
 
-	/* check pattern */
-	for (i=1 ; i<7 ; i++) {
-		if (point_data[i] != 0x77) {
-			detected = false;
-			break;
-		}
-	}
+	/* Look for 0x77777777777777 */
+	for (i = 1; i < 7; i++)
+		if (point_data[i] != 0x77)
+			return false;
 
-	return detected;
+	return true;
 }
 
 #define RECOVERY_COUNT_MAX		10
@@ -780,20 +733,13 @@ static int nvt_ts_probe(struct spi_device *client)
 		return ret;
 	}
 
-	//---request and config GPIOs---
-	ret = nvt_gpio_config(ts);
-	if (ret) {
-		NVT_ERR("gpio config error!\n");
-		return ret;
-	}
-
 	mutex_init(&ts->lock);
 	mutex_init(&ts->xbuf_lock);
 
 	//---eng reset before TP_RESX high
 	nvt_eng_reset(ts);
 
-	gpio_set_value(ts->reset_gpio, 1);
+	gpiod_set_value_cansleep(ts->reset_gpio, 1);
 
 	// need 10ms delay after POR(power on reset)
 	usleep_range(10000, 11000);
@@ -821,9 +767,9 @@ static int nvt_ts_probe(struct spi_device *client)
 	}
 
 	//---set int-pin & request irq---
-	client->irq = gpio_to_irq(ts->irq_gpio);
-	if (!client->irq)
-		return dev_err_probe(dev, -EINVAL, "tragic\n"); //
+	client->irq = platform_get_irq(to_platform_device(dev), 0);
+	if (client->irq < 0)
+		return dev_err_probe(dev, -EINVAL, "Couldn't get IRQ\n");
 
 	ret = devm_request_threaded_irq(dev, client->irq, NULL, nvt_ts_work_func,
 					IRQ_TYPE_EDGE_RISING | IRQF_NO_AUTOEN | IRQF_ONESHOT,
@@ -998,7 +944,7 @@ static int32_t nvt_ts_resume(struct device *dev)
 	NVT_LOG("start\n");
 
 	// please make sure display reset(RESX) sequence and mipi dsi cmds sent before this
-	gpio_set_value(ts->reset_gpio, 1);
+	gpiod_set_value_cansleep(ts->reset_gpio, 1);
 
 	if (nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME)) {
 		NVT_ERR("download firmware failed, ignore check fw state\n");

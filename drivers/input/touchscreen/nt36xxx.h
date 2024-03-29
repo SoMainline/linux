@@ -85,8 +85,7 @@ struct nvt_ts_data {
 	uint16_t abs_y_max;
 	uint8_t max_touch_num;
 	uint8_t max_button_num;
-	int32_t irq_gpio;
-	int32_t reset_gpio;
+	struct gpio_desc *reset_gpio;
 	struct mutex lock;
 	const struct nvt_ts_mem_map *mmap;
 	uint8_t carrier_system;
