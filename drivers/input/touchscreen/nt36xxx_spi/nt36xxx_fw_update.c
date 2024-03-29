@@ -17,7 +17,6 @@
 #define NVT_FLASH_END_FLAG_LEN 3
 #define NVT_FLASH_END_FLAG_ADDR (fw_need_write_size - NVT_FLASH_END_FLAG_LEN)
 
-static ktime_t start, end;
 const struct firmware *fw_entry = NULL;
 static size_t fw_need_write_size = 0;
 static uint8_t *fwbuf = NULL;
@@ -107,9 +106,12 @@ static uint32_t CheckSum(const u8 *data, size_t len)
 	return checksum;
 }
 
-static uint32_t byte_to_word(const uint8_t *data)
+static uint32_t byte_to_word(const uint8_t *data, unsigned int start_idx)
 {
-	return data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
+	return (data[start_idx] << 0) |
+	       (data[start_idx + 1] << 8) |
+	       (data[start_idx + 2] << 16) |
+	       (data[start_idx + 3] << 24);
 }
 
 /*******************************************************
@@ -133,7 +135,7 @@ static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 	uint8_t find_bin_header = 0;
 
 	/* Find the header size */
-	end = fwdata[0] + (fwdata[1] << 8) + (fwdata[2] << 16) + (fwdata[3] << 24);
+	end = byte_to_word(fwdata, 0);
 
 	/* check cascade next header */
 	cascade_2nd_header_info = (fwdata[0x20] & 0x02) >> 1;
@@ -172,8 +174,8 @@ static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 			ovly_info, ilm_dlm_num, ovly_sec_num, info_sec_num, partition);
 
 	/* allocated memory for header info */
-	bin_map = (struct nvt_ts_bin_map *)kzalloc((partition+1) * sizeof(struct nvt_ts_bin_map), GFP_KERNEL);
-	if(bin_map == NULL) {
+	bin_map = kcalloc((partition+1), sizeof(struct nvt_ts_bin_map), GFP_KERNEL);
+	if (!bin_map) {
 		NVT_ERR("kzalloc for bin_map failed!\n");
 		return -ENOMEM;
 	}
@@ -185,12 +187,12 @@ static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 		 * crc located at 0x18 & 0x1C
 		 */
 		if (list < ilm_dlm_num) {
-			bin_map[list].BIN_addr = byte_to_word(&fwdata[0 + list*12]);
-			bin_map[list].SRAM_addr = byte_to_word(&fwdata[4 + list*12]);
-			bin_map[list].size = byte_to_word(&fwdata[8 + list*12]);
+			bin_map[list].BIN_addr = byte_to_word(fwdata, 12 * list);
+			bin_map[list].SRAM_addr = byte_to_word(fwdata, 12 * list + 4);
+			bin_map[list].size = byte_to_word(fwdata, 12 * list + 8);
 			if (ts->hw_crc)
-				bin_map[list].crc = byte_to_word(&fwdata[0x18 + list*4]);
-			else { //ts->hw_crc
+				bin_map[list].crc = byte_to_word(fwdata, 4 * list + 0x18);
+			else {
 				if ((bin_map[list].BIN_addr + bin_map[list].size) < fwsize)
 					bin_map[list].crc = CheckSum(&fwdata[bin_map[list].BIN_addr], bin_map[list].size);
 				else {
@@ -198,7 +200,7 @@ static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 							bin_map[list].BIN_addr, bin_map[list].BIN_addr + bin_map[list].size);
 					return -EINVAL;
 				}
-			} //ts->hw_crc
+			}
 			if (list == 0)
 				sprintf(bin_map[list].name, "ILM");
 			else if (list == 1)
@@ -218,12 +220,12 @@ static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 				pos = end - 0x10;
 			}
 
-			bin_map[list].SRAM_addr = byte_to_word(&fwdata[pos]);
-			bin_map[list].size = byte_to_word(&fwdata[pos+4]);
-			bin_map[list].BIN_addr = byte_to_word(&fwdata[pos+8]);
+			bin_map[list].SRAM_addr = byte_to_word(fwdata, pos);
+			bin_map[list].size = byte_to_word(fwdata, pos + 4);
+			bin_map[list].BIN_addr = byte_to_word(fwdata, pos + 8);
 			if (ts->hw_crc)
-				bin_map[list].crc = byte_to_word(&fwdata[pos+12]);
-			else { //ts->hw_crc
+				bin_map[list].crc = byte_to_word(fwdata, pos + 12);
+			else {
 				if ((bin_map[list].BIN_addr + bin_map[list].size) < fwsize)
 					bin_map[list].crc = CheckSum(&fwdata[bin_map[list].BIN_addr], bin_map[list].size);
 				else {
@@ -231,7 +233,7 @@ static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 							bin_map[list].BIN_addr, bin_map[list].BIN_addr + bin_map[list].size);
 					return -EINVAL;
 				}
-			} //ts->hw_crc
+			}
 			/* detect header end to protect parser function */
 			if ((bin_map[list].BIN_addr < end) && (bin_map[list].size != 0)) {
 				sprintf(bin_map[list].name, "Header");
@@ -249,11 +251,11 @@ static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 			/* overlay info located at DLM (list = 1) start addr */
 			pos = bin_map[1].BIN_addr + (0x10 * (list- ilm_dlm_num - info_sec_num));
 
-			bin_map[list].SRAM_addr = byte_to_word(&fwdata[pos]);
-			bin_map[list].size = byte_to_word(&fwdata[pos+4]);
-			bin_map[list].BIN_addr = byte_to_word(&fwdata[pos+8]);
+			bin_map[list].SRAM_addr = byte_to_word(fwdata, pos);
+			bin_map[list].size = byte_to_word(fwdata, pos + 4);
+			bin_map[list].BIN_addr = byte_to_word(fwdata, pos + 8);
 			if (ts->hw_crc)
-				bin_map[list].crc = byte_to_word(&fwdata[pos+12]);
+				bin_map[list].crc = byte_to_word(fwdata, pos + 12);
 			else { //ts->hw_crc
 				if ((bin_map[list].BIN_addr + bin_map[list].size) < fwsize)
 					bin_map[list].crc = CheckSum(&fwdata[bin_map[list].BIN_addr], bin_map[list].size);
@@ -272,10 +274,6 @@ static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 					bin_map[list].BIN_addr, bin_map[list].BIN_addr + bin_map[list].size);
 			return -EINVAL;
 		}
-
-//		NVT_LOG("[%d][%s] SRAM (0x%08X), SIZE (0x%08X), BIN (0x%08X), CRC (0x%08X)\n",
-//				list, bin_map[list].name,
-//				bin_map[list].SRAM_addr, bin_map[list].size,  bin_map[list].BIN_addr, bin_map[list].crc);
 	}
 
 	return 0;
@@ -500,7 +498,7 @@ static int32_t nvt_check_fw_checksum(void)
 	 * ilm_dlm_num (ILM & DLM) + ovly_sec_num + info_sec_num
 	 */
 	for (list = 0; list < partition; list++) {
-		fw_checksum = byte_to_word(&fwbuf[1+list*4]);
+		fw_checksum = byte_to_word(fwbuf, 4 * list + 1);
 
 		/* ignore reserved partition (Reserved Partition size is zero) */
 		if(!bin_map[list].size)
@@ -664,8 +662,6 @@ static int32_t nvt_download_firmware_hw_crc(void)
 	uint8_t retry = 0;
 	int32_t ret = 0;
 
-	start = ktime_get();
-
 	while (1) {
 		/* bootloader reset to reset MCU */
 		nvt_bootloader_reset();
@@ -723,8 +719,6 @@ fail:
 		}
 	}
 
-	end = ktime_get();
-
 	return ret;
 }
 
@@ -740,8 +734,6 @@ static int32_t nvt_download_firmware(void)
 {
 	uint8_t retry = 0;
 	int32_t ret = 0;
-
-	start = ktime_get();
 
 	while (1) {
 		/*
@@ -795,8 +787,6 @@ fail:
 		}
 	}
 
-	end = ktime_get();
-
 	return ret;
 }
 
@@ -834,9 +824,6 @@ int32_t nvt_update_firmware(char *firmware_name)
 		NVT_ERR("Download Firmware failed. (%d)\n", ret);
 		goto download_fail;
 	}
-
-	NVT_LOG("Update firmware success! <%ld us>\n",
-			(long) ktime_us_delta(end, start));
 
 	/* Get FW Info */
 	ret = nvt_get_fw_info();
