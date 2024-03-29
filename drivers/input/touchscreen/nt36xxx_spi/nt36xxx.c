@@ -62,10 +62,10 @@ static void nvt_irq_enable(bool enable)
 	struct irq_desc *desc;
 
 	if (enable) {
-		if (!ts->irq_enabled)
+		if (!WARN_ON(ts->irq_enabled))
 			enable_irq(ts->client->irq);
 	} else {
-		if (ts->irq_enabled)
+		if (WARN_ON(ts->irq_enabled))
 			disable_irq(ts->client->irq);
 	}
 
@@ -1368,21 +1368,19 @@ static int nvt_ts_probe(struct spi_device *client)
 	client->irq = gpio_to_irq(ts->irq_gpio);
 	if (client->irq) {
 		NVT_LOG("int_trigger_type=%d\n", ts->int_trigger_type);
-		ts->irq_enabled = true;
 		ret = request_threaded_irq(client->irq, NULL, nvt_ts_work_func,
-				ts->int_trigger_type | IRQF_ONESHOT, "nt36xxx-spi", ts);
+				ts->int_trigger_type | IRQF_NO_AUTOEN | IRQF_ONESHOT, "nt36xxx-spi", ts);
 		if (ret != 0) {
 			NVT_ERR("request irq failed. ret=%d\n", ret);
 			return ret;
 		} else {
-			nvt_irq_enable(false);
 			NVT_LOG("request irq %d succeed\n", client->irq);
 		}
 	}
 
 #if WAKEUP_GESTURE
 	ts->gesture_enabled = false;
-	device_init_wakeup(&ts->input_dev->dev, 1);
+	device_init_wakeup(&ts->input_dev->dev, true);
 #endif
 
 	nvt_fwu_wq = alloc_workqueue("nvt_fwu_wq", WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
@@ -1408,10 +1406,8 @@ static int nvt_ts_probe(struct spi_device *client)
 	}
 err_create_nvt_fwu_wq_failed:
 #if WAKEUP_GESTURE
-	device_init_wakeup(&ts->input_dev->dev, 0);
+	device_init_wakeup(&ts->input_dev->dev, false);
 #endif
-
-	spi_set_drvdata(client, NULL);
 
 	return ret;
 }
@@ -1434,7 +1430,7 @@ static void nvt_ts_remove(struct spi_device *client)
 	}
 
 #if WAKEUP_GESTURE
-	device_init_wakeup(&ts->input_dev->dev, 0);
+	device_init_wakeup(&ts->input_dev->dev, false);
 #endif
 
 	nvt_irq_enable(false);
@@ -1452,8 +1448,6 @@ static void nvt_ts_remove(struct spi_device *client)
 		input_unregister_device(ts->input_dev);
 		ts->input_dev = NULL;
 	}
-
-	spi_set_drvdata(client, NULL);
 }
 
 static void nvt_ts_shutdown(struct spi_device *client)
@@ -1469,7 +1463,7 @@ static void nvt_ts_shutdown(struct spi_device *client)
 	}
 
 #if WAKEUP_GESTURE
-	device_init_wakeup(&ts->input_dev->dev, 0);
+	device_init_wakeup(&ts->input_dev->dev, false);
 #endif
 }
 

@@ -705,7 +705,7 @@ static int nvt_download_firmware_hw_crc(void)
 
 fail:
 		retry++;
-		if(unlikely(retry > 2)) {
+		if (unlikely(retry > 2)) {
 			NVT_ERR("error, retry=%d\n", retry);
 			nvt_read_bld_hw_crc();
 			break;
@@ -774,7 +774,7 @@ static int nvt_download_firmware(void)
 
 fail:
 		retry++;
-		if(unlikely(retry > 2)) {
+		if (unlikely(retry > 2)) {
 			NVT_ERR("error, retry=%d\n", retry);
 			break;
 		}
