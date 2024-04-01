@@ -459,7 +459,7 @@ static void dpu_encoder_phys_vid_enable(struct dpu_encoder_phys *phys_enc)
 	dpu_encoder_phys_vid_setup_timing_engine(phys_enc);
 
 	/*
-	 * For single flush cases (dual-ctl or pp-split), skip setting the
+	 * For single flush cases (dual-intf or pp-split), skip setting the
 	 * flush bit for the slave intf, since both intfs use same ctl
 	 * and HW will only flush the master.
 	 */
