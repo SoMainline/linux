@@ -384,7 +384,7 @@ static void dpu_encoder_phys_cmd_tearcheck_config(
 	 * TE event coming from the display TE pin we won't stall immediately
 	 */
 	tc_cfg.hw_vsync_mode = 1;
-	tc_cfg.sync_cfg_height = mode->vtotal * 2;
+	tc_cfg.sync_cfg_height = 0xfff0;//mode->vtotal * 2;
 	tc_cfg.vsync_init_val = mode->vdisplay;
 	tc_cfg.sync_threshold_start = DEFAULT_TEARCHECK_SYNC_THRESH_START;
 	tc_cfg.sync_threshold_continue = DEFAULT_TEARCHECK_SYNC_THRESH_CONTINUE;
