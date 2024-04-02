@@ -64,7 +64,7 @@
 #define WAKEUP_GESTURE 1
 #define NVT_WAKEUP_GESTURE_CUSTOMIZE 1
 #if WAKEUP_GESTURE
-extern const uint16_t gesture_key_array[];
+extern const u16 gesture_key_array[];
 #endif
 #define BOOT_UPDATE_FIRMWARE 1
 #define BOOT_UPDATE_FIRMWARE_NAME "novatek_ts_fw.bin"
@@ -76,30 +76,31 @@ extern const uint16_t gesture_key_array[];
 struct nvt_ts_data {
 	struct spi_device *client;
 	struct input_dev *input_dev;
-	uint16_t addr;
+	u16 addr;
 	int8_t phys[32];
-	uint8_t fw_ver;
-	uint8_t x_num;
-	uint8_t y_num;
-	uint16_t abs_x_max;
-	uint16_t abs_y_max;
-	uint8_t max_finger_num;
-	uint8_t max_button_num;
+	u8 fw_ver;
+	bool suspended;
+	u8 x_num;
+	u8 y_num;
+	u16 abs_x_max;
+	u16 abs_y_max;
+	u8 max_finger_num;
+	u8 max_button_num;
 	struct gpio_desc *reset_gpio;
 	struct mutex lock;
 	const struct nvt_ts_mem_map *mmap;
-	uint8_t carrier_system;
-	uint8_t hw_crc;
-	uint16_t nvt_pid;
-	uint8_t *rbuf;
-	uint8_t *xbuf;
+	u8 carrier_system;
+	u8 hw_crc;
+	u16 nvt_pid;
+	u8 *rbuf;
+	u8 *xbuf;
 	struct mutex xbuf_lock;
 	bool irq_enabled;
-	uint8_t cascade;
+	u8 cascade;
 	bool pen_support;
 	bool wgp_stylus;
-	uint8_t x_gang_num;
-	uint8_t y_gang_num;
+	u8 x_gang_num;
+	u8 y_gang_num;
 	struct input_dev *pen_input_dev;
 	int8_t pen_phys[32];
 	bool gesture_support;
@@ -147,8 +148,8 @@ typedef enum {
 } NVT_SPI_RW;
 
 //---extern functions---
-extern int CTP_SPI_READ(struct spi_device *client, uint8_t *buf, uint16_t len);
-extern int CTP_SPI_WRITE(struct spi_device *client, uint8_t *buf, uint16_t len);
+extern int CTP_SPI_READ(struct spi_device *client, u8 *buf, u16 len);
+extern int CTP_SPI_WRITE(struct spi_device *client, u8 *buf, u16 len);
 void nvt_bootloader_reset(struct nvt_ts_data *ts);
 void nvt_eng_reset(struct nvt_ts_data *ts);
 void nvt_sw_reset(struct nvt_ts_data *ts);
@@ -163,7 +164,7 @@ int nvt_get_fw_info(struct nvt_ts_data *ts);
 int nvt_clear_fw_status(struct nvt_ts_data *ts);
 int nvt_check_fw_status(struct nvt_ts_data *ts);
 int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts);
-int nvt_set_page(struct nvt_ts_data *ts, uint32_t addr);
-int nvt_write_addr(struct nvt_ts_data *ts, uint32_t addr, uint8_t data);
+int nvt_set_page(struct nvt_ts_data *ts, int addr);
+int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data);
 
 #endif

@@ -53,8 +53,6 @@ static const u16 gesture_default_keycodes[] = {
 	[GESTURE_SLIDE_RIGHT]	= KEY_POWER,
 };
 
-static bool bTouchIsAwake = 0;
-
 static void nvt_irq_enable(struct nvt_ts_data *ts, bool enable)
 {
 	struct irq_desc *desc;
@@ -268,7 +266,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	int ret;
 	int i;
 
-	if (ts->gesture_support && !bTouchIsAwake)
+	if (ts->gesture_support && ts->suspended)
 		pm_wakeup_event(&ts->input_dev->dev, 5000);
 
 	guard(mutex)(&ts->lock);
@@ -300,7 +298,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			return IRQ_HANDLED;
 	}
 
-	if (ts->gesture_support && !bTouchIsAwake) {
+	if (ts->gesture_support && ts->suspended) {
 		input_id = (u8)(point_data[1] >> 3);
 
 		nvt_ts_wakeup_gesture_report(ts, input_id, point_data);
@@ -528,7 +526,6 @@ static int nt36xxx_pen_inputdev_init(struct nvt_ts_data *ts)
 	if (!ts->pen_input_dev)
 		return -ENOMEM;
 
-	//---set pen input device info.---
 	set_bit(EV_ABS, ts->pen_input_dev->evbit);
 	set_bit(EV_KEY, ts->pen_input_dev->evbit);
 
@@ -557,7 +554,6 @@ static int nt36xxx_pen_inputdev_init(struct nvt_ts_data *ts)
 	ts->pen_input_dev->phys = ts->pen_phys;
 	ts->pen_input_dev->id.bustype = BUS_SPI;
 
-	//---register pen input device---
 	ret = input_register_device(ts->pen_input_dev);
 	if (ret)
 		return dev_err_probe(dev, ret, "Couldn't register pen input device\n");
@@ -643,7 +639,6 @@ static int nvt_ts_probe(struct spi_device *client)
 			return ret;
 	}
 
-	//---set int-pin & request irq---
 	client->irq = platform_get_irq(to_platform_device(dev), 0);
 	if (client->irq < 0)
 		return dev_err_probe(dev, -EINVAL, "Couldn't get IRQ\n");
@@ -667,7 +662,7 @@ static int nvt_ts_probe(struct spi_device *client)
 	// please make sure boot update start after display reset(RESX) sequence
 	queue_delayed_work(ts->nvt_fwu_wq, &ts->nvt_fwu_work, msecs_to_jiffies(14000));
 
-	bTouchIsAwake = 1;
+	ts->suspended = false;
 
 	nvt_irq_enable(ts, true);
 
@@ -750,7 +745,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	u8 buf[4] = {0};
 	int i;
 
-	if (!bTouchIsAwake) {
+	if (ts->suspended) {
 		NVT_LOG("Touch is already suspend\n");
 		return 0;
 	}
@@ -762,7 +757,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 
 	NVT_LOG("start\n");
 
-	bTouchIsAwake = false;
+	ts->suspended = true;
 
 	buf[0] = EVENT_MAP_HOST_CMD;
 	if (ts->gesture_support) {
@@ -809,7 +804,7 @@ static int32_t nvt_ts_resume(struct device *dev)
 	struct spi_device *client = to_spi_device(dev);
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
 
-	if (bTouchIsAwake) {
+	if (!ts->suspended) {
 		NVT_LOG("Touch is already resume\n");
 		return 0;
 	}
@@ -830,7 +825,7 @@ static int32_t nvt_ts_resume(struct device *dev)
 	if (!ts->gesture_support)
 		nvt_irq_enable(ts, true);
 
-	bTouchIsAwake = true;
+	ts->suspended = false;
 
 	NVT_LOG("end\n");
 

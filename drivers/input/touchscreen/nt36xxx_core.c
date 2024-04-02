@@ -9,7 +9,7 @@
 #define ENG_RST_ADDR		0x7FFF80
 
 static int spi_read_write(struct spi_device *client,
-			  uint8_t *buf, size_t len,
+			  u8 *buf, size_t len,
 			  NVT_SPI_RW rw)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
@@ -37,7 +37,7 @@ static int spi_read_write(struct spi_device *client,
 	return spi_sync(client, &m);
 }
 
-int CTP_SPI_READ(struct spi_device *client, uint8_t *buf, uint16_t len)
+int CTP_SPI_READ(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
 	int32_t ret = -1;
@@ -65,7 +65,7 @@ int CTP_SPI_READ(struct spi_device *client, uint8_t *buf, uint16_t len)
 EXPORT_SYMBOL_GPL(CTP_SPI_READ);
 
 #define SPI_WRITE_MAX_RETRIES		5
-int32_t CTP_SPI_WRITE(struct spi_device *client, uint8_t *buf, uint16_t len)
+int32_t CTP_SPI_WRITE(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
 	int32_t retries = 0;
@@ -90,9 +90,9 @@ Description:
 return:
 	Executive outcomes. 0---succeed. -5---access fail.
 *******************************************************/
-int32_t nvt_set_page(struct nvt_ts_data *ts, uint32_t addr)
+int32_t nvt_set_page(struct nvt_ts_data *ts, int addr)
 {
-	uint8_t buf[4] = {0};
+	u8 buf[4] = {0};
 
 	buf[0] = 0xFF;	//set index/page/addr command
 	buf[1] = (addr >> 15) & 0xFF;
@@ -108,10 +108,10 @@ Description:
 return:
 	Executive outcomes. 0---succeed. -5---access fail.
 *******************************************************/
-int32_t nvt_write_addr(struct nvt_ts_data *ts, uint32_t addr, uint8_t data)
+int32_t nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data)
 {
 	int32_t ret = 0;
-	uint8_t buf[4] = {0};
+	u8 buf[4] = {0};
 
 	//---set xdata index---
 	buf[0] = 0xFF;	//set index/page/addr command
@@ -144,7 +144,7 @@ return:
 *******************************************************/
 void nvt_bld_crc_enable(struct nvt_ts_data *ts)
 {
-	uint8_t buf[4] = { 0 };
+	u8 buf[4] = { 0 };
 
 	//---set xdata index to BLD_CRC_EN_ADDR---
 	nvt_set_page(ts, ts->mmap->BLD_CRC_EN_ADDR);
@@ -169,7 +169,7 @@ return:
 *******************************************************/
 void nvt_fw_crc_enable(struct nvt_ts_data *ts)
 {
-	uint8_t buf[4] = { 0 };
+	u8 buf[4] = { 0 };
 
 	//---set xdata index to EVENT BUF ADDR---
 	nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR);
@@ -233,7 +233,7 @@ return:
 #define SPI_DMA_TX_INFO_MAX_RETRIES	200
 int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts)
 {
-	uint8_t buf[8] = { 0 };
+	u8 buf[8] = { 0 };
 	int i;
 
 	for (i = 0; i < SPI_DMA_TX_INFO_MAX_RETRIES; i++) {
@@ -336,7 +336,7 @@ return:
 #define CLEAR_FW_STATUS_MAX_RETRIES	20
 int32_t nvt_clear_fw_status(struct nvt_ts_data *ts)
 {
-	uint8_t buf[8] = { 0 };
+	u8 buf[8] = { 0 };
 	int i;
 
 	for (i = 0; i < CLEAR_FW_STATUS_MAX_RETRIES; i++) {
@@ -372,7 +372,7 @@ return:
 #define CHECK_FW_STATUS_MAX_RETRIES	20
 int32_t nvt_check_fw_status(struct nvt_ts_data *ts)
 {
-	uint8_t buf[8] = { 0 };
+	u8 buf[8] = { 0 };
 	int i = 0;
 
 	for (i = 0; i < CHECK_FW_STATUS_MAX_RETRIES; i++) {
@@ -402,7 +402,7 @@ return:
 *******************************************************/
 int32_t nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_reset_state)
 {
-	uint8_t buf[8] = { 0 };
+	u8 buf[8] = { 0 };
 	int32_t ret = 0;
 	int32_t retry = 0;
 	int32_t retry_max = (check_reset_state == RESET_STATE_INIT) ? 10 : 50;
@@ -445,7 +445,7 @@ return:
 *******************************************************/
 static int32_t nvt_read_pid(struct nvt_ts_data *ts)
 {
-	uint8_t buf[4] = { 0 };
+	u8 buf[4] = { 0 };
 	int32_t ret = 0;
 
 	//---set xdata index to EVENT BUF ADDR---
@@ -478,8 +478,8 @@ return:
 int nvt_get_fw_info(struct nvt_ts_data *ts)
 {
 	char fw_version[64] = { 0 };
-	uint8_t buf[64] = {0};
-	uint32_t retry_count = 0;
+	u8 buf[64] = {0};
+	int retry_count = 0;
 	int32_t ret = 0;
 
 info_retry:
@@ -492,8 +492,8 @@ info_retry:
 	ts->fw_ver = buf[1];
 	ts->x_num = buf[3];
 	ts->y_num = buf[4];
-	ts->abs_x_max = (uint16_t)((buf[5] << 8) | buf[6]);
-	ts->abs_y_max = (uint16_t)((buf[7] << 8) | buf[8]);
+	ts->abs_x_max = (u16)((buf[5] << 8) | buf[6]);
+	ts->abs_y_max = (u16)((buf[7] << 8) | buf[8]);
 	ts->max_button_num = buf[11];
 	ts->cascade = buf[34] & 0x01;
 	if (ts->pen_support) {
