@@ -102,9 +102,7 @@ struct nvt_ts_data {
 	uint8_t y_gang_num;
 	struct input_dev *pen_input_dev;
 	int8_t pen_phys[32];
-#if WAKEUP_GESTURE
-	bool gesture_enabled;
-#endif
+	bool gesture_support;
 	struct touchscreen_properties prop;
 	struct touchscreen_properties pen_prop;
 	u32 swrst_n8_addr;

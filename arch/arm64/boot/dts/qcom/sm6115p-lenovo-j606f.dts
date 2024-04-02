@@ -328,6 +328,7 @@
 		reset-gpios = <&tlmm 54 0>;
 		novatek,spi-rd-fast-addr = <0x3f310>;
 		novatek,swrst-n8-addr = <0x3f0fe>;
+		novatek,gesture-support;
 		novatek,pen-support;
 		novatek,wgp-stylus;
 

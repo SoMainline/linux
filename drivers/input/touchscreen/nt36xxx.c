@@ -19,23 +19,39 @@
 // TODO: BOOT_UPDATE_FIRMWARE should prob be a module parameter
 // obv true for flashless chips, default to false for flash-equipped ones
 
-#if WAKEUP_GESTURE
-const uint16_t gesture_key_array[] = {
-	KEY_POWER,  //GESTURE_WORD_C
-	KEY_POWER,  //GESTURE_WORD_W
-	KEY_POWER,  //GESTURE_WORD_V
-	KEY_POWER,  //GESTURE_DOUBLE_CLICK
-	KEY_POWER,  //GESTURE_WORD_Z
-	KEY_POWER,  //GESTURE_WORD_M
-	KEY_POWER,  //GESTURE_WORD_O
-	KEY_POWER,  //GESTURE_WORD_e
-	KEY_POWER,  //GESTURE_WORD_S
-	KEY_POWER,  //GESTURE_SLIDE_UP
-	KEY_POWER,  //GESTURE_SLIDE_DOWN
-	KEY_POWER,  //GESTURE_SLIDE_LEFT
-	KEY_POWER,  //GESTURE_SLIDE_RIGHT
+enum nt36xxx_gestures {
+	GESTURE_FIRST = 12,
+	GESTURE_WORD_C = GESTURE_FIRST,
+	GESTURE_WORD_W = 13,
+	GESTURE_WORD_V = 14,
+	GESTURE_DOUBLE_CLICK = 15,
+	GESTURE_WORD_Z = 16,
+	GESTURE_WORD_M = 17,
+	GESTURE_WORD_O = 18,
+	GESTURE_WORD_e = 19,
+	GESTURE_WORD_S = 20,
+	GESTURE_SLIDE_UP = 21,
+	GESTURE_SLIDE_DOWN = 22,
+	GESTURE_SLIDE_LEFT = 23,
+	GESTURE_SLIDE_RIGHT = 24,
+	GESTURE_MAX
 };
-#endif
+
+static const u16 gesture_default_keycodes[] = {
+	[GESTURE_WORD_C]	= KEY_POWER,
+	[GESTURE_WORD_W]	= KEY_POWER,
+	[GESTURE_WORD_V]	= KEY_POWER,
+	[GESTURE_DOUBLE_CLICK]	= KEY_POWER,
+	[GESTURE_WORD_Z]	= KEY_POWER,
+	[GESTURE_WORD_M]	= KEY_POWER,
+	[GESTURE_WORD_O]	= KEY_POWER,
+	[GESTURE_WORD_e]	= KEY_POWER,
+	[GESTURE_WORD_S]	= KEY_POWER,
+	[GESTURE_SLIDE_UP]	= KEY_POWER,
+	[GESTURE_SLIDE_DOWN]	= KEY_POWER,
+	[GESTURE_SLIDE_LEFT]	= KEY_POWER,
+	[GESTURE_SLIDE_RIGHT]	= KEY_POWER,
+};
 
 static bool bTouchIsAwake = 0;
 
@@ -58,30 +74,23 @@ static void nvt_irq_enable(struct nvt_ts_data *ts, bool enable)
 	NVT_LOG("enable=%d, desc->depth=%d\n", enable, desc->depth);
 }
 
-#if WAKEUP_GESTURE
 /* customized gesture id */
 #define DATA_PROTOCOL           30
 /* function page definition */
 #define FUNCPAGE_GESTURE         1
 
-#if NVT_WAKEUP_GESTURE_CUSTOMIZE
 #define GESTURE_DOUBLE_CLICK    15
-/*******************************************************
-Description:
-	Novatek touchscreen wake up gesture key report function.
-
-return:
-	n.a.
-*******************************************************/
-static void nvt_ts_wakeup_gesture_report_customize(struct nvt_ts_data *ts,
-						   u8 gesture_id, u8 *data)
+static void nvt_ts_wakeup_gesture_report(struct nvt_ts_data *ts, u8 gesture_id, u8 *data)
 {
 	u8 func_type = data[2];
 	u8 func_id = data[3];
 	u32 keycode = 0;
 
+	if (WARN_ON_ONCE(gesture_id <= GESTURE_FIRST || gesture_id >= GESTURE_MAX))
+		return;
+
 	/* support fw specifal data protocol */
-	if ((gesture_id == DATA_PROTOCOL) && (func_type == FUNCPAGE_GESTURE)) {
+	if (gesture_id == DATA_PROTOCOL && func_type == FUNCPAGE_GESTURE) {
 		gesture_id = func_id;
 	} else if (gesture_id > DATA_PROTOCOL) {
 		NVT_ERR("gesture_id %d is invalid, func_type=%d, func_id=%d\n", gesture_id, func_type, func_id);
@@ -92,8 +101,8 @@ static void nvt_ts_wakeup_gesture_report_customize(struct nvt_ts_data *ts,
 
 	switch (gesture_id) {
 		case GESTURE_DOUBLE_CLICK:
-			NVT_LOG("Gesture : Double Click.\n");
-			keycode = gesture_key_array[3];
+			pr_err("Triggered gesture %d\n", gesture_id);
+			keycode = gesture_default_keycodes[gesture_id];
 			break;
 		default:
 			break;
@@ -106,109 +115,6 @@ static void nvt_ts_wakeup_gesture_report_customize(struct nvt_ts_data *ts,
 		input_sync(ts->input_dev);
 	}
 }
-#else
-#define GESTURE_WORD_C          12
-#define GESTURE_WORD_W          13
-#define GESTURE_WORD_V          14
-#define GESTURE_DOUBLE_CLICK    15
-#define GESTURE_WORD_Z          16
-#define GESTURE_WORD_M          17
-#define GESTURE_WORD_O          18
-#define GESTURE_WORD_e          19
-#define GESTURE_WORD_S          20
-#define GESTURE_SLIDE_UP        21
-#define GESTURE_SLIDE_DOWN      22
-#define GESTURE_SLIDE_LEFT      23
-#define GESTURE_SLIDE_RIGHT     24
-/*******************************************************
-Description:
-	Novatek touchscreen wake up gesture key report function.
-
-return:
-	n.a.
-*******************************************************/
-static void nvt_ts_wakeup_gesture_report(u8 gesture_id, u8 *data)
-{
-	u32 keycode = 0;
-	u8 func_type = data[2];
-	u8 func_id = data[3];
-
-	/* support fw specifal data protocol */
-	if ((gesture_id == DATA_PROTOCOL) && (func_type == FUNCPAGE_GESTURE)) {
-		gesture_id = func_id;
-	} else if (gesture_id > DATA_PROTOCOL) {
-		NVT_ERR("gesture_id %d is invalid, func_type=%d, func_id=%d\n", gesture_id, func_type, func_id);
-		return;
-	}
-
-	NVT_LOG("gesture_id = %d\n", gesture_id);
-
-	switch (gesture_id) {
-		case GESTURE_WORD_C:
-			NVT_LOG("Gesture : Word-C.\n");
-			keycode = gesture_key_array[0];
-			break;
-		case GESTURE_WORD_W:
-			NVT_LOG("Gesture : Word-W.\n");
-			keycode = gesture_key_array[1];
-			break;
-		case GESTURE_WORD_V:
-			NVT_LOG("Gesture : Word-V.\n");
-			keycode = gesture_key_array[2];
-			break;
-		case GESTURE_DOUBLE_CLICK:
-			NVT_LOG("Gesture : Double Click.\n");
-			keycode = gesture_key_array[3];
-			break;
-		case GESTURE_WORD_Z:
-			NVT_LOG("Gesture : Word-Z.\n");
-			keycode = gesture_key_array[4];
-			break;
-		case GESTURE_WORD_M:
-			NVT_LOG("Gesture : Word-M.\n");
-			keycode = gesture_key_array[5];
-			break;
-		case GESTURE_WORD_O:
-			NVT_LOG("Gesture : Word-O.\n");
-			keycode = gesture_key_array[6];
-			break;
-		case GESTURE_WORD_e:
-			NVT_LOG("Gesture : Word-e.\n");
-			keycode = gesture_key_array[7];
-			break;
-		case GESTURE_WORD_S:
-			NVT_LOG("Gesture : Word-S.\n");
-			keycode = gesture_key_array[8];
-			break;
-		case GESTURE_SLIDE_UP:
-			NVT_LOG("Gesture : Slide UP.\n");
-			keycode = gesture_key_array[9];
-			break;
-		case GESTURE_SLIDE_DOWN:
-			NVT_LOG("Gesture : Slide DOWN.\n");
-			keycode = gesture_key_array[10];
-			break;
-		case GESTURE_SLIDE_LEFT:
-			NVT_LOG("Gesture : Slide LEFT.\n");
-			keycode = gesture_key_array[11];
-			break;
-		case GESTURE_SLIDE_RIGHT:
-			NVT_LOG("Gesture : Slide RIGHT.\n");
-			keycode = gesture_key_array[12];
-			break;
-		default:
-			break;
-	}
-
-	if (keycode > 0) {
-		input_report_key(ts->input_dev, keycode, 1);
-		input_sync(ts->input_dev);
-		input_report_key(ts->input_dev, keycode, 0);
-		input_sync(ts->input_dev);
-	}
-}
-#endif
-#endif
 
 /*******************************************************
 Description:
@@ -362,10 +268,8 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	int ret;
 	int i;
 
-#if WAKEUP_GESTURE
-	if (!bTouchIsAwake)
+	if (ts->gesture_support && !bTouchIsAwake)
 		pm_wakeup_event(&ts->input_dev->dev, 5000);
-#endif
 
 	guard(mutex)(&ts->lock);
 
@@ -396,17 +300,12 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			return IRQ_HANDLED;
 	}
 
-#if WAKEUP_GESTURE
-	if (!bTouchIsAwake) {
+	if (ts->gesture_support && !bTouchIsAwake) {
 		input_id = (u8)(point_data[1] >> 3);
-#if NVT_WAKEUP_GESTURE_CUSTOMIZE
-		nvt_ts_wakeup_gesture_report_customize(ts, input_id, point_data);
-#else
-		nvt_ts_wakeup_gesture_report(input_id, point_data);
-#endif
+
+		nvt_ts_wakeup_gesture_report(ts, input_id, point_data);
 		return IRQ_HANDLED;
 	}
-#endif
 
 	for (i = 0; i < ts->max_finger_num; i++) {
 		index = 1 + 6 * i;
@@ -601,10 +500,10 @@ static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 	if (ret)
 		return ret;
 
-#if WAKEUP_GESTURE
-	for (i = 0; i < ARRAY_SIZE(gesture_key_array); i++)
-		input_set_capability(ts->input_dev, EV_KEY, gesture_key_array[i]);
-#endif
+	if (ts->gesture_support) {
+		for (i = 0; i < ARRAY_SIZE(gesture_default_keycodes); i++)
+			input_set_capability(ts->input_dev, EV_KEY, gesture_default_keycodes[i]);
+	}
 
 	sprintf(ts->phys, "input/ts");
 	ts->input_dev->name = NVT_TS_NAME;
@@ -755,10 +654,8 @@ static int nvt_ts_probe(struct spi_device *client)
 	if (ret)
 		return dev_err_probe(dev, ret, "Failed to request IRQ\n");
 
-#if WAKEUP_GESTURE
-	ts->gesture_enabled = false;
-	device_init_wakeup(&ts->input_dev->dev, true);
-#endif
+	ts->gesture_support = of_property_read_bool(dev->of_node, "novatek,gesture-support");
+	device_init_wakeup(&ts->input_dev->dev, ts->gesture_support);
 
 	ts->nvt_fwu_wq = alloc_workqueue("nvt_fwu_wq", WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
 	if (!ts->nvt_fwu_wq) {
@@ -858,7 +755,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 		return 0;
 	}
 
-	if (!ts->gesture_enabled)
+	if (!ts->gesture_support)
 		nvt_irq_enable(ts, false);
 
 	mutex_lock(&ts->lock);
@@ -868,7 +765,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	bTouchIsAwake = false;
 
 	buf[0] = EVENT_MAP_HOST_CMD;
-	if (ts->gesture_enabled) {
+	if (ts->gesture_support) {
 		buf[1] = NVT_TS_SUSPEND_WAKEUP_GESTURE_MODE;
 		CTP_SPI_WRITE(ts->client, buf, 2);
 		enable_irq_wake(ts->client->irq);
@@ -930,7 +827,7 @@ static int32_t nvt_ts_resume(struct device *dev)
 		nvt_check_fw_reset_state(ts, RESET_STATE_REK);
 	}
 
-	if (!ts->gesture_enabled)
+	if (!ts->gesture_support)
 		nvt_irq_enable(ts, true);
 
 	bTouchIsAwake = true;
@@ -939,6 +836,7 @@ static int32_t nvt_ts_resume(struct device *dev)
 
 	return 0;
 }
+static DEFINE_SIMPLE_DEV_PM_OPS(nt36xxx_pm_ops, nvt_ts_suspend, nvt_ts_resume);
 
 static const struct spi_device_id nvt_ts_id[] = {
 	{ .name = "nt36xxx" },
@@ -956,6 +854,8 @@ static struct spi_driver nvt_spi_driver = {
 	.driver = {
 		.name = "nt36xxx-spi",
 		.of_match_table = nt36xxx_of_match_table,
+		// TODO:
+		// .pm = pm_sleep_ptr(&nt36xxx_pm_ops),
 	},
 	.probe = nvt_ts_probe,
 	.remove = nvt_ts_remove,
