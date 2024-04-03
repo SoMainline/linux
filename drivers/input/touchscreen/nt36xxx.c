@@ -246,6 +246,8 @@ Description:
 return:
 	n.a.
 *******************************************************/
+#define PEN_FORMAT_ID_PRESENT			0x01
+#define PEN_FORMAT_ID_DIDNT_MOVE		0xF0 /* "Still present, didn't move since last irq" */
 #define PEN_FORMAT_ID_NO_PEN			0xFF
 static irqreturn_t nvt_ts_work_func(int irq, void *data)
 {
@@ -379,7 +381,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		input_report_key(ts->pen_input_dev, BTN_STYLUS, 0);
 		input_report_key(ts->pen_input_dev, BTN_STYLUS2, 0);
 	} else {
-		if (pen_format_id == 0x01) {
+		if (pen_format_id == PEN_FORMAT_ID_PRESENT) {
 			// report pen data
 			pen_x = (u32)(point_data[67] << 8) + (u32)(point_data[68]);
 			pen_y = (u32)(point_data[69] << 8) + (u32)(point_data[70]);
@@ -405,8 +407,8 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			input_report_key(ts->pen_input_dev, BTN_TOOL_PEN, !!pen_distance || !!pen_pressure);
 			input_report_key(ts->pen_input_dev, BTN_STYLUS, pen_button1);
 			input_report_key(ts->pen_input_dev, BTN_STYLUS2, pen_button2);
-		} else if (pen_format_id == 0xF0) {
-			// report Pen ID
+		} else if (pen_format_id == PEN_FORMAT_ID_DIDNT_MOVE) {
+			/* No change */
 		} else {
 			NVT_ERR("Unknown pen format id!\n");
 			return IRQ_HANDLED;
@@ -425,13 +427,12 @@ Description:
 return:
 	Executive outcomes. 0---NVT IC. -1---not NVT IC.
 *******************************************************/
-static int8_t nvt_ts_check_chip_ver_trim(struct nvt_ts_data *ts, u32 chip_ver_trim_addr)
+static int nvt_ts_check_chip_ver_trim(struct nvt_ts_data *ts, u32 chip_ver_trim_addr)
 {
 	u8 buf[8] = { 0 };
 	int retry = 0;
 	int i, index;
 
-	NVT_LOG("%s:enter\n",__func__);
 	for (retry = 5; retry > 0; retry--) {
 		nvt_bootloader_reset(ts);
 
@@ -448,12 +449,15 @@ static int8_t nvt_ts_check_chip_ver_trim(struct nvt_ts_data *ts, u32 chip_ver_tr
 
 		// compare read chip id on supported list
 		for (index = 0; index < ARRAY_SIZE(trim_id_table); index++) {
+			const u8 *match_id = trim_id_table[index].id;
+
 			// compare each byte
 			for (i = 0; i < NVT_ID_BYTE_MAX; i++) {
-				if (trim_id_table[index].mask[i]) {
-					if (buf[i + 1] != trim_id_table[index].id[i])
-						break;
-				}
+				if (match_id[i] == ID_MATCH_ANY)
+					continue;
+
+				if (buf[i + 1] != match_id[i])
+					break;
 			}
 
 			if (i == NVT_ID_BYTE_MAX) {
