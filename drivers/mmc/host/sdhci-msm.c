@@ -2146,36 +2146,33 @@ static void sdhci_msm_set_regulator_caps(struct sdhci_msm_host *msm_host)
 	struct sdhci_host *host = mmc_priv(mmc);
 	const struct sdhci_msm_offset *msm_offset = msm_host->offset;
 
-	if (!IS_ERR(mmc->supply.vqmmc)) {
-		if (regulator_is_supported_voltage(supply, 1700000, 1950000))
-			caps |= CORE_1_8V_SUPPORT;
-		if (regulator_is_supported_voltage(supply, 2700000, 3600000))
-			caps |= CORE_3_0V_SUPPORT;
+	if (IS_ERR(mmc->supply.vqmmc))
+		return;
 
-		if (!caps)
-			pr_warn("%s: 1.8/3V not supported for vqmmc\n",
-					mmc_hostname(mmc));
+	if (regulator_is_supported_voltage(supply, 1700000, 1950000))
+		caps |= CORE_1_8V_SUPPORT;
+	if (regulator_is_supported_voltage(supply, 2700000, 3600000))
+		caps |= CORE_3_0V_SUPPORT;
+	if (!caps) {
+		pr_warn("%s: 1.8/3V not supported for vqmmc\n", mmc_hostname(mmc));
+		return;
 	}
 
-	if (caps) {
-		/*
-		 * Set the PAD_PWR_SWITCH_EN bit so that the PAD_PWR_SWITCH
-		 * bit can be used as required later on.
-		 */
-		u32 io_level = msm_host->curr_io_level;
+	/*
+	 * Set the PAD_PWR_SWITCH_EN bit so that the PAD_PWR_SWITCH
+	 * bit can be used as required later on.
+	 */
+	u32 io_level = msm_host->curr_io_level;
 
-		config = readl_relaxed(host->ioaddr +
-				msm_offset->core_vendor_spec);
-		config |= CORE_IO_PAD_PWR_SWITCH_EN;
+	config = readl_relaxed(host->ioaddr + msm_offset->core_vendor_spec);
+	config |= CORE_IO_PAD_PWR_SWITCH_EN;
 
-		if ((io_level & REQ_IO_HIGH) && (caps &	CORE_3_0V_SUPPORT))
-			config &= ~CORE_IO_PAD_PWR_SWITCH;
-		else if ((io_level & REQ_IO_LOW) || (caps & CORE_1_8V_SUPPORT))
-			config |= CORE_IO_PAD_PWR_SWITCH;
+	if ((io_level & REQ_IO_HIGH) && (caps &	CORE_3_0V_SUPPORT))
+		config &= ~CORE_IO_PAD_PWR_SWITCH;
+	else if ((io_level & REQ_IO_LOW) || (caps & CORE_1_8V_SUPPORT))
+		config |= CORE_IO_PAD_PWR_SWITCH;
 
-		writel_relaxed(config,
-				host->ioaddr + msm_offset->core_vendor_spec);
-	}
+	writel_relaxed(config, host->ioaddr + msm_offset->core_vendor_spec);
 	msm_host->caps_0 |= caps;
 	pr_debug("%s: supported caps: 0x%08x\n", mmc_hostname(mmc), caps);
 }
