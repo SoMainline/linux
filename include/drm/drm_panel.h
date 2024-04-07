@@ -37,6 +37,7 @@ struct drm_device;
 struct drm_panel_follower;
 struct drm_panel;
 struct display_timing;
+struct drm_crtc_state;
 
 enum drm_panel_orientation;
 
@@ -79,6 +80,15 @@ struct drm_panel_funcs {
 	 * This function is optional.
 	 */
 	int (*prepare)(struct drm_panel *panel);
+
+	/**
+	 * @prepare_atomic:
+	 *
+	 * Turn on panel and perform set up for the given atomic mode.
+	 *
+	 * This function is optional.
+	 */
+	int (*prepare_atomic)(struct drm_panel *panel, const struct drm_crtc_state *crtc_state);
 
 	/**
 	 * @enable:
@@ -277,6 +287,7 @@ void drm_panel_add(struct drm_panel *panel);
 void drm_panel_remove(struct drm_panel *panel);
 
 int drm_panel_prepare(struct drm_panel *panel);
+int drm_panel_prepare_atomic(struct drm_panel *panel, const struct drm_crtc_state *crtc_state);
 int drm_panel_unprepare(struct drm_panel *panel);
 
 int drm_panel_enable(struct drm_panel *panel);

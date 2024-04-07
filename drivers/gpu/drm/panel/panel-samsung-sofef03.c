@@ -13,14 +13,13 @@
 
 #include <video/mipi_display.h>
 
+#include <drm/drm_atomic.h>
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_panel.h>
 #include <drm/drm_probe_helper.h>
 #include <drm/display/drm_dsc.h>
 #include <drm/display/drm_dsc_helper.h>
-
-static const bool enable_120hz = true;
 
 struct samsung_sofef03_m {
 	struct drm_panel panel;
@@ -41,7 +40,7 @@ static void samsung_sofef03_m_reset(struct samsung_sofef03_m *ctx)
 	usleep_range(10000, 11000);
 }
 
-static int samsung_sofef03_m_on(struct samsung_sofef03_m *ctx)
+static int samsung_sofef03_m_on(struct samsung_sofef03_m *ctx, bool enable_120hz)
 {
 	struct mipi_dsi_device *dsi = ctx->dsi;
 	struct device *dev = &dsi->dev;
@@ -101,7 +100,10 @@ static int samsung_sofef03_m_on(struct samsung_sofef03_m *ctx)
 	mipi_dsi_dcs_write_seq(dsi, MIPI_DCS_WRITE_CONTROL_DISPLAY, BIT(5));
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
 	mipi_dsi_dcs_write_seq(dsi, 0xc2, 0x2d, 0x27);
-	mipi_dsi_dcs_write_seq(dsi, 0x60, enable_120hz ? 0x10 : 0x00);
+	if (enable_120hz)
+		mipi_dsi_dcs_write_seq(dsi, 0x60, 0x10);
+	else
+		mipi_dsi_dcs_write_seq(dsi, 0x60, 0x00);
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
 	msleep(110);
 
@@ -139,13 +141,29 @@ static int samsung_sofef03_m_off(struct samsung_sofef03_m *ctx)
 	return 0;
 }
 
-static int samsung_sofef03_m_prepare(struct drm_panel *panel)
+static int samsung_sofef03_m_prepare_atomic(struct drm_panel *panel, const struct drm_crtc_state *state)
 {
 	struct samsung_sofef03_m *ctx = to_samsung_sofef03_m(panel);
 	struct drm_dsc_picture_parameter_set pps;
 	struct device *dev = &ctx->dsi->dev;
+	int vrefresh = drm_mode_vrefresh(&state->mode);
+	bool is_120hz;
 	int ret;
 
+	bool need_modeset = drm_atomic_crtc_needs_modeset(state);
+	dev_err(dev, "Need modeset: %d\n", need_modeset);
+
+	if (vrefresh == 60)
+		is_120hz = false;
+	else if (vrefresh == 120)
+		is_120hz = true;
+	else {
+		// TODO: Can we handle this in an atomic_check sort of call?
+		dev_err(dev, "Invalid vrefresh value %d\n", vrefresh);
+		return -EINVAL;
+	}
+
+	// TODO: We need to reconfigure the panel without powering down or doing a reset. Maybe doing it seamlessly is out of scope for initially providing the atomic mode or state to drm_panel?
 	if (ctx->prepared)
 		return 0;
 
@@ -164,7 +182,7 @@ static int samsung_sofef03_m_prepare(struct drm_panel *panel)
 
 	samsung_sofef03_m_reset(ctx);
 
-	ret = samsung_sofef03_m_on(ctx);
+	ret = samsung_sofef03_m_on(ctx, is_120hz);
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize panel: %d\n", ret);
 		goto fail;
@@ -220,6 +238,7 @@ static int samsung_sofef03_m_unprepare(struct drm_panel *panel)
 }
 
 static const struct drm_display_mode samsung_sofef03_m_60hz_mode = {
+	.name = "slowmode",
 	.clock = (1080 + 156 + 8 + 8) * (2520 + 2393 + 8 + 8) * 60 / 1000,
 	.hdisplay = 1080,
 	.hsync_start = 1080 + 156,
@@ -234,6 +253,7 @@ static const struct drm_display_mode samsung_sofef03_m_60hz_mode = {
 };
 
 static const struct drm_display_mode samsung_sofef03_m_120hz_mode = {
+	.name = "brr",
 	.clock = (1080 + 56 + 8 + 8) * (2520 + 499 + 8 + 8) * 120 / 1000,
 	.hdisplay = 1080,
 	.hsync_start = 1080 + 56,
@@ -250,16 +270,33 @@ static const struct drm_display_mode samsung_sofef03_m_120hz_mode = {
 static int samsung_sofef03_m_get_modes(struct drm_panel *panel,
 			       struct drm_connector *connector)
 {
-	if (enable_120hz)
-		return drm_connector_helper_get_modes_fixed(connector,
-							    &samsung_sofef03_m_120hz_mode);
-	else
-		return drm_connector_helper_get_modes_fixed(connector,
-							    &samsung_sofef03_m_60hz_mode);
+	struct drm_device *dev = connector->dev;
+	struct drm_display_mode *mode;
+
+	mode = drm_mode_duplicate(dev, &samsung_sofef03_m_60hz_mode);
+	mode->type |= DRM_MODE_TYPE_PREFERRED; // DRIVER
+	drm_mode_probed_add(connector, mode);
+
+	mode = drm_mode_duplicate(dev, &samsung_sofef03_m_120hz_mode);
+	drm_mode_probed_add(connector, mode);
+
+	connector->display_info.width_mm = mode->width_mm;
+	connector->display_info.height_mm = mode->height_mm;
+
+	return 2;
+
+	// if (enable_120hz)
+	// 	return drm_connector_helper_get_modes_fixed(connector,
+	// 						    &samsung_sofef03_m_120hz_mode);
+	// else
+	// 	return drm_connector_helper_get_modes_fixed(connector,
+	// 						    &samsung_sofef03_m_60hz_mode);
 }
 
 static const struct drm_panel_funcs samsung_sofef03_m_panel_funcs = {
-	.prepare = samsung_sofef03_m_prepare,
+	.prepare_atomic = samsung_sofef03_m_prepare_atomic,
+	// .enable = samsung_sofef03_m_enable,
+	// .disable = samsung_sofef03_m_disable,
 	.unprepare = samsung_sofef03_m_unprepare,
 	.get_modes = samsung_sofef03_m_get_modes,
 };

@@ -144,6 +144,59 @@ exit:
 EXPORT_SYMBOL(drm_panel_prepare);
 
 /**
+ * drm_panel_prepare_atomic - power on a panel
+ * @panel: DRM panel
+ * @crtc_state: Atomic state containing the desired mode
+ *
+ * Calling this function will enable power and deassert any reset signals to
+ * the panel. After this has completed it is possible to communicate with any
+ * integrated circuitry via a command bus.
+ *
+ * Return: 0 on success or a negative error code on failure.
+ */
+int drm_panel_prepare_atomic(struct drm_panel *panel, const struct drm_crtc_state *crtc_state)
+{
+	struct drm_panel_follower *follower;
+	int ret;
+
+	if (!panel)
+		return -EINVAL;
+
+	if (panel->prepared) {
+		dev_warn(panel->dev, "Skipping prepare_atomic of already prepared panel\n");
+		return 0;
+	}
+
+	mutex_lock(&panel->follower_lock);
+
+	if (panel->funcs) {
+		if (panel->funcs->prepare_atomic)
+			ret = panel->funcs->prepare_atomic(panel, crtc_state);
+		else if (panel->funcs->prepare)
+			ret = panel->funcs->prepare(panel);
+		else
+			ret = 0;
+		if (ret < 0)
+			goto exit;
+	}
+	panel->prepared = true;
+
+	list_for_each_entry(follower, &panel->followers, list) {
+		ret = follower->funcs->panel_prepared(follower);
+		if (ret < 0)
+			dev_info(panel->dev, "%ps failed: %d\n",
+				 follower->funcs->panel_prepared, ret);
+	}
+
+	ret = 0;
+exit:
+	mutex_unlock(&panel->follower_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL(drm_panel_prepare_atomic);
+
+/**
  * drm_panel_unprepare - power off a panel
  * @panel: DRM panel
  *
@@ -306,8 +359,14 @@ int drm_panel_get_modes(struct drm_panel *panel,
 		int num;
 
 		num = panel->funcs->get_modes(panel, connector);
-		if (num > 0)
+		if (num > 0) {
+			// There should not be more than one mode if the panel lacks the means to
+			// know which mode userspace ended up selecting.
+			// (TODO: Unless the panel driver has no reason to care and it only has an
+			// effect on the rest of the DRM chain?)
+			WARN_ON(!panel->funcs->prepare_atomic && num > 1);
 			return num;
+		}
 	}
 
 	return 0;

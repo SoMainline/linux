@@ -12,6 +12,7 @@
 
 #include <video/mipi_display.h>
 
+#include <drm/drm_atomic.h>
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_modes.h>
 #include <drm/drm_panel.h>
@@ -20,8 +21,6 @@
 #include <drm/display/drm_dsc_helper.h>
 
 #define WRITE_CONTROL_DISPLAY_BACKLIGHT BIT(5)
-
-static const bool enable_4k = false, enable_120hz = false;
 
 struct ana6707_amb650yl01 {
 	struct drm_panel panel;
@@ -47,13 +46,15 @@ static void ana6707_amb650yl01_reset(struct ana6707_amb650yl01 *ctx)
 	usleep_range(10000, 11000);
 }
 
-static int ana6707_amb650yl01_on(struct ana6707_amb650yl01 *ctx)
+static int ana6707_amb650yl01_on(struct ana6707_amb650yl01 *ctx, const struct drm_display_mode *mode)
 {
-	const u16 hdisplay = enable_4k ? 1644 : 1096;
-	const u16 vdisplay = enable_4k ? 3840 : 2560;
+	const u16 hdisplay = mode->hdisplay;
+	const u16 vdisplay = mode->vdisplay;
 	struct mipi_dsi_device *dsi= ctx->dsi[0];
 	struct device *dev = &dsi->dev;
 	int ret;
+
+	ctx->dsc.slice_width = hdisplay / 2;
 
 	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
 	if (ctx->dsi[1])
@@ -84,9 +85,32 @@ static int ana6707_amb650yl01_on(struct ana6707_amb650yl01 *ctx)
 	mipi_dsi_dcs_write_seq(dsi, 0xed, 0x46, 0x00, 0x0e, 0x90);
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
-	mipi_dsi_dcs_write_seq(dsi, 0x60,
-	                       enable_4k ? 0x00 : 0x04,
-	                       enable_120hz ? 0x00 : 0xc0);
+
+	// mipi_dsi_dcs_write_seq(dsi, 0x60,
+	//                        enable_4k ? 0x00 : 0x04,
+	//                        enable_120hz ? 0x00 : 0xc0);
+	int u0, u1;
+	if (mode->hdisplay == 1096)
+		u0 = 0x04;
+	else if (mode->hdisplay == 1644)
+		u0 = 0x00;
+	else
+		return -EINVAL;
+	int vrefresh = drm_mode_vrefresh(mode);
+	if (vrefresh == 60)
+		u1 = 0xc0;
+	else if (vrefresh == 120)
+		u1 = 0x00;
+	else
+		return -EINVAL;
+
+	const u8 mode_config[] = { 0x60, u0, u1 };
+	ret = mipi_dsi_dcs_write_buffer(dsi, mode_config, ARRAY_SIZE(mode_config));
+	if (ret < 0) {
+		dev_err(dev, "Failed to configure panel mode: %d\n", ret);
+		return ret;
+	}
+
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
 
 	ret = mipi_dsi_dcs_set_column_address(dsi, 0, hdisplay - 1);
@@ -163,7 +187,7 @@ static int ana6707_amb650yl01_off(struct ana6707_amb650yl01 *ctx)
 	return 0;
 }
 
-static int ana6707_amb650yl01_prepare(struct drm_panel *panel)
+static int ana6707_amb650yl01_prepare_atomic(struct drm_panel *panel, const struct drm_crtc_state *state)
 {
 	struct ana6707_amb650yl01 *ctx = to_ana6707_amb650yl01(panel);
 	struct mipi_dsi_device *dsi = ctx->dsi[0];
@@ -180,7 +204,7 @@ static int ana6707_amb650yl01_prepare(struct drm_panel *panel)
 
 	msleep(120);
 
-	ret = ana6707_amb650yl01_on(ctx);
+	ret = ana6707_amb650yl01_on(ctx, &state->mode);
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize panel: %d\n", ret);
 		goto fail;
@@ -264,6 +288,7 @@ static const int transfer_delay_4k = 120;
  */
 
 static const struct drm_display_mode ana6707_amb650yl01_mode_4k = {
+	.name = "a",
 	.clock = (1644 + transfer_delay_4k) * 3840 * 60 / 1000,
 	.hdisplay = 1644,
 	.hsync_start = 1644,
@@ -282,6 +307,7 @@ static const struct drm_display_mode ana6707_amb650yl01_mode_4k = {
 static const int transfer_delay_4k_120 = 216;
 
 static const struct drm_display_mode ana6707_amb650yl01_mode_4k_120 = {
+	.name = "b",
 	.clock = (1644 + transfer_delay_4k_120) * 3840 * 120 / 1000,
 	.hdisplay = 1644,
 	.hsync_start = 1644,
@@ -300,6 +326,7 @@ static const struct drm_display_mode ana6707_amb650yl01_mode_4k_120 = {
 static const int transfer_delay = 100;
 
 static const struct drm_display_mode ana6707_amb650yl01_mode = {
+	.name = "c",
 	.clock = (1096 + transfer_delay) * 2560 * 60 / 1000,
 	.hdisplay = 1096,
 	.hsync_start = 1096,
@@ -318,6 +345,7 @@ static const struct drm_display_mode ana6707_amb650yl01_mode = {
 static const int transfer_delay_120 = 130;
 
 static const struct drm_display_mode ana6707_amb650yl01_mode_120 = {
+	.name = "d",
 	.clock = (1096 + transfer_delay_120) * 2560 * 120 / 1000,
 	.hdisplay = 1096,
 	.hsync_start = 1096,
@@ -335,29 +363,28 @@ static const struct drm_display_mode ana6707_amb650yl01_mode_120 = {
 static int ana6707_amb650yl01_get_modes(struct drm_panel *panel,
 					struct drm_connector *connector)
 {
-	const struct drm_display_mode *mode;
+	struct drm_device *dev = connector->dev;
+	struct drm_display_mode *mode;
 
-	/*
-	 * TODO: return all 4 modes when drm_bridge/drm_panel get it back in an
-	 * atomic_prepare callback
-	 */
-	if (enable_4k) {
-		if (enable_120hz)
-			mode = &ana6707_amb650yl01_mode_4k_120;
-		else
-			mode = &ana6707_amb650yl01_mode_4k;
-	} else {
-		if (enable_120hz)
-			mode = &ana6707_amb650yl01_mode_120;
-		else
-			mode = &ana6707_amb650yl01_mode;
-	}
+	mode = drm_mode_duplicate(dev, &ana6707_amb650yl01_mode_4k_120);
+	mode->type |= DRM_MODE_TYPE_PREFERRED; // DRIVER
+	drm_mode_probed_add(connector, mode);
 
-	return drm_connector_helper_get_modes_fixed(connector, mode);
+	mode = drm_mode_duplicate(dev, &ana6707_amb650yl01_mode_4k);
+	drm_mode_probed_add(connector, mode);
+	mode = drm_mode_duplicate(dev, &ana6707_amb650yl01_mode_120);
+	drm_mode_probed_add(connector, mode);
+	mode = drm_mode_duplicate(dev, &ana6707_amb650yl01_mode);
+	drm_mode_probed_add(connector, mode);
+
+	connector->display_info.width_mm = mode->width_mm;
+	connector->display_info.height_mm = mode->height_mm;
+
+	return 4;
 }
 
 static const struct drm_panel_funcs ana6707_amb650yl01_panel_funcs = {
-	.prepare = ana6707_amb650yl01_prepare,
+	.prepare_atomic = ana6707_amb650yl01_prepare_atomic,
 	.enable = ana6707_amb650yl01_enable,
 	.disable = ana6707_amb650yl01_disable,
 	.unprepare = ana6707_amb650yl01_unprepare,
@@ -424,7 +451,8 @@ ana6707_amb650yl01_create_backlight(struct mipi_dsi_device *dsi)
 
 static int ana6707_amb650yl01_probe(struct mipi_dsi_device *dsi)
 {
-	const u16 hdisplay = enable_4k ? 1644 : 1096;
+	// const u16 hdisplay = enable_4k ? 1644 : 1096;
+	const u16 hdisplay = 1644; // TODO
 	struct mipi_dsi_host *dsi_sec_host;
 	struct ana6707_amb650yl01 *ctx;
 	struct device *dev = &dsi->dev;
