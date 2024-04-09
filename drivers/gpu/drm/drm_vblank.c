@@ -140,7 +140,7 @@
  * must not call drm_vblank_init(). For such drivers, atomic helpers will
  * automatically generate fake vblank events as part of the display update.
  * This functionality also can be controlled by the driver by enabling and
- * disabling struct drm_crtc_state.no_vblank.
+ * disabling &drm_crtc_state.no_vblank.
  */
 
 /* Retry timestamp calculation up to 3 times to satisfy

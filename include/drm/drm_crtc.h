@@ -342,7 +342,7 @@ struct drm_crtc_state {
 	 *    that case.
 	 *
 	 * For very simple hardware without VBLANK interrupt, enabling
-	 * &struct drm_crtc_state.no_vblank makes DRM's atomic commit helpers
+	 * &drm_crtc_state.no_vblank makes DRM's atomic commit helpers
 	 * send a fake VBLANK event at the end of the display update after all
 	 * hardware changes have been applied. See
 	 * drm_atomic_helper_fake_vblank().

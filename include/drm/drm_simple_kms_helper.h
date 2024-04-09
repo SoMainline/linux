@@ -102,7 +102,7 @@ struct drm_simple_display_pipe_funcs {
 	 * drm_crtc_arm_vblank_event(), when the driver supports vblank
 	 * interrupt handling, or drm_crtc_send_vblank_event() for more
 	 * complex case. In case the hardware lacks vblank support entirely,
-	 * drivers can set &struct drm_crtc_state.no_vblank in
+	 * drivers can set &drm_crtc_state.no_vblank in
 	 * &struct drm_simple_display_pipe_funcs.check and let DRM's
 	 * atomic helper fake a vblank event.
 	 */
