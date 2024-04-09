@@ -109,9 +109,10 @@ static void dpu_hw_dsc_config_1_2(struct dpu_hw_dsc *hw_dsc,
 	if (mode & DSC_MODE_MULTIPLEX)
 		data |= BIT(1);
 
-	num_active_slice_per_enc = dsc->slice_count;
 	if (mode & DSC_MODE_MULTIPLEX)
 		num_active_slice_per_enc = dsc->slice_count / 2;
+	else
+		num_active_slice_per_enc = dsc->slice_count;
 
 	data |= (num_active_slice_per_enc & 0x3) << 7;
 

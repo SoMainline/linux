@@ -556,7 +556,7 @@ static void dpu_hw_ctl_intf_cfg_v1(struct dpu_hw_ctl *ctx,
 	 * added in SW. Power on reset value is not disable.
 	 */
 	if ((test_bit(DPU_CTL_VM_CFG, &ctx->caps->features)))
-		mode_sel = CTL_DEFAULT_GROUP_ID  << 28;
+		mode_sel = CTL_DEFAULT_GROUP_ID << 28;
 
 	if (cfg->intf_mode_sel == DPU_CTL_MODE_SEL_CMD)
 		mode_sel |= BIT(17);

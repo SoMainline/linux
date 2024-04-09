@@ -408,7 +408,8 @@ static int _dpu_rm_reserve_ctls(
 
 		DPU_DEBUG("ctl %d caps 0x%lX\n", j + CTL_0, features);
 
-		if (!rm->has_active_ctls && needs_split_display != has_split_display)
+		/* TODO: No need for this */
+		if (/* !rm->has_active_ctls &&  */needs_split_display != has_split_display)
 			continue;
 
 		ctl_idx[i] = j;

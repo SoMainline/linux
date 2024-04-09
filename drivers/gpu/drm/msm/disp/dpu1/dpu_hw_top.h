@@ -78,11 +78,10 @@ enum dpu_dp_phy_sel {
  * struct dpu_hw_mdp_ops - interface to the MDP TOP Hw driver functions
  * Assumption is these functions will be called after clocks are enabled.
  * @setup_split_pipe : Programs the pipe control registers
- * @setup_pp_split : Programs the pp split control registers
  * @setup_traffic_shaper : programs traffic shaper control
  */
 struct dpu_hw_mdp_ops {
-	/** setup_split_pipe() : Registers are not double buffered, thisk
+	/** setup_split_pipe() : Registers are not double buffered, this
 	 * function should be called before timing control enable
 	 * @mdp  : mdp top context driver
 	 * @cfg  : upper and lower part of pipe configuration

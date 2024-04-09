@@ -947,9 +947,9 @@ static void dsi_timing_setup(struct msm_dsi_host *msm_host, bool is_bonded_dsi)
 		u32 bytes_per_pclk;
 
 		/* update dsc params with timing params */
-		if (!dsc || !mode->hdisplay || !mode->vdisplay) {
+		if (!dsc || !hdisplay || !mode->vdisplay) {
 			pr_err("DSI: invalid input: pic_width: %d pic_height: %d\n",
-			       mode->hdisplay, mode->vdisplay);
+			       hdisplay, mode->vdisplay);
 			return;
 		}
 
