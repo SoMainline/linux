@@ -180,7 +180,7 @@ static void dpu_hw_ctl_update_pending_flush_sspp(struct dpu_hw_ctl *ctx,
 {
 	switch (sspp) {
 	case SSPP_VIG0:
-		ctx->pending_flush_mask |=  BIT(0);
+		ctx->pending_flush_mask |= BIT(0);
 		break;
 	case SSPP_VIG1:
 		ctx->pending_flush_mask |= BIT(1);
