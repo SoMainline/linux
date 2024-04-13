@@ -188,23 +188,23 @@ static int samsung_sofef03_m_prepare_atomic(struct drm_panel *panel, const struc
 		goto fail;
 	}
 
-	if (ctx->dsi->dsc) {
-		drm_dsc_pps_payload_pack(&pps, ctx->dsi->dsc);
+	// if (ctx->dsi->dsc) {
+	// 	drm_dsc_pps_payload_pack(&pps, ctx->dsi->dsc);
 
-		ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
-		if (ret < 0) {
-			dev_err(dev, "failed to transmit PPS: %d\n", ret);
-			goto fail;
-		}
+	// 	ret = mipi_dsi_picture_parameter_set(ctx->dsi, &pps);
+	// 	if (ret < 0) {
+	// 		dev_err(dev, "failed to transmit PPS: %d\n", ret);
+	// 		goto fail;
+	// 	}
 
-		ret = mipi_dsi_compression_mode(ctx->dsi, true);
-		if (ret < 0) {
-			dev_err(dev, "Failed to enable compression mode: %d\n", ret);
-			goto fail;
-		}
+	// 	ret = mipi_dsi_compression_mode(ctx->dsi, true);
+	// 	if (ret < 0) {
+	// 		dev_err(dev, "Failed to enable compression mode: %d\n", ret);
+	// 		goto fail;
+	// 	}
 
-		msleep(28);
-	}
+	// 	msleep(28);
+	// }
 
 	ctx->prepared = true;
 	return 0;
@@ -402,19 +402,19 @@ static int samsung_sofef03_m_probe(struct mipi_dsi_device *dsi)
 	drm_panel_add(&ctx->panel);
 
 	/* This panel only supports DSC; unconditionally enable it */
-	dsi->dsc = dsc = devm_kzalloc(&dsi->dev, sizeof(*dsc), GFP_KERNEL);
-	if (!dsc)
-		return -ENOMEM;
+	// dsi->dsc = dsc = devm_kzalloc(&dsi->dev, sizeof(*dsc), GFP_KERNEL);
+	// if (!dsc)
+	// 	return -ENOMEM;
 
-	dsc->dsc_version_major = 1;
-	dsc->dsc_version_minor = 1;
+	// dsc->dsc_version_major = 1;
+	// dsc->dsc_version_minor = 1;
 
-	dsc->slice_height = 30;
-	dsc->slice_width = 540;
-	dsc->slice_count = 2;
-	dsc->bits_per_component = 8;
-	dsc->bits_per_pixel = 8 << 4; /* 4 fractional bits */
-	dsc->block_pred_enable = true;
+	// dsc->slice_height = 30;
+	// dsc->slice_width = 540;
+	// dsc->slice_count = 2;
+	// dsc->bits_per_component = 8;
+	// dsc->bits_per_pixel = 8 << 4; /* 4 fractional bits */
+	// dsc->block_pred_enable = true;
 
 	ret = mipi_dsi_attach(dsi);
 	if (ret < 0) {

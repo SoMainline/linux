@@ -34,6 +34,7 @@
 #include <drm/drm_plane.h>
 #include <drm/drm_debugfs_crc.h>
 #include <drm/drm_mode_config.h>
+#include <drm/display/drm_dsc.h>
 
 struct drm_connector;
 struct drm_device;
@@ -316,6 +317,8 @@ struct drm_crtc_state {
 	 * Scaling filter to be applied
 	 */
 	enum drm_scaling_filter scaling_filter;
+
+	struct drm_dsc_config dsc;
 
 	/**
 	 * @event:

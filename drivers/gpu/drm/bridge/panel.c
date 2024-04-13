@@ -108,6 +108,23 @@ static void panel_bridge_detach(struct drm_bridge *bridge)
 		drm_connector_cleanup(connector);
 }
 
+static int panel_bridge_atomic_check(struct drm_bridge *bridge,
+				struct drm_bridge_state *bridge_state,
+				struct drm_crtc_state *crtc_state,
+				struct drm_connector_state *conn_state)
+{
+	struct panel_bridge *panel_bridge = drm_bridge_to_panel_bridge(bridge);
+	// struct drm_atomic_state *atomic_state = old_bridge_state->base.state;
+	// struct drm_encoder *encoder = bridge->encoder;
+	// struct drm_crtc *crtc;
+	// struct drm_crtc_state *crtc_state, *old_crtc_state;
+
+	// TODO: Probably need a bridge state all the way down into the panel,
+	// to not affect the rest of the link.
+
+	return drm_panel_atomic_check(panel_bridge->panel, crtc_state);
+}
+
 static void panel_bridge_atomic_pre_enable(struct drm_bridge *bridge,
 				struct drm_bridge_state *old_bridge_state)
 {
@@ -212,6 +229,7 @@ static void panel_bridge_debugfs_init(struct drm_bridge *bridge,
 static const struct drm_bridge_funcs panel_bridge_bridge_funcs = {
 	.attach = panel_bridge_attach,
 	.detach = panel_bridge_detach,
+	.atomic_check = panel_bridge_atomic_check,
 	.atomic_pre_enable = panel_bridge_atomic_pre_enable,
 	.atomic_enable = panel_bridge_atomic_enable,
 	.atomic_disable = panel_bridge_atomic_disable,

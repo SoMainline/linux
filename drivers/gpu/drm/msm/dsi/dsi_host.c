@@ -1630,8 +1630,8 @@ static int dsi_host_attach(struct mipi_dsi_host *host,
 	msm_host->lanes = dsi->lanes;
 	msm_host->format = dsi->format;
 	msm_host->mode_flags = dsi->mode_flags;
-	if (dsi->dsc)
-		msm_host->dsc = dsi->dsc;
+	// if (dsi->dsc)
+	// 	msm_host->dsc = dsi->dsc;
 
 	ret = dsi_dev_attach(msm_host->pdev);
 	if (ret)
@@ -2478,30 +2478,34 @@ int msm_dsi_host_set_display_mode(struct mipi_dsi_host *host,
 	return 0;
 }
 
-enum drm_mode_status msm_dsi_host_check_dsc(struct mipi_dsi_host *host,
-					    const struct drm_display_mode *mode)
+int msm_dsi_host_check_dsc(struct mipi_dsi_host *host,
+			   const struct drm_display_mode *mode,
+			   const struct drm_dsc_config *dsc)
 {
 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
-	struct drm_dsc_config *dsc = msm_host->dsc;
+	// struct drm_dsc_config *dsc = msm_host->dsc;
 	int pic_width = mode->hdisplay;
 	int pic_height = mode->vdisplay;
 
-	if (!msm_host->dsc)
-		return MODE_OK;
+	if (!dsc)
+		return 0; //MODE_OK;
 
 	if (pic_width % dsc->slice_width) {
 		pr_err("DSI: pic_width %d has to be multiple of slice %d\n",
 		       pic_width, dsc->slice_width);
-		return MODE_H_ILLEGAL;
+		return -EINVAL;
+		// return MODE_H_ILLEGAL;
 	}
 
 	if (pic_height % dsc->slice_height) {
 		pr_err("DSI: pic_height %d has to be multiple of slice %d\n",
 		       pic_height, dsc->slice_height);
-		return MODE_V_ILLEGAL;
+		return -EINVAL;
+		// return MODE_V_ILLEGAL;
 	}
 
-	return MODE_OK;
+	return 0;
+	// return MODE_OK;
 }
 
 unsigned long msm_dsi_host_get_mode_flags(struct mipi_dsi_host *host)

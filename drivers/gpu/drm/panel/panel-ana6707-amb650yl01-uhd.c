@@ -25,7 +25,7 @@
 struct ana6707_amb650yl01 {
 	struct drm_panel panel;
 	struct mipi_dsi_device *dsi[2];
-	struct drm_dsc_config dsc;
+	// struct drm_dsc_config dsc;
 	struct regulator_bulk_data supplies[7];
 	struct gpio_desc *reset_gpio;
 };
@@ -53,8 +53,6 @@ static int ana6707_amb650yl01_on(struct ana6707_amb650yl01 *ctx, const struct dr
 	struct mipi_dsi_device *dsi= ctx->dsi[0];
 	struct device *dev = &dsi->dev;
 	int ret;
-
-	ctx->dsc.slice_width = hdisplay / 2;
 
 	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
 	if (ctx->dsi[1])
@@ -86,6 +84,7 @@ static int ana6707_amb650yl01_on(struct ana6707_amb650yl01 *ctx, const struct dr
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
 	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0x5a, 0x5a);
 
+	// TODO: Extra state validation via drm_mode_equal()?
 	// mipi_dsi_dcs_write_seq(dsi, 0x60,
 	//                        enable_4k ? 0x00 : 0x04,
 	//                        enable_120hz ? 0x00 : 0xc0);
@@ -187,10 +186,38 @@ static int ana6707_amb650yl01_off(struct ana6707_amb650yl01 *ctx)
 	return 0;
 }
 
+static int ana6707_amb650yl01_atomic_check(struct drm_panel *panel, struct drm_crtc_state *state)
+{
+	const struct drm_display_mode *mode = &state->mode;
+	const u16 hdisplay = mode->hdisplay;
+	struct ana6707_amb650yl01 *ctx = to_ana6707_amb650yl01(panel);
+	struct mipi_dsi_device *dsi = ctx->dsi[0];
+	struct device *dev = &dsi->dev;
+	int ret;
+
+	state->dsc.dsc_version_major = 1;
+	state->dsc.dsc_version_minor = 1; /* TODO: Could this be ver 2? */
+
+	state->dsc.slice_height = 32;
+	/* Downstream sets this while parsing DT */
+	state->dsc.slice_count = 1;
+	/*
+	 * hdisplay should be read from the selected mode once
+	 * it is passed back to drm_panel (in prepare?)
+	 */
+	state->dsc.slice_width = hdisplay / 2;
+	state->dsc.bits_per_component = 8;
+	state->dsc.bits_per_pixel = 8 << 4; /* 4 fractional bits */
+	state->dsc.block_pred_enable = true;
+
+	return 0;
+}
+
 static int ana6707_amb650yl01_prepare_atomic(struct drm_panel *panel, const struct drm_crtc_state *state)
 {
 	struct ana6707_amb650yl01 *ctx = to_ana6707_amb650yl01(panel);
 	struct mipi_dsi_device *dsi = ctx->dsi[0];
+	struct drm_dsc_picture_parameter_set pps;
 	struct device *dev = &dsi->dev;
 	int ret;
 
@@ -210,6 +237,19 @@ static int ana6707_amb650yl01_prepare_atomic(struct drm_panel *panel, const stru
 		goto fail;
 	}
 
+	// TODO: Doesn't seem to matter if this happens before or after display_on(), but we could atomicize both
+	drm_dsc_pps_payload_pack(&pps, &state->dsc);
+
+	print_hex_dump(KERN_INFO, "DSC:", DUMP_PREFIX_NONE, 16,
+	       1, (void *)&pps, sizeof(pps), false);
+
+	ret = mipi_dsi_picture_parameter_set(dsi, &pps);
+	if (ret < 0) {
+		dev_err(panel->dev, "failed to transmit PPS: %d\n", ret);
+		// goto fail;
+		return ret;
+	}
+
 	msleep(120);
 
 	return 0;
@@ -223,7 +263,6 @@ fail:
 static int ana6707_amb650yl01_enable(struct drm_panel *panel)
 {
 	struct ana6707_amb650yl01 *ctx = to_ana6707_amb650yl01(panel);
-	struct drm_dsc_picture_parameter_set pps;
 	struct mipi_dsi_device *dsi = ctx->dsi[0];
 	struct device *dev = &dsi->dev;
 	int ret;
@@ -234,18 +273,6 @@ static int ana6707_amb650yl01_enable(struct drm_panel *panel)
 		return ret;
 	}
 	usleep_range(10000, 11000);
-
-	drm_dsc_pps_payload_pack(&pps, &ctx->dsc);
-
-	print_hex_dump(KERN_INFO, "DSC:", DUMP_PREFIX_NONE, 16,
-	       1, (void *)&pps, sizeof(pps), false);
-
-	ret = mipi_dsi_picture_parameter_set(dsi, &pps);
-	if (ret < 0) {
-		dev_err(panel->dev, "failed to transmit PPS: %d\n", ret);
-		// goto fail;
-		return ret;
-	}
 
 	msleep(28);
 
@@ -530,27 +557,9 @@ static int ana6707_amb650yl01_probe(struct mipi_dsi_device *dsi)
 
 	drm_panel_add(&ctx->panel);
 
-	ctx->dsc.dsc_version_major = 1;
-	ctx->dsc.dsc_version_minor = 1;
-
-	ctx->dsc.slice_height = 32;
-	/* Downstream sets this while parsing DT */
-	ctx->dsc.slice_count = 1;
-	/*
-	 * hdisplay should be read from the selected mode once
-	 * it is passed back to drm_panel (in prepare?)
-	 */
-	ctx->dsc.slice_width = hdisplay / 2;
-	ctx->dsc.bits_per_component = 8;
-	ctx->dsc.bits_per_pixel = 8 << 4; /* 4 fractional bits */
-	ctx->dsc.block_pred_enable = true;
-
 	for (i = 0; i < ARRAY_SIZE(ctx->dsi); i++) {
 		if (!ctx->dsi[i])
 			continue;
-
-		/* This panel only supports DSC; unconditionally enable it */
-		ctx->dsi[i]->dsc = &ctx->dsc;
 
 		ctx->dsi[i]->lanes = 4;
 		ctx->dsi[i]->format = MIPI_DSI_FMT_RGB888;

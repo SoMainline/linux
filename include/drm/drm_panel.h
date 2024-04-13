@@ -73,6 +73,15 @@ enum drm_panel_orientation;
  */
 struct drm_panel_funcs {
 	/**
+	 * @atomic_check:
+	 *
+	 * Check that the mode is valid and fixup.
+	 *
+	 * This function is optional.
+	 */
+	int (*atomic_check)(struct drm_panel *panel, struct drm_crtc_state *crtc_state);
+
+	/**
 	 * @prepare:
 	 *
 	 * Turn on panel and perform set up.
@@ -285,6 +294,8 @@ void drm_panel_init(struct drm_panel *panel, struct device *dev,
 
 void drm_panel_add(struct drm_panel *panel);
 void drm_panel_remove(struct drm_panel *panel);
+
+int drm_panel_atomic_check(struct drm_panel *panel, struct drm_crtc_state *crtc_state);
 
 int drm_panel_prepare(struct drm_panel *panel);
 int drm_panel_prepare_atomic(struct drm_panel *panel, const struct drm_crtc_state *crtc_state);

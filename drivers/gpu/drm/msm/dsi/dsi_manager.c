@@ -273,14 +273,34 @@ static void dsi_mgr_bridge_power_off(struct drm_bridge *bridge)
 	dsi_mgr_phy_disable(id);
 }
 
-static void dsi_mgr_bridge_pre_enable(struct drm_bridge *bridge)
+static void dsi_mgr_bridge_mode_set(struct drm_bridge *bridge,
+		const struct drm_display_mode *mode,
+		const struct drm_display_mode *adjusted_mode);
+
+static void dsi_mgr_bridge_atomic_pre_enable(struct drm_bridge *bridge, struct drm_bridge_state *old_bridge_state)
 {
+	struct drm_atomic_state *atomic_state = old_bridge_state->base.state;
+	struct drm_encoder *encoder = bridge->encoder;
 	int id = dsi_mgr_bridge_get_id(bridge);
 	struct msm_dsi *msm_dsi = dsi_mgr_get_dsi(id);
 	struct msm_dsi *msm_dsi1 = dsi_mgr_get_dsi(DSI_1);
 	struct mipi_dsi_host *host = msm_dsi->host;
+	struct drm_crtc *crtc;
+	struct drm_crtc_state *crtc_state, *old_crtc_state;
 	bool is_bonded_dsi = IS_BONDED_DSI();
 	int ret;
+
+	crtc = drm_atomic_get_new_crtc_for_encoder(atomic_state, encoder);
+	if (!crtc)
+		return;
+
+	// old_crtc_state = drm_atomic_get_old_crtc_state(atomic_state, crtc);
+	// if (old_crtc_state && old_crtc_state->self_refresh_active)
+	// 	return;
+
+	crtc_state = drm_atomic_get_new_crtc_state(atomic_state, crtc);
+
+	dsi_mgr_bridge_mode_set(bridge, &crtc_state->mode, &crtc_state->adjusted_mode);
 
 	DBG("id=%d", id);
 
@@ -400,35 +420,49 @@ static void dsi_mgr_bridge_mode_set(struct drm_bridge *bridge,
 		msm_dsi_host_set_display_mode(other_dsi->host, adjusted_mode);
 }
 
-static enum drm_mode_status dsi_mgr_bridge_mode_valid(struct drm_bridge *bridge,
-						      const struct drm_display_info *info,
-						      const struct drm_display_mode *mode)
+// static enum drm_mode_status dsi_mgr_bridge_mode_valid(struct drm_bridge *bridge,
+// 						      const struct drm_display_info *info,
+// 						      const struct drm_display_mode *mode)
+// {
+// 	int id = dsi_mgr_bridge_get_id(bridge);
+// 	struct msm_dsi *msm_dsi = dsi_mgr_get_dsi(id);
+// 	struct mipi_dsi_host *host = msm_dsi->host;
+// 	struct platform_device *pdev = msm_dsi->pdev;
+// 	struct dev_pm_opp *opp;
+// 	unsigned long byte_clk_rate;
+
+// 	byte_clk_rate = dsi_byte_clk_get_rate(host, IS_BONDED_DSI(), mode);
+
+// 	opp = dev_pm_opp_find_freq_ceil(&pdev->dev, &byte_clk_rate);
+// 	if (!IS_ERR(opp)) {
+// 		dev_pm_opp_put(opp);
+// 	} else if (PTR_ERR(opp) == -ERANGE) {
+// 		/*
+// 		 * An empty table is created by devm_pm_opp_set_clkname() even
+// 		 * if there is none. Thus find_freq_ceil will still return
+// 		 * -ERANGE in such case.
+// 		 */
+// 		if (dev_pm_opp_get_opp_count(&pdev->dev) != 0)
+// 			return MODE_CLOCK_RANGE;
+// 	} else {
+// 			return MODE_ERROR;
+// 	}
+
+// 	return msm_dsi_host_check_dsc(host, mode);
+// }
+
+static int dsi_mgr_bridge_atomic_check(struct drm_bridge *bridge,
+				struct drm_bridge_state *bridge_state,
+				struct drm_crtc_state *crtc_state,
+				struct drm_connector_state *conn_state)
 {
 	int id = dsi_mgr_bridge_get_id(bridge);
 	struct msm_dsi *msm_dsi = dsi_mgr_get_dsi(id);
 	struct mipi_dsi_host *host = msm_dsi->host;
-	struct platform_device *pdev = msm_dsi->pdev;
-	struct dev_pm_opp *opp;
-	unsigned long byte_clk_rate;
 
-	byte_clk_rate = dsi_byte_clk_get_rate(host, IS_BONDED_DSI(), mode);
+	pr_err("Host check DSC swidth %d\n", crtc_state->dsc.slice_width);
 
-	opp = dev_pm_opp_find_freq_ceil(&pdev->dev, &byte_clk_rate);
-	if (!IS_ERR(opp)) {
-		dev_pm_opp_put(opp);
-	} else if (PTR_ERR(opp) == -ERANGE) {
-		/*
-		 * An empty table is created by devm_pm_opp_set_clkname() even
-		 * if there is none. Thus find_freq_ceil will still return
-		 * -ERANGE in such case.
-		 */
-		if (dev_pm_opp_get_opp_count(&pdev->dev) != 0)
-			return MODE_CLOCK_RANGE;
-	} else {
-			return MODE_ERROR;
-	}
-
-	return msm_dsi_host_check_dsc(host, mode);
+	return msm_dsi_host_check_dsc(host, &crtc_state->mode, &crtc_state->dsc);
 }
 
 static int dsi_mgr_bridge_attach(struct drm_bridge *bridge,
@@ -443,10 +477,16 @@ static int dsi_mgr_bridge_attach(struct drm_bridge *bridge,
 
 static const struct drm_bridge_funcs dsi_mgr_bridge_funcs = {
 	.attach = dsi_mgr_bridge_attach,
-	.pre_enable = dsi_mgr_bridge_pre_enable,
+	.atomic_check = dsi_mgr_bridge_atomic_check,
+	.atomic_pre_enable = dsi_mgr_bridge_atomic_pre_enable,
+	// .pre_enable = dsi_mgr_bridge_pre_enable,
 	.post_disable = dsi_mgr_bridge_post_disable,
-	.mode_set = dsi_mgr_bridge_mode_set,
-	.mode_valid = dsi_mgr_bridge_mode_valid,
+	// .mode_set = dsi_mgr_bridge_mode_set,
+	// .mode_valid = dsi_mgr_bridge_mode_valid,
+	.atomic_reset = drm_atomic_helper_bridge_reset,
+	.atomic_duplicate_state = drm_atomic_helper_bridge_duplicate_state,
+	.atomic_destroy_state = drm_atomic_helper_bridge_destroy_state,
+	.atomic_get_input_bus_fmts = drm_atomic_helper_bridge_propagate_bus_fmt,
 };
 
 /* initialize bridge */

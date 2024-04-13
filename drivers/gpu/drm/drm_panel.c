@@ -144,6 +144,40 @@ exit:
 EXPORT_SYMBOL(drm_panel_prepare);
 
 /**
+ * drm_panel_atomic_check - power on a panel
+ * @panel: DRM panel
+ * @crtc_state: Atomic state containing the desired mode
+ *
+ * Calling this function will enable power and deassert any reset signals to
+ * the panel. After this has completed it is possible to communicate with any
+ * integrated circuitry via a command bus.
+ *
+ * Return: 0 on success or a negative error code on failure.
+ */
+int drm_panel_atomic_check(struct drm_panel *panel, struct drm_crtc_state *crtc_state)
+{
+	int ret = 0;
+
+	if (!panel)
+		return -EINVAL;
+
+	// mutex_lock(&panel->follower_lock);
+
+	if (panel->funcs) {
+		if (panel->funcs->atomic_check)
+			ret = panel->funcs->atomic_check(panel, crtc_state);
+		if (ret < 0)
+			goto exit;
+	}
+
+exit:
+	// mutex_unlock(&panel->follower_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL(drm_panel_atomic_check);
+
+/**
  * drm_panel_prepare_atomic - power on a panel
  * @panel: DRM panel
  * @crtc_state: Atomic state containing the desired mode

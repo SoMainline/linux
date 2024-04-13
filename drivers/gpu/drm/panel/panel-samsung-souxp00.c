@@ -375,7 +375,8 @@ static int samsung_souxp00_probe(struct mipi_dsi_device *dsi)
 	drm_panel_add(&ctx->panel);
 
 	/* This panel only supports DSC; unconditionally enable it */
-	dsi->dsc = &ctx->dsc;
+	// TODO: Non-atomic-panel fallback or assign to drm_crtc_state?
+	// dsi->dsc = &ctx->dsc;
 
 	ctx->dsc.dsc_version_major = 1;
 	ctx->dsc.dsc_version_minor = 1;
