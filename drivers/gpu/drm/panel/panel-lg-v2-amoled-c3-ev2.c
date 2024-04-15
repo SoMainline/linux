@@ -22,7 +22,6 @@ struct panel_lg_v2_amoled_c3_ev2 {
 	struct mipi_dsi_device *dsi;
 	struct drm_dsc_config dsc;
 	struct gpio_desc *reset_gpio;
-	bool prepared;
 };
 
 static inline
@@ -177,9 +176,6 @@ static int panel_lg_v2_amoled_c3_ev2_prepare(struct drm_panel *panel)
 	struct drm_dsc_picture_parameter_set pps;
 	int ret;
 
-	if (ctx->prepared)
-		return 0;
-
 	panel_lg_v2_amoled_c3_ev2_reset(ctx);
 
 	ret = panel_lg_v2_amoled_c3_ev2_on(ctx);
@@ -205,7 +201,6 @@ static int panel_lg_v2_amoled_c3_ev2_prepare(struct drm_panel *panel)
 
 	msleep(28); /* TODO: Is this panel-dependent? */
 
-	ctx->prepared = true;
 	return 0;
 }
 
@@ -215,16 +210,12 @@ static int panel_lg_v2_amoled_c3_ev2_unprepare(struct drm_panel *panel)
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
 
-	if (!ctx->prepared)
-		return 0;
-
 	ret = panel_lg_v2_amoled_c3_ev2_off(ctx);
 	if (ret < 0)
 		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
 
 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 
-	ctx->prepared = false;
 	return 0;
 }
 
