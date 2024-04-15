@@ -776,6 +776,9 @@ static int dpu_encoder_virt_atomic_check(
 	trace_dpu_enc_atomic_check(DRMID(drm_enc));
 
 	dsc = dpu_encoder_get_dsc_config(drm_enc);
+	pr_err("%s DSC state via DSI host: %p\n", __func__, dsc);
+	dsc = &crtc_state->dsc;
+	pr_err("%s DSC state via CRTC state: %p\n", __func__, dsc);
 
 	topology = dpu_encoder_get_topology(dpu_enc, dpu_kms, adj_mode, crtc_state, dsc);
 
@@ -1373,10 +1376,15 @@ static void dpu_encoder_virt_atomic_enable(struct drm_encoder *drm_enc,
 {
 	struct dpu_encoder_virt *dpu_enc = NULL;
 	int ret = 0;
+	struct drm_crtc_state *crtc_state;
 	struct drm_display_mode *cur_mode = NULL;
 
 	dpu_enc = to_dpu_encoder_virt(drm_enc);
+	crtc_state = drm_atomic_get_crtc_state(state, dpu_enc->base.crtc);
 	dpu_enc->dsc = dpu_encoder_get_dsc_config(drm_enc);
+	pr_err("%s DSC state via DSI host: %p\n", __func__, dpu_enc->dsc);
+	dpu_enc->dsc = &crtc_state->dsc;
+	pr_err("%s DSC state via CRTC state: %p\n", __func__, dpu_enc->dsc);
 
 	atomic_set(&dpu_enc->frame_done_timeout_cnt, 0);
 

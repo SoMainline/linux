@@ -314,14 +314,14 @@ static void dsi_mgr_bridge_atomic_pre_enable(struct drm_bridge *bridge, struct d
 		return;
 	}
 
-	ret = msm_dsi_host_enable(host);
+	ret = msm_dsi_host_enable(host, &crtc_state->dsc);
 	if (ret) {
 		pr_err("%s: enable host %d failed, %d\n", __func__, id, ret);
 		goto host_en_fail;
 	}
 
 	if (is_bonded_dsi && msm_dsi1) {
-		ret = msm_dsi_host_enable(msm_dsi1->host);
+		ret = msm_dsi_host_enable(msm_dsi1->host, &crtc_state->dsc);
 		if (ret) {
 			pr_err("%s: enable host1 failed, %d\n", __func__, ret);
 			goto host1_en_fail;
@@ -420,6 +420,7 @@ static void dsi_mgr_bridge_mode_set(struct drm_bridge *bridge,
 		msm_dsi_host_set_display_mode(other_dsi->host, adjusted_mode);
 }
 
+
 // static enum drm_mode_status dsi_mgr_bridge_mode_valid(struct drm_bridge *bridge,
 // 						      const struct drm_display_info *info,
 // 						      const struct drm_display_mode *mode)
@@ -462,7 +463,9 @@ static int dsi_mgr_bridge_atomic_check(struct drm_bridge *bridge,
 
 	pr_err("Host check DSC swidth %d\n", crtc_state->dsc.slice_width);
 
-	return msm_dsi_host_check_dsc(host, &crtc_state->mode, &crtc_state->dsc);
+	// TODO: First need to call the panel check to intialize DSC params?
+
+	return 0; // msm_dsi_host_check_dsc(host, &crtc_state->mode, &crtc_state->dsc);
 }
 
 static int dsi_mgr_bridge_attach(struct drm_bridge *bridge,

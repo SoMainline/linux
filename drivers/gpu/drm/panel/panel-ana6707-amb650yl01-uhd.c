@@ -195,6 +195,8 @@ static int ana6707_amb650yl01_atomic_check(struct drm_panel *panel, struct drm_c
 	struct device *dev = &dsi->dev;
 	int ret;
 
+	pr_err("%s for hdisplay=%d\n", __func__, hdisplay);
+
 	state->dsc.dsc_version_major = 1;
 	state->dsc.dsc_version_minor = 1; /* TODO: Could this be ver 2? */
 

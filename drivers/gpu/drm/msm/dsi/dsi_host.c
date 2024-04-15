@@ -2311,9 +2311,12 @@ void msm_dsi_host_disable_irq(struct mipi_dsi_host *host)
 	disable_irq(msm_host->irq);
 }
 
-int msm_dsi_host_enable(struct mipi_dsi_host *host)
+int msm_dsi_host_enable(struct mipi_dsi_host *host, const struct drm_dsc_config *dsc)
 {
 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
+
+	// TODO: Probably too late for the current code setup
+	msm_host->dsc = dsc;
 
 	dsi_op_mode_config(msm_host,
 		!!(msm_host->mode_flags & MIPI_DSI_MODE_VIDEO), true);
@@ -2590,5 +2593,6 @@ struct drm_dsc_config *msm_dsi_host_get_dsc_config(struct mipi_dsi_host *host)
 {
 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
 
+	pr_err("%s: DSC=%p\n", __func__, msm_host->dsc);
 	return msm_host->dsc;
 }
