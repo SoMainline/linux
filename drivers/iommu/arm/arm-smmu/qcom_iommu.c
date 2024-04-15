@@ -41,7 +41,14 @@ enum qcom_iommu_clk {
 	CLK_NUM,
 };
 
-struct qcom_iommu_ctx;
+struct qcom_iommu_ctx {
+	struct device		*dev;
+	void __iomem		*base;
+	bool			 secure_init;
+	bool			 secured_ctx;
+	u8			 asid;      /* asid and ctx bank # are 1:1 */
+	struct iommu_domain	*domain;
+};
 
 struct qcom_iommu_dev {
 	/* IOMMU core code handle */
@@ -52,15 +59,6 @@ struct qcom_iommu_dev {
 	u32			 sec_id;
 	u8			 max_asid;
 	struct qcom_iommu_ctx	*ctxs[];   /* indexed by asid */
-};
-
-struct qcom_iommu_ctx {
-	struct device		*dev;
-	void __iomem		*base;
-	bool			 secure_init;
-	bool			 secured_ctx;
-	u8			 asid;      /* asid and ctx bank # are 1:1 */
-	struct iommu_domain	*domain;
 };
 
 struct qcom_iommu_domain {
