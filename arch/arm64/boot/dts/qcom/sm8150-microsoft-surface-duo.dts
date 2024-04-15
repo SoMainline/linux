@@ -439,10 +439,11 @@
 	status = "okay";
 
 	panel@0 {
-		compatible = "microsoft,epsilon-sw43408a-lge-left";
+		compatible = "panel,lg-v2-amoled-c3-ev2";
 		reg = <0>;
 
-		reset-gpios = <&tlmm 5 GPIO_ACTIVE_LOW>;
+		/* TODO: Enable again and test polarity when probed in-driver */
+		// reset-gpios = <&tlmm 5 GPIO_ACTIVE_LOW>;
 		/* VCI supply hooked up to AON vreg_s4a_1p8 */
 		vci-supply = <&vreg_s4a_1p8>;
 		// vdd-supply = <&vreg_l11b_1p2>;
