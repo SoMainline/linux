@@ -34,13 +34,6 @@
 
 #define SMMU_INTR_SEL_NS     0x2000
 
-enum qcom_iommu_clk {
-	CLK_IFACE,
-	CLK_BUS,
-	CLK_TBU,
-	CLK_NUM,
-};
-
 struct qcom_iommu_ctx {
 	struct device		*dev;
 	void __iomem		*base;
@@ -54,7 +47,8 @@ struct qcom_iommu_dev {
 	/* IOMMU core code handle */
 	struct iommu_device	 iommu;
 	struct device		*dev;
-	struct clk_bulk_data clks[CLK_NUM];
+	struct clk_bulk_data 	*clks;
+	int			num_clks;
 	void __iomem		*local_base;
 	u32			 sec_id;
 	u8			 max_asid;
@@ -781,7 +775,6 @@ static int qcom_iommu_device_probe(struct platform_device *pdev)
 	struct qcom_iommu_dev *qcom_iommu;
 	struct device *dev = &pdev->dev;
 	struct resource *res;
-	struct clk *clk;
 	int ret, max_asid = 0;
 
 	/* find the max asid (which is 1:1 to ctx bank idx), so we know how
@@ -804,26 +797,11 @@ static int qcom_iommu_device_probe(struct platform_device *pdev)
 			return PTR_ERR(qcom_iommu->local_base);
 	}
 
-	clk = devm_clk_get(dev, "iface");
-	if (IS_ERR(clk)) {
-		dev_err(dev, "failed to get iface clock\n");
-		return PTR_ERR(clk);
-	}
-	qcom_iommu->clks[CLK_IFACE].clk = clk;
+	ret = devm_clk_bulk_get_all(dev, &qcom_iommu->clks);
+	if (ret <= 0)
+		return dev_err_probe(dev, ret, "Couldn't get clocks\n");
 
-	clk = devm_clk_get(dev, "bus");
-	if (IS_ERR(clk)) {
-		dev_err(dev, "failed to get bus clock\n");
-		return PTR_ERR(clk);
-	}
-	qcom_iommu->clks[CLK_BUS].clk = clk;
-
-	clk = devm_clk_get_optional(dev, "tbu");
-	if (IS_ERR(clk)) {
-		dev_err(dev, "failed to get tbu clock\n");
-		return PTR_ERR(clk);
-	}
-	qcom_iommu->clks[CLK_TBU].clk = clk;
+	qcom_iommu->num_clks = ret;
 
 	if (of_property_read_u32(dev->of_node, "qcom,iommu-secure-id",
 				 &qcom_iommu->sec_id)) {
@@ -891,7 +869,7 @@ static int __maybe_unused qcom_iommu_resume(struct device *dev)
 	struct qcom_iommu_dev *qcom_iommu = dev_get_drvdata(dev);
 	int ret;
 
-	ret = clk_bulk_prepare_enable(CLK_NUM, qcom_iommu->clks);
+	ret = clk_bulk_prepare_enable(qcom_iommu->num_clks, qcom_iommu->clks);
 	if (ret < 0)
 		return ret;
 
@@ -905,7 +883,7 @@ static int __maybe_unused qcom_iommu_suspend(struct device *dev)
 {
 	struct qcom_iommu_dev *qcom_iommu = dev_get_drvdata(dev);
 
-	clk_bulk_disable_unprepare(CLK_NUM, qcom_iommu->clks);
+	clk_bulk_disable_unprepare(qcom_iommu->num_clks, qcom_iommu->clks);
 
 	return 0;
 }
