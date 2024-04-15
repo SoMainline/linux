@@ -21,7 +21,7 @@ struct panel_lg_v2_amoled_c3_ev2 {
 	struct drm_panel panel;
 	struct mipi_dsi_device *dsi;
 	struct drm_dsc_config dsc;
-	struct gpio_desc *reset_gpio;
+	// struct gpio_desc *reset_gpio;
 };
 
 static inline
@@ -30,15 +30,15 @@ struct panel_lg_v2_amoled_c3_ev2 *to_panel_lg_v2_amoled_c3_ev2(struct drm_panel 
 	return container_of(panel, struct panel_lg_v2_amoled_c3_ev2, panel);
 }
 
-static void panel_lg_v2_amoled_c3_ev2_reset(struct panel_lg_v2_amoled_c3_ev2 *ctx)
-{
-	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
-	usleep_range(10000, 11000);
-	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
-	msleep(40);
-	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
-	usleep_range(10000, 11000);
-}
+// static void panel_lg_v2_amoled_c3_ev2_reset(struct panel_lg_v2_amoled_c3_ev2 *ctx)
+// {
+// 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
+// 	usleep_range(10000, 11000);
+// 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+// 	msleep(40);
+// 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
+// 	usleep_range(10000, 11000);
+// }
 
 static int panel_lg_v2_amoled_c3_ev2_on(struct panel_lg_v2_amoled_c3_ev2 *ctx)
 {
@@ -176,12 +176,12 @@ static int panel_lg_v2_amoled_c3_ev2_prepare(struct drm_panel *panel)
 	struct drm_dsc_picture_parameter_set pps;
 	int ret;
 
-	panel_lg_v2_amoled_c3_ev2_reset(ctx);
+	// panel_lg_v2_amoled_c3_ev2_reset(ctx);
 
 	ret = panel_lg_v2_amoled_c3_ev2_on(ctx);
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize panel: %d\n", ret);
-		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+		// gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 		return ret;
 	}
 
@@ -214,7 +214,7 @@ static int panel_lg_v2_amoled_c3_ev2_unprepare(struct drm_panel *panel)
 	if (ret < 0)
 		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
 
-	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+	// gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 
 	return 0;
 }
@@ -323,10 +323,10 @@ static int panel_lg_v2_amoled_c3_ev2_probe(struct mipi_dsi_device *dsi)
 	if (!ctx)
 		return -ENOMEM;
 
-	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
-	if (IS_ERR(ctx->reset_gpio))
-		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
-				     "Failed to get reset-gpios\n");
+	// ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
+	// if (IS_ERR(ctx->reset_gpio))
+	// 	return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
+	// 			     "Failed to get reset-gpios\n");
 
 	ctx->dsi = dsi;
 	mipi_dsi_set_drvdata(dsi, ctx);
