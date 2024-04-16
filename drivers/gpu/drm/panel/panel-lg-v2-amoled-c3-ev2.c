@@ -8,6 +8,7 @@
 #include <linux/gpio/consumer.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/regulator/consumer.h>
 
 #include <video/mipi_display.h>
 
@@ -21,6 +22,7 @@ struct panel_lg_v2_amoled_c3_ev2 {
 	struct drm_panel panel;
 	struct mipi_dsi_device *dsi;
 	struct drm_dsc_config dsc;
+	struct regulator *vci;
 	// struct gpio_desc *reset_gpio;
 };
 
@@ -177,12 +179,19 @@ static int panel_lg_v2_amoled_c3_ev2_prepare(struct drm_panel *panel)
 	struct drm_dsc_picture_parameter_set pps;
 	int ret;
 
+	ret = regulator_enable(ctx->vci);
+	if (ret < 0) {
+		dev_err(dev, "Failed to enable vci regulator: %d\n", ret);
+		return ret;
+	}
+
 	// panel_lg_v2_amoled_c3_ev2_reset(ctx);
 
 	ret = panel_lg_v2_amoled_c3_ev2_on(ctx);
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize panel: %d\n", ret);
 		// gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+		regulator_disable(ctx->vci);
 		return ret;
 	}
 
@@ -223,6 +232,7 @@ static int panel_lg_v2_amoled_c3_ev2_unprepare(struct drm_panel *panel)
 		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
 
 	// gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+	regulator_disable(ctx->vci);
 
 	return 0;
 }
@@ -330,6 +340,11 @@ static int panel_lg_v2_amoled_c3_ev2_probe(struct mipi_dsi_device *dsi)
 	ctx = devm_kzalloc(dev, sizeof(*ctx), GFP_KERNEL);
 	if (!ctx)
 		return -ENOMEM;
+
+	ctx->vci = devm_regulator_get(dev, "vci");
+	if (IS_ERR(ctx->vci))
+		return dev_err_probe(dev, PTR_ERR(ctx->vci),
+				"Failed to get vci regulator\n");
 
 	// ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
 	// if (IS_ERR(ctx->reset_gpio))
