@@ -666,8 +666,8 @@ static int nvt_download_firmware_hw_crc(struct nvt_ts_data *ts)
 
 		/* Start to write firmware process */
 		if (cascade_2nd_header_info) {
-			/* for cascade */
-			nvt_tx_auto_copy_mode(ts);
+			/* Enable TX_AUTO_COPY */
+			nvt_write_addr(ts, ts->mmap->TX_AUTO_COPY_EN, 0x69);
 
 			ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
 			if (ret) {

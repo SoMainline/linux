@@ -114,13 +114,6 @@ static void nvt_ts_wakeup_gesture_report(struct nvt_ts_data *ts, u8 gesture_id, 
 	}
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen parse device tree function.
-
-return:
-	n.a.
-*******************************************************/
 static int nvt_parse_dt(struct nvt_ts_data *ts)
 {
 	struct device *dev = &ts->client->dev;
@@ -132,18 +125,12 @@ static int nvt_parse_dt(struct nvt_ts_data *ts)
 		return dev_err_probe(dev, PTR_ERR(ts->reset_gpio), "Couldn't get reset gpio\n");
 
 	ts->pen_support = of_property_read_bool(np, "novatek,pen-support");
-	NVT_LOG("novatek,pen-support=%d\n", ts->pen_support);
 
 	ts->wgp_stylus = of_property_read_bool(np, "novatek,wgp-stylus");
-	NVT_LOG("novatek,wgp-stylus=%d\n", ts->wgp_stylus);
 
 	ret = of_property_read_u32(np, "novatek,swrst-n8-addr", &ts->swrst_n8_addr);
-	if (ret) {
-		NVT_ERR("error reading novatek,swrst-n8-addr. ret=%d\n", ret);
-		return ret;
-	} else {
-		NVT_LOG("swrst_n8_addr=0x%06X\n", ts->swrst_n8_addr);
-	}
+	if (ret)
+		return dev_err_probe(dev, ret, "Missing software reset address\n");
 
 	ret = of_property_read_u32(np, "novatek,spi-rd-fast-addr", &ts->spi_rd_fast_addr);
 	if (ret) {
@@ -439,7 +426,7 @@ static int nt36xxx_check_hw_id(struct nvt_ts_data *ts,
 
 		nvt_set_page(ts, address);
 
-		buf[0] = address & GENMASK(7, 0);
+		buf[0] = address & GENMASK(6, 0);
 		buf[1] = 0x00;
 		buf[2] = 0x00;
 		buf[3] = 0x00;

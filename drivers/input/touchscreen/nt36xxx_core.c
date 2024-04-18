@@ -124,7 +124,7 @@ int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data)
 	}
 
 	//---write data to index---
-	buf[0] = addr & (0x7F);
+	buf[0] = addr & GENMASK(6, 0);
 	buf[1] = data;
 	ret = CTP_SPI_WRITE(ts->client, buf, 2);
 	if (ret) {
@@ -135,13 +135,7 @@ int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data)
 	return ret;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen enable hw bld crc function.
-
-return:
-	N/A.
-*******************************************************/
+/* Bootloader CRC? */
 void nvt_bld_crc_enable(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
@@ -150,23 +144,17 @@ void nvt_bld_crc_enable(struct nvt_ts_data *ts)
 	nvt_set_page(ts, ts->mmap->BLD_CRC_EN_ADDR);
 
 	//---read data from index---
-	buf[0] = ts->mmap->BLD_CRC_EN_ADDR & (0x7F);
+	buf[0] = ts->mmap->BLD_CRC_EN_ADDR & GENMASK(6, 0);
 	buf[1] = 0xFF;
 	CTP_SPI_READ(ts->client, buf, 2);
 
 	//---write data to index---
-	buf[0] = ts->mmap->BLD_CRC_EN_ADDR & (0x7F);
+	buf[0] = ts->mmap->BLD_CRC_EN_ADDR & GENMASK(6, 0);
 	buf[1] = buf[1] | (0x01 << 7);
 	CTP_SPI_WRITE(ts->client, buf, 2);
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen clear status & enable fw crc function.
-
-return:
-	N/A.
-*******************************************************/
+/* Firmware CRC? */
 void nvt_fw_crc_enable(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
@@ -175,23 +163,17 @@ void nvt_fw_crc_enable(struct nvt_ts_data *ts)
 	nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR);
 
 	//---clear fw reset status---
-	buf[0] = EVENT_MAP_RESET_COMPLETE & (0x7F);
+	buf[0] = EVENT_MAP_RESET_COMPLETE & GENMASK(6, 0);
 	buf[1] = 0x00;
 	CTP_SPI_WRITE(ts->client, buf, 2);
 
 	//---enable fw crc---
-	buf[0] = EVENT_MAP_HOST_CMD & (0x7F);
+	buf[0] = EVENT_MAP_HOST_CMD & GENMASK(6, 0);
 	buf[1] = 0xAE;	//enable fw crc command
 	CTP_SPI_WRITE(ts->client, buf, 2);
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen set boot ready function.
-
-return:
-	N/A.
-*******************************************************/
+/* Set "boot ready" flag after flashing the firmware */
 void nvt_boot_ready(struct nvt_ts_data *ts)
 {
 	//---write BOOT_RDY status cmds---
@@ -210,27 +192,12 @@ void nvt_boot_ready(struct nvt_ts_data *ts)
 
 /*******************************************************
 Description:
-	Novatek touchscreen enable auto copy mode function.
-
-return:
-	N/A.
-*******************************************************/
-void nvt_tx_auto_copy_mode(struct nvt_ts_data *ts)
-{
-	//---write TX_AUTO_COPY_EN cmds---
-	nvt_write_addr(ts, ts->mmap->TX_AUTO_COPY_EN, 0x69);
-
-	NVT_ERR("tx auto copy mode enable\n");
-}
-
-/*******************************************************
-Description:
 	Novatek touchscreen check spi dma tx info function.
 
 return:
 	N/A.
 *******************************************************/
-#define SPI_DMA_TX_INFO_MAX_RETRIES	200
+#define SPI_DMA_TX_INFO_MAX_RETRIES		200
 int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts)
 {
 	u8 buf[8] = { 0 };
@@ -241,7 +208,7 @@ int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts)
 		nvt_set_page(ts, ts->mmap->SPI_DMA_TX_INFO);
 
 		//---read fw status---
-		buf[0] = ts->mmap->SPI_DMA_TX_INFO & 0x7F;
+		buf[0] = ts->mmap->SPI_DMA_TX_INFO & GENMASK(6, 0);
 		buf[1] = 0xFF;
 		CTP_SPI_READ(ts->client, buf, 2);
 
@@ -264,65 +231,29 @@ return:
 *******************************************************/
 void nvt_eng_reset(struct nvt_ts_data *ts)
 {
-	//---eng reset cmds to ENG_RST_ADDR---
 	nvt_write_addr(ts, ENG_RST_ADDR, 0x5A);
-
-	mdelay(1);	//wait tMCU_Idle2TP_REX_Hi after TP_RST
+	mdelay(1);
 }
 EXPORT_SYMBOL_GPL(nvt_eng_reset);
 
-/*******************************************************
-Description:
-	Novatek touchscreen reset MCU
-    function.
-
-return:
-	n.a.
-*******************************************************/
+/* Software-reset the MCU (TODO: passing 0xAA resets and enters "idle mode") */
 void nvt_sw_reset(struct nvt_ts_data *ts)
 {
-	//---software reset cmds to SWRST_N8_ADDR---
 	nvt_write_addr(ts, ts->swrst_n8_addr, 0x55);
-
 	msleep(10);
 }
 EXPORT_SYMBOL_GPL(nvt_sw_reset);
 
-/*******************************************************
-Description:
-	Novatek touchscreen reset MCU then into idle mode
-    function.
-
-return:
-	n.a.
-*******************************************************/
-void nvt_sw_reset_idle(struct nvt_ts_data *ts)
-{
-	//---MCU idle cmds to SWRST_N8_ADDR---
-	nvt_write_addr(ts, ts->swrst_n8_addr, 0xAA);
-
-	msleep(15);
-}
-EXPORT_SYMBOL_GPL(nvt_sw_reset_idle);
-
-/*******************************************************
-Description:
-	Novatek touchscreen reset MCU (boot) function.
-
-return:
-	n.a.
-*******************************************************/
+/* Reset the MCU into FW download mode */
 void nvt_bootloader_reset(struct nvt_ts_data *ts)
 {
 	//---reset cmds to SWRST_N8_ADDR---
 	nvt_write_addr(ts, ts->swrst_n8_addr, 0x69);
+	mdelay(5);
 
-	mdelay(5);	//wait tBRST2FR after Bootload RST
-
-	if (ts->spi_rd_fast_addr) {
-		/* disable SPI_RD_FAST */
-		nvt_write_addr(ts, ts->spi_rd_fast_addr, 0x00);
-	}
+	/* Disable SPI_RD_FAST if present */
+	if (ts->spi_rd_fast_addr)
+		nvt_write_addr(ts, ts->spi_rd_fast_addr, 0);
 }
 EXPORT_SYMBOL_GPL(nvt_bootloader_reset);
 
@@ -495,12 +426,13 @@ info_retry:
 	ts->abs_x_max = (u16)((buf[5] << 8) | buf[6]);
 	ts->abs_y_max = (u16)((buf[7] << 8) | buf[8]);
 	ts->max_button_num = buf[11];
-	ts->cascade = buf[34] & 0x01;
+	ts->cascade = buf[34] & BIT(0);
 	if (ts->pen_support) {
 		ts->x_gang_num = buf[37];
 		ts->y_gang_num = buf[38];
 	}
 
+	/* buf[2] seems to be ~buf[1], used for sanity checking */
 	//---clear x_num, y_num if fw info is broken---
 	if ((buf[1] + buf[2]) != 0xFF) {
 		NVT_ERR("FW info is broken! fw_ver=0x%02X, ~fw_ver=0x%02X\n", buf[1], buf[2]);
@@ -510,26 +442,16 @@ info_retry:
 		ts->abs_x_max = TOUCH_DEFAULT_MAX_WIDTH;
 		ts->abs_y_max = TOUCH_DEFAULT_MAX_HEIGHT;
 
-		if(retry_count < 3) {
+		if (retry_count < 3) {
 			retry_count++;
 			NVT_ERR("retry_count=%d\n", retry_count);
 			goto info_retry;
-		} else {
-			NVT_ERR("Set default fw_ver=%d, x_num=%d, y_num=%d, "
-					"abs_x_max=%d, abs_y_max=%d, max_button_num=%d!\n",
-					ts->fw_ver, ts->x_num, ts->y_num,
-					ts->abs_x_max, ts->abs_y_max, ts->max_button_num);
-			ret = -1;
 		}
-	} else {
-		ret = 0;
+
+		return -EINVAL;
 	}
 
-	sprintf(fw_version, "[Vendor]novatek,[FW]0x%02x,[IC]nt36523w\n", ts->fw_ver);
-	// memcpy/strcpy
-	// update_lct_tp_info(fw_version,NULL);
-
-	NVT_LOG("fw_ver = 0x%02X, fw_type = 0x%02X\n", ts->fw_ver, buf[14]);
+	pr_info("Loaded firmware v0x%x (type = 0x%x)\n", ts->fw_ver, buf[14]);
 
 	//---Get Novatek PID---
 	nvt_read_pid(ts);
