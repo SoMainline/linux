@@ -408,18 +408,26 @@ return:
 *******************************************************/
 int nvt_get_fw_info(struct nvt_ts_data *ts)
 {
-	char fw_version[64] = { 0 };
 	u8 buf[64] = {0};
-	int retry_count = 0;
-	int ret = 0;
+	int retries;
+	int ret;
 
-info_retry:
-	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_FWINFO);
+	ret = nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_FWINFO);
+	if (ret)
+		return ret;
 
-	//---read fw info---
-	buf[0] = EVENT_MAP_FWINFO;
-	CTP_SPI_READ(ts->client, buf, 39);
+	for (retries = 3; retries > 0; retries--) {
+		buf[0] = EVENT_MAP_FWINFO;
+		CTP_SPI_READ(ts->client, buf, 39);
+
+		/* buf[2] should hold a NOT-ed buf[1], otherwise assume a broken state */
+		if (~buf[1] == buf[2])
+			break;
+
+		if (retries == 0)
+			return -EINVAL;
+	}
+
 	ts->fw_ver = buf[1];
 	ts->x_num = buf[3];
 	ts->y_num = buf[4];
@@ -432,29 +440,7 @@ info_retry:
 		ts->y_gang_num = buf[38];
 	}
 
-	/* buf[2] seems to be ~buf[1], used for sanity checking */
-	//---clear x_num, y_num if fw info is broken---
-	if ((buf[1] + buf[2]) != 0xFF) {
-		NVT_ERR("FW info is broken! fw_ver=0x%02X, ~fw_ver=0x%02X\n", buf[1], buf[2]);
-		ts->fw_ver = 0;
-		ts->x_num = 18;
-		ts->y_num = 32;
-		ts->abs_x_max = TOUCH_DEFAULT_MAX_WIDTH;
-		ts->abs_y_max = TOUCH_DEFAULT_MAX_HEIGHT;
+	dev_info(&ts->client->dev, "Firmware info: version = 0x%x, type = 0x%x\n", ts->fw_ver, buf[14]);
 
-		if (retry_count < 3) {
-			retry_count++;
-			NVT_ERR("retry_count=%d\n", retry_count);
-			goto info_retry;
-		}
-
-		return -EINVAL;
-	}
-
-	pr_info("Loaded firmware v0x%x (type = 0x%x)\n", ts->fw_ver, buf[14]);
-
-	//---Get Novatek PID---
-	nvt_read_pid(ts);
-
-	return ret;
+	return nvt_read_pid(ts);
 }

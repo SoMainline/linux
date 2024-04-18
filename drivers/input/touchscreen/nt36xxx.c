@@ -120,7 +120,7 @@ static int nvt_parse_dt(struct nvt_ts_data *ts)
 	struct device_node *np = dev->of_node;
 	int ret = 0;
 
-	ts->reset_gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
+	ts->reset_gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_LOW);
 	if (IS_ERR(ts->reset_gpio))
 		return dev_err_probe(dev, PTR_ERR(ts->reset_gpio), "Couldn't get reset gpio\n");
 
@@ -407,9 +407,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-static int nt36xxx_check_hw_id(struct nvt_ts_data *ts,
-			       struct device *dev,
-			       bool legacy_addr)
+static int nt36xxx_check_hw_id(struct nvt_ts_data *ts, bool legacy_addr)
 {
 	u32 address = legacy_addr ? CHIP_VER_TRIM_OLD_ADDR : CHIP_VER_TRIM_ADDR;
 	const struct nt36xxx_match_data *data;
@@ -417,7 +415,7 @@ static int nt36xxx_check_hw_id(struct nvt_ts_data *ts,
 	int i, index;
 	int retries;
 
-	data = device_get_match_data(dev);
+	data = device_get_match_data(&ts->client->dev);
 	if (!data)
 		return -EINVAL;
 
@@ -604,20 +602,21 @@ static int nvt_ts_probe(struct spi_device *client)
 	/* Perform a software reset before pulling the reset pin */
 	nvt_eng_reset(ts);
 
-	gpiod_set_value_cansleep(ts->reset_gpio, 1);
+	gpiod_set_value_cansleep(ts->reset_gpio, 0);
 
 	/* Wait at least 10ms after reset */
 	usleep_range(10000, 11000);
 
 	/* Check the "new address" (depends on fw version?) first */
-	ret = nt36xxx_check_hw_id(ts, dev, false);
+	ret = nt36xxx_check_hw_id(ts, false);
 	if (ret) {
 		/* Retry with the legacy address if the above failed */
-		ret = nt36xxx_check_hw_id(ts, dev, true);
+		ret = nt36xxx_check_hw_id(ts, true);
 		if (ret)
 			return dev_err_probe(dev, -ENODEV, "Unknown chip id\n");
 	}
 
+	// TODO: remove and load fw in probe instead?
 	ts->abs_x_max = TOUCH_DEFAULT_MAX_WIDTH;
 	ts->abs_y_max = TOUCH_DEFAULT_MAX_HEIGHT;
 
@@ -806,7 +805,7 @@ static int nvt_ts_resume(struct device *dev)
 	NVT_LOG("start\n");
 
 	// please make sure display reset(RESX) sequence and mipi dsi cmds sent before this
-	gpiod_set_value_cansleep(ts->reset_gpio, 1);
+	gpiod_set_value_cansleep(ts->reset_gpio, 0);
 
 	if (nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME)) {
 		NVT_ERR("download firmware failed, ignore check fw state\n");
