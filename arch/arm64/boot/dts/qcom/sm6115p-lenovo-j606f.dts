@@ -321,7 +321,7 @@
 	status = "okay";
 
 	touchscreen@0 {
-		compatible = "novatek,nt36xxx";
+		compatible = "novatek,nt36523w", "novatek,nt36523";
 		reg = <0>;
 		interrupts-extended = <&tlmm 86 IRQ_TYPE_EDGE_BOTH>;
 		spi-max-frequency = <9600000>;
