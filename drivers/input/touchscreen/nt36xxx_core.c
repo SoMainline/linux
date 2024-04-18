@@ -6,81 +6,66 @@
 
 #include "nt36xxx.h"
 
-#define ENG_RST_ADDR		0x7FFF80
-
+#define NT36XXX_SPI_WRITE		BIT(7)
 static int spi_read_write(struct spi_device *client,
 			  u8 *buf, size_t len,
-			  NVT_SPI_RW rw)
+			  bool read)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
-	struct spi_transfer t = { .len = len };
-	struct spi_message m;
+	int retries;
+	int ret;
 
-	memset(ts->xbuf, 0, len + DUMMY_BYTES);
-	memcpy(ts->xbuf, buf, len);
+	for (retries = 5; retries > 0; retries--) {
+		struct spi_transfer t = {
+			.tx_buf = ts->xbuf,
+			.len = len,
+		};
+		struct spi_message m = { 0 };
 
-	switch (rw) {
-		case NVTREAD:
-			t.tx_buf = ts->xbuf;
+		if (read) {
 			t.rx_buf = ts->rbuf;
-			t.len = (len + DUMMY_BYTES);
-			break;
+			t.len += DUMMY_BYTES;
+			buf[0] &= ~NT36XXX_SPI_WRITE;
+		} else {
+			buf[0] |= NT36XXX_SPI_WRITE;
+		}
 
-		case NVTWRITE:
-			t.tx_buf = ts->xbuf;
-			break;
+		memset(ts->xbuf, 0, len + DUMMY_BYTES);
+		memcpy(ts->xbuf, buf, len);
+
+		spi_message_init(&m);
+		spi_message_add_tail(&t, &m);
+
+		ret = spi_sync(client, &m);
+		if (!ret)
+			return 0;
 	}
 
-	spi_message_init(&m);
-	spi_message_add_tail(&t, &m);
-
-	return spi_sync(client, &m);
+	return ret;
 }
 
 int CTP_SPI_READ(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
-	int ret = -1;
-	int retries = 0;
+	int ret;
 
 	guard(mutex)(&ts->xbuf_lock);
 
-	buf[0] = SPI_READ_MASK(buf[0]);
-
-	while (retries < 5) {
-		ret = spi_read_write(client, buf, len, NVTREAD);
-		if (ret == 0) break;
-		retries++;
-	}
-
-	if (unlikely(retries == 5)) {
-		NVT_ERR("read error, ret=%d\n", ret);
-		ret = -EIO;
-	} else {
-		memcpy((buf+1), (ts->rbuf+2), (len-1));
-	}
+	ret = spi_read_write(client, buf, len, true);
+	if (!ret)
+		memcpy(buf + 1, ts->rbuf + 2, len - 1);
 
 	return ret;
 }
 EXPORT_SYMBOL_GPL(CTP_SPI_READ);
 
-#define SPI_WRITE_MAX_RETRIES		5
 int CTP_SPI_WRITE(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
-	int retries = 0;
-	int ret = -1;
 
 	guard(mutex)(&ts->xbuf_lock);
 
-	buf[0] = SPI_WRITE_MASK(buf[0]);
-
-	while (retries < SPI_WRITE_MAX_RETRIES && ret) {
-		ret = spi_read_write(client, buf, len, NVTWRITE);
-		retries++;
-	}
-
-	return ret;
+	return spi_read_write(client, buf, len, false);
 }
 
 #define NVT_SET_ADDR_CMD		0xFF
@@ -88,7 +73,7 @@ int nvt_set_addr(struct nvt_ts_data *ts, int addr)
 {
 	u8 buf[4] = { 0 };
 
-	buf[0] = NVT_SET_ADDR_CMD;	//set index/page/addr command
+	buf[0] = NVT_SET_ADDR_CMD;
 	buf[1] = (addr >> 15) & GENMASK(7, 0);
 	buf[2] = (addr >> 7) & GENMASK(7, 0);
 
@@ -119,27 +104,25 @@ void nt36xxx_enable_bl_crc(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
 
-	//---set xdata index to BLD_CRC_EN_ADDR---
-	nvt_set_addr(ts, ts->mmap->BLD_CRC_EN_ADDR);
+	nvt_set_addr(ts, ts->mmap->bld_crc_en_addr);
 
-	//---read data from index---
-	buf[0] = ts->mmap->BLD_CRC_EN_ADDR & GENMASK(6, 0);
+	/* Read back the current value */
+	buf[0] = ts->mmap->bld_crc_en_addr & GENMASK(6, 0);
 	buf[1] = 0xFF;
 	CTP_SPI_READ(ts->client, buf, 2);
 
-	//---write data to index---
-	buf[0] = ts->mmap->BLD_CRC_EN_ADDR & GENMASK(6, 0);
-	buf[1] = buf[1] | (0x01 << 7);
+	/* Set bit 7 */
+	buf[0] = ts->mmap->bld_crc_en_addr & GENMASK(6, 0);
+	buf[1] = buf[1] | BIT(7);
 	CTP_SPI_WRITE(ts->client, buf, 2);
 }
 
-/* Firmware CRC? */
+#define NT36XXX_EVENT_MAP_HOST_CMD_EN_FW_CRC		0xAE
 void nt36xxx_enable_fw_crc(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
 
-	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR);
+	nvt_set_addr(ts, ts->mmap->event_buf);
 
 	//---clear fw reset status---
 	buf[0] = EVENT_MAP_RESET_COMPLETE & GENMASK(6, 0);
@@ -148,34 +131,23 @@ void nt36xxx_enable_fw_crc(struct nvt_ts_data *ts)
 
 	//---enable fw crc---
 	buf[0] = EVENT_MAP_HOST_CMD & GENMASK(6, 0);
-	buf[1] = 0xAE;	//enable fw crc command
+	buf[1] = NT36XXX_EVENT_MAP_HOST_CMD_EN_FW_CRC;
 	CTP_SPI_WRITE(ts->client, buf, 2);
 }
 
 /* Set "boot ready" flag after flashing the firmware */
 void nt36xxx_set_boot_ready(struct nvt_ts_data *ts)
 {
-	//---write BOOT_RDY status cmds---
-	nvt_write_addr(ts, ts->mmap->BOOT_RDY_ADDR, 1);
+	nvt_write_addr(ts, ts->mmap->boot_rdy_addr, 1);
 
 	mdelay(5);
 
 	if (!ts->hw_crc) {
-		//---write BOOT_RDY status cmds---
-		nvt_write_addr(ts, ts->mmap->BOOT_RDY_ADDR, 0);
-
-		//---write POR_CD cmds---
-		nvt_write_addr(ts, ts->mmap->POR_CD_ADDR, 0xA0);
+		nvt_write_addr(ts, ts->mmap->boot_rdy_addr, 0);
+		nvt_write_addr(ts, ts->mmap->por_cd_addr, 0xa0);
 	}
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen check spi dma tx info function.
-
-return:
-	N/A.
-*******************************************************/
 #define SPI_DMA_TX_INFO_MAX_RETRIES		200
 int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts)
 {
@@ -183,34 +155,26 @@ int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts)
 	int i;
 
 	for (i = 0; i < SPI_DMA_TX_INFO_MAX_RETRIES; i++) {
-		//---set xdata index to EVENT BUF ADDR---
-		nvt_set_addr(ts, ts->mmap->SPI_DMA_TX_INFO);
+		nvt_set_addr(ts, ts->mmap->spi_dma_tx_info);
 
-		//---read fw status---
-		buf[0] = ts->mmap->SPI_DMA_TX_INFO & GENMASK(6, 0);
+		buf[0] = ts->mmap->spi_dma_tx_info & GENMASK(6, 0);
 		buf[1] = 0xFF;
 		CTP_SPI_READ(ts->client, buf, 2);
 
-		if (buf[1] == 0x00)
-			break;
+		/* "Things are as expected", not very well documented */
+		if (!buf[1])
+			return 0;
 
 		usleep_range(1000, 1010);
 	}
 
-	return i == SPI_DMA_TX_INFO_MAX_RETRIES;
+	return -EIO;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen eng reset cmd
-    function.
-
-return:
-	n.a.
-*******************************************************/
+#define ENG_RST_ADDR		0x7FFF80
 void nvt_eng_reset(struct nvt_ts_data *ts)
 {
-	nvt_write_addr(ts, ENG_RST_ADDR, 0x5A);
+	nvt_write_addr(ts, ENG_RST_ADDR, 0x5a);
 	mdelay(1);
 }
 EXPORT_SYMBOL_GPL(nvt_eng_reset);
@@ -226,7 +190,6 @@ EXPORT_SYMBOL_GPL(nvt_sw_reset);
 /* Reset the MCU into FW download mode */
 void nvt_bootloader_reset(struct nvt_ts_data *ts)
 {
-	//---reset cmds to SWRST_N8_ADDR---
 	nvt_write_addr(ts, ts->swrst_n8_addr, 0x69);
 	mdelay(5);
 
@@ -236,13 +199,6 @@ void nvt_bootloader_reset(struct nvt_ts_data *ts)
 }
 EXPORT_SYMBOL_GPL(nvt_bootloader_reset);
 
-/*******************************************************
-Description:
-	Novatek touchscreen clear FW status function.
-
-return:
-	Executive outcomes. 0---succeed. -1---fail.
-*******************************************************/
 #define CLEAR_FW_STATUS_MAX_RETRIES	20
 int nvt_clear_fw_status(struct nvt_ts_data *ts)
 {
@@ -250,66 +206,51 @@ int nvt_clear_fw_status(struct nvt_ts_data *ts)
 	int i;
 
 	for (i = 0; i < CLEAR_FW_STATUS_MAX_RETRIES; i++) {
-		//---set xdata index to EVENT BUF ADDR---
-		nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
+		nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
 
-		//---clear fw status---
+		/* Clear firmware status */
 		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
 		buf[1] = 0x00;
 		CTP_SPI_WRITE(ts->client, buf, 2);
 
-		//---read fw status---
+		/* Read it back */
 		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
 		buf[1] = 0xFF;
 		CTP_SPI_READ(ts->client, buf, 2);
 
-		if (buf[1] == 0x00)
-			break;
+		/* Keep retrying until the write has been committed */
+		if (!buf[1])
+			return 0;
 
 		usleep_range(10000, 10000);
 	}
 
-	return i == CLEAR_FW_STATUS_MAX_RETRIES;
+	return -EIO;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen check FW status function.
-
-return:
-	Executive outcomes. 0---succeed. -1---failed.
-*******************************************************/
-#define CHECK_FW_STATUS_MAX_RETRIES	20
+#define CHECK_FW_STATUS_MAX_RETRIES		20
 int nvt_check_fw_status(struct nvt_ts_data *ts)
 {
 	u8 buf[8] = { 0 };
 	int i = 0;
 
 	for (i = 0; i < CHECK_FW_STATUS_MAX_RETRIES; i++) {
-		//---set xdata index to EVENT BUF ADDR---
-		nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
+		nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
 
-		//---read fw status---
+		/* Read the firwmare status */
 		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
 		buf[1] = 0x00;
 		CTP_SPI_READ(ts->client, buf, 2);
 
 		if ((buf[1] & 0xF0) == 0xA0)
-			break;
+			return 0;
 
 		usleep_range(10000, 10000);
 	}
 
-	return i == CHECK_FW_STATUS_MAX_RETRIES;
+	return -EIO;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen check FW reset state function.
-
-return:
-	Executive outcomes. 0---succeed. -1---failed.
-*******************************************************/
 int nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_reset_state)
 {
 	u8 buf[8] = { 0 };
@@ -317,11 +258,10 @@ int nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_re
 	int retry = 0;
 	int retry_max = (check_reset_state == RESET_STATE_INIT) ? 10 : 50;
 
-	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_RESET_COMPLETE);
+	nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_RESET_COMPLETE);
 
 	while (1) {
-		//---read reset state---
+		/* Read the reset state */
 		buf[0] = EVENT_MAP_RESET_COMPLETE;
 		buf[1] = 0x00;
 		CTP_SPI_READ(ts->client, buf, 6);
@@ -335,8 +275,7 @@ int nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_re
 		if(unlikely(retry > retry_max)) {
 			NVT_ERR("error, retry=%d, buf[1]=0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X\n",
 				retry, buf[1], buf[2], buf[3], buf[4], buf[5]);
-			ret = -1;
-			break;
+			return -1;
 		}
 
 		usleep_range(10000, 10000);
@@ -345,21 +284,14 @@ int nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_re
 	return ret;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen get novatek project id information
-	function.
-
-return:
-	Executive outcomes. 0---success. -1---fail.
-*******************************************************/
+// "read project ID" for fw binary matching?
 static int nvt_read_pid(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
 	int ret = 0;
 
 	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_PROJECTID);
+	nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_PROJECTID);
 
 	//---read project id---
 	buf[0] = EVENT_MAP_PROJECTID;
@@ -370,28 +302,20 @@ static int nvt_read_pid(struct nvt_ts_data *ts)
 	ts->nvt_pid = (buf[2] << 8) + buf[1];
 
 	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR);
+	nvt_set_addr(ts, ts->mmap->event_buf);
 
 	NVT_LOG("PID=%04X\n", ts->nvt_pid);
 
 	return ret;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen get firmware related information
-	function.
-
-return:
-	Executive outcomes. 0---success. -1---fail.
-*******************************************************/
 int nvt_get_fw_info(struct nvt_ts_data *ts)
 {
-	u8 buf[64] = {0};
+	u8 buf[64] = { 0 };
 	int retries;
 	int ret;
 
-	ret = nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_FWINFO);
+	ret = nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_FWINFO);
 	if (ret)
 		return ret;
 

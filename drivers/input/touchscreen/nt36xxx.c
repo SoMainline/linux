@@ -73,11 +73,11 @@ static void nvt_irq_enable(struct nvt_ts_data *ts, bool enable)
 }
 
 /* customized gesture id */
-#define DATA_PROTOCOL           30
+#define DATA_PROTOCOL		30
 /* function page definition */
-#define FUNCPAGE_GESTURE         1
+#define FUNCPAGE_GESTURE	1
 
-#define GESTURE_DOUBLE_CLICK    15
+#define GESTURE_DOUBLE_CLICK	15
 static void nvt_ts_wakeup_gesture_report(struct nvt_ts_data *ts, u8 gesture_id, u8 *data)
 {
 	u8 func_type = data[2];
@@ -144,11 +144,11 @@ static int nvt_parse_dt(struct nvt_ts_data *ts)
 	return ret;
 }
 
-static u8 nvt_fw_recovery(u8 *point_data)
+static bool nvt_fw_recovery(u8 *point_data)
 {
 	int i;
 
-	/* Look for 0x77777777777777 */
+	/* Look for 0x777777777777 */
 	for (i = 1; i < 7; i++)
 		if (point_data[i] != 0x77)
 			return false;
@@ -181,7 +181,6 @@ static u8 nvt_wdt_fw_recovery(u8 *point_data)
 	return recovery_enable;
 }
 
-#define PEN_DATA_LEN 14
 #if CHECK_PEN_DATA_CHECKSUM
 static int nvt_ts_pen_data_checksum(u8 *buf, u8 length)
 {
@@ -209,7 +208,7 @@ static int nvt_ts_pen_data_checksum(u8 *buf, u8 length)
 
 	return 0;
 }
-#endif // #if CHECK_PEN_DATA_CHECKSUM
+#endif
 
 static int nvt_ts_point_data_checksum(u8 *buf, u8 length)
 {
@@ -225,17 +224,12 @@ static int nvt_ts_point_data_checksum(u8 *buf, u8 length)
 	return checksum != buf[length] ? -EINVAL : 0;
 }
 
-#define POINT_DATA_LEN 65
-/*******************************************************
-Description:
-	Novatek touchscreen work function.
+#define PEN_FORMAT_ID_PRESENT		0x01
+#define PEN_FORMAT_ID_DIDNT_MOVE	0xF0 /* "Still present, didn't move since last irq" */
+#define PEN_FORMAT_ID_NO_PEN		0xFF
 
-return:
-	n.a.
-*******************************************************/
-#define PEN_FORMAT_ID_PRESENT			0x01
-#define PEN_FORMAT_ID_DIDNT_MOVE		0xF0 /* "Still present, didn't move since last irq" */
-#define PEN_FORMAT_ID_NO_PEN			0xFF
+#define POINT_DATA_LEN			65
+#define PEN_DATA_LEN			14
 static irqreturn_t nvt_ts_work_func(int irq, void *data)
 {
 	u8 point_data[POINT_DATA_LEN + PEN_DATA_LEN + 1 + DUMMY_BYTES] = { 0 };
@@ -277,9 +271,8 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	}
 
 	/* ESD protect by FW handshake */
-	if (nvt_fw_recovery(point_data)) {
+	if (nvt_fw_recovery(point_data))
 		return IRQ_HANDLED;
-	}
 
 	if (POINT_DATA_LEN >= POINT_DATA_CHECKSUM_LEN) {
 		ret = nvt_ts_point_data_checksum(point_data, POINT_DATA_CHECKSUM_LEN);
@@ -351,9 +344,9 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		// pen data packet checksum not match, skip it
 		goto XFER_ERROR;
 	}
-#endif // #if CHECK_PEN_DATA_CHECKSUM
+#endif
 
-	// parse and handle pen report
+	/* Parse and handle pen report data */
 	pen_format_id = point_data[66];
 	if (pen_format_id == PEN_FORMAT_ID_NO_PEN) {
 		input_report_abs(ts->pen_input_dev, ABS_X, 0);
@@ -407,6 +400,8 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+#define CHIP_VER_TRIM_ADDR		0x3F004
+#define CHIP_VER_TRIM_OLD_ADDR		0x1F64E
 static int nt36xxx_check_hw_id(struct nvt_ts_data *ts, bool legacy_addr)
 {
 	u32 address = legacy_addr ? CHIP_VER_TRIM_OLD_ADDR : CHIP_VER_TRIM_ADDR;
@@ -494,7 +489,7 @@ static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 	}
 
 	sprintf(ts->phys, "input/ts");
-	ts->input_dev->name = NVT_TS_NAME;
+	ts->input_dev->name = "NVTCapacitiveTouchScreen";
 	ts->input_dev->phys = ts->phys;
 	ts->input_dev->id.bustype = BUS_SPI;
 
@@ -507,9 +502,15 @@ static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 	return 0;
 }
 
+#define PEN_PRESSURE_MAX	4095
+#define PEN_DISTANCE_MAX	1
+#define PEN_TILT_MIN		(-60)
+#define PEN_TILT_MAX		60
 static int nt36xxx_pen_inputdev_init(struct nvt_ts_data *ts)
 {
 	struct device *dev = &ts->client->dev;
+	u16 x_max = ts->abs_x_max;
+	u16 y_max = ts->abs_y_max;
 	int ret;
 
 	ts->pen_input_dev = devm_input_allocate_device(dev);
@@ -528,19 +529,19 @@ static int nt36xxx_pen_inputdev_init(struct nvt_ts_data *ts)
 	set_bit(INPUT_PROP_POINTER, ts->pen_input_dev->propbit);
 
 	if (ts->wgp_stylus) {
-		input_set_abs_params(ts->pen_input_dev, ABS_X, 0, ts->abs_x_max * 2, 0, 0);
-		input_set_abs_params(ts->pen_input_dev, ABS_Y, 0, ts->abs_y_max * 2, 0, 0);
-	} else {
-		input_set_abs_params(ts->pen_input_dev, ABS_X, 0, ts->abs_x_max, 0, 0);
-		input_set_abs_params(ts->pen_input_dev, ABS_Y, 0, ts->abs_y_max, 0, 0);
+		x_max *= 2;
+		y_max *= 2;
 	}
+	input_set_abs_params(ts->pen_input_dev, ABS_X, 0, x_max, 0, 0);
+	input_set_abs_params(ts->pen_input_dev, ABS_Y, 0, y_max, 0, 0);
+
 	input_set_abs_params(ts->pen_input_dev, ABS_PRESSURE, 0, PEN_PRESSURE_MAX, 0, 0);
 	input_set_abs_params(ts->pen_input_dev, ABS_DISTANCE, 0, PEN_DISTANCE_MAX, 0, 0);
 	input_set_abs_params(ts->pen_input_dev, ABS_TILT_X, PEN_TILT_MIN, PEN_TILT_MAX, 0, 0);
 	input_set_abs_params(ts->pen_input_dev, ABS_TILT_Y, PEN_TILT_MIN, PEN_TILT_MAX, 0, 0);
 
 	sprintf(ts->pen_phys, "input/pen");
-	ts->pen_input_dev->name = NVT_PEN_NAME;
+	ts->pen_input_dev->name = "NVTCapacitivePen";
 	ts->pen_input_dev->phys = ts->pen_phys;
 	ts->pen_input_dev->id.bustype = BUS_SPI;
 
@@ -591,10 +592,8 @@ static int nvt_ts_probe(struct spi_device *client)
 		return dev_err_probe(dev, ret, "Failed to perform SPI setup\n");
 
 	ret = nvt_parse_dt(ts);
-	if (ret) {
-		NVT_ERR("parse dt error\n");
-		return ret;
-	}
+	if (ret)
+		return dev_err_probe(dev, ret, "Couldn't parse DT properties \n");
 
 	mutex_init(&ts->lock);
 	mutex_init(&ts->xbuf_lock);
@@ -720,20 +719,13 @@ static void nvt_ts_shutdown(struct spi_device *client)
 #endif
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen driver suspend function.
-
-return:
-	Executive outcomes. 0---succeed.
-*******************************************************/
 #define NVT_TS_SUSPEND_DEEP_SLEEP_MODE			0x11
 #define NVT_TS_SUSPEND_WAKEUP_GESTURE_MODE		0x13
 static int nvt_ts_suspend(struct device *dev)
 {
 	struct spi_device *client = to_spi_device(dev);
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
-	u8 buf[4] = {0};
+	u8 buf[4] = { 0 };
 	int i;
 
 	if (ts->suspended) {
@@ -783,13 +775,6 @@ static int nvt_ts_suspend(struct device *dev)
 	return 0;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen driver resume function.
-
-return:
-	Executive outcomes. 0---succeed.
-*******************************************************/
 static int nvt_ts_resume(struct device *dev)
 {
 	struct spi_device *client = to_spi_device(dev);
@@ -841,7 +826,22 @@ static const struct nt36xxx_hw_id nt36523_hw_ids[] = {
 static const struct nt36xxx_match_data nt36523_data = {
 	.ids = nt36523_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36523_hw_ids),
-	.mmap = &nt36523_memory_map,
+	.mmap = &(const struct nvt_ts_mem_map) {
+		.event_buf		= 0x2fe00,
+
+		.boot_rdy_addr		= 0x3f10d,
+		.tx_auto_copy_en	= 0x3f7e8,
+		.spi_dma_tx_info	= 0x3f7f1,
+
+		.ilm_length_addr	= 0x3f118,
+		.dlm_length_addr	= 0x3f130,
+		.ilm_dest_addr		= 0x3f128,
+		.dlm_dest_addr		= 0x3f12c,
+		.g_ilm_checksum_addr	= 0x3f100,
+		.g_dlm_checksum_addr	= 0x3f104,
+		.r_ilm_checksum_addr	= 0x3f120,
+		.bld_crc_en_addr	= 0x3f30e,
+	},
 	.hw_crc = 2,
 };
 
@@ -853,7 +853,20 @@ static const struct nt36xxx_hw_id nt36675_hw_ids[] = {
 static const struct nt36xxx_match_data nt36675_data = {
 	.ids = nt36675_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36675_hw_ids),
-	.mmap = &nt36675_memory_map,
+	.mmap = &(const struct nvt_ts_mem_map) {
+		.event_buf		= 0x22d00,
+
+		.boot_rdy_addr		= 0x3f10d,
+
+		.ilm_length_addr	= 0x3f118,
+		.dlm_length_addr	= 0x3f130,
+		.ilm_dest_addr		= 0x3f128,
+		.dlm_dest_addr		= 0x3f12c,
+		.g_ilm_checksum_addr	= 0x3f100,
+		.g_dlm_checksum_addr	= 0x3f104,
+		.r_ilm_checksum_addr	= 0x3f120,
+		.bld_crc_en_addr	= 0x3f30e,
+	},
 	.hw_crc = 2,
 };
 
@@ -864,7 +877,20 @@ static const struct nt36xxx_hw_id nt36526_hw_ids[] = {
 static const struct nt36xxx_match_data nt36526_data = {
 	.ids = nt36526_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36526_hw_ids),
-	.mmap = &nt36526_memory_map,
+	.mmap = &(const struct nvt_ts_mem_map) {
+		.event_buf		= 0x22d00,
+
+		.boot_rdy_addr		= 0x3f10d,
+
+		.ilm_length_addr	= 0x3f118,
+		.dlm_length_addr	= 0x3f130,
+		.ilm_dest_addr		= 0x3f128,
+		.dlm_dest_addr		= 0x3f12c,
+		.g_ilm_checksum_addr	= 0x3f100,
+		.g_dlm_checksum_addr	= 0x3f104,
+		.r_ilm_checksum_addr	= 0x3f120,
+		.bld_crc_en_addr	= 0x3f30e,
+	},
 	.hw_crc = 2,
 };
 
@@ -879,10 +905,24 @@ static const struct nt36xxx_hw_id nt36672a_hw_ids[] = {
 	{ 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x66, 0x03 },
 	{ 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x82, 0x66, 0x03 },
 };
+
 static const struct nt36xxx_match_data nt36672a_data = {
 	.ids = nt36672a_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36672a_hw_ids),
-	.mmap = &nt36672a_memory_map,
+	.mmap = &(const struct nvt_ts_mem_map) {
+		.event_buf		= 0x21c00,
+
+		.boot_rdy_addr		= 0x3f10d,
+
+		.ilm_length_addr	= 0x3f118,
+		.dlm_length_addr	= 0x3f130,
+		.ilm_dest_addr		= 0x3f128,
+		.dlm_dest_addr		= 0x3f12c,
+		.g_ilm_checksum_addr	= 0x3f100,
+		.g_dlm_checksum_addr	= 0x3f104,
+		.r_ilm_checksum_addr	= 0x3f120,
+		.bld_crc_en_addr	= 0x3f30e,
+	},
 	.hw_crc = 1,
 };
 
@@ -896,10 +936,18 @@ static const struct nt36xxx_hw_id nt36772_hw_ids[] = {
 	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x66, 0x03 },
 	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x67, 0x03 },
 };
+
 static const struct nt36xxx_match_data nt36772_data = {
 	.ids = nt36772_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36772_hw_ids),
-	.mmap = &nt36772_memory_map,
+	.mmap = &(const struct nvt_ts_mem_map) {
+		.event_buf		= 0x11e00,
+
+		.boot_rdy_addr		= 0x1f141,
+		.por_cd_addr		= 0x1f61c,
+
+		.r_ilm_checksum_addr	= 0x1bf00,
+	},
 	.hw_crc = 0,
 };
 
@@ -910,7 +958,14 @@ static const struct nt36xxx_hw_id nt36525_hw_ids[] = {
 static const struct nt36xxx_match_data nt36525_data = {
 	.ids = nt36525_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36525_hw_ids),
-	.mmap = &nt36525_memory_map,
+	.mmap = &(const struct nvt_ts_mem_map) {
+		.event_buf		= 0x11a00,
+
+		.boot_rdy_addr		= 0x1f141,
+		.por_cd_addr		= 0x1f61c,
+
+		.r_ilm_checksum_addr	= 0x1bf00,
+	},
 	.hw_crc = 0,
 };
 
@@ -921,7 +976,9 @@ static const struct nt36xxx_hw_id nt36676f_hw_ids[] = {
 static const struct nt36xxx_match_data nt36676f_data = {
 	.ids = nt36676f_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36676f_hw_ids),
-	.mmap = &nt36676f_memory_map,
+	.mmap = &(const struct nvt_ts_mem_map) {
+		.event_buf		= 0x11a00,
+	},
 	.hw_crc = 0,
 };
 

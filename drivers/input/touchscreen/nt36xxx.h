@@ -1,22 +1,10 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (C) 2010 - 2018 Novatek, Inc.
- *
- * $Revision: 69262 $
- * $Date: 2020-09-23 15:07:14 +0800 (週三, 23 九月 2020) $
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
- *
+ * Copyright (c) 2024, Linaro Ltd.
  */
-#ifndef 	_LINUX_NVT_TOUCH_H
-#define		_LINUX_NVT_TOUCH_H
+#ifndef __NT36XXX_SPI_H__
+#define __NT36XXX_SPI_H__
 
 #include <linux/delay.h>
 #include <linux/input.h>
@@ -25,47 +13,22 @@
 #include <linux/uaccess.h>
 #include <linux/input/touchscreen.h>
 
-#include "nt36xxx_mem_map.h"
-
-#define NVT_DEBUG 1
-
-//---GPIO number---
-#define NVTTOUCH_RST_PIN 980
-#define NVTTOUCH_INT_PIN 943
-
-#define CHECK_TOUCH_VENDOR
 //---SPI driver info.---
 #define NVT_LOG(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
 #define NVT_ERR(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
 
-//---Input device info.---
-#define NVT_TS_NAME "NVTCapacitiveTouchScreen"
-#define NVT_PEN_NAME "NVTCapacitivePen"
-
 //---Touch info.---
-#define TOUCH_DEFAULT_MAX_WIDTH 1200
-#define TOUCH_DEFAULT_MAX_HEIGHT 2000
-#define TOUCH_MAX_FINGER_NUM 10
-#define TOUCH_FORCE_NUM 1000
-//---for Pen---
-#define PEN_PRESSURE_MAX (4095)
-#define PEN_DISTANCE_MAX (1)
-#define PEN_TILT_MIN (-60)
-#define PEN_TILT_MAX (60)
-
-/* Enable only when module have tp reset pin and connected to host */
-#define NVT_TOUCH_SUPPORT_HW_RST 0
+#define TOUCH_DEFAULT_MAX_WIDTH		1200
+#define TOUCH_DEFAULT_MAX_HEIGHT	2000
+#define TOUCH_FORCE_NUM			1000
+#define TOUCH_MAX_FINGER_NUM		10
 
 //---Customerized func.---
 #define NVT_TOUCH_PROC 1
 #define NVT_TOUCH_EXT_PROC 1
 #define NVT_TOUCH_MP 1
 #define MT_PROTOCOL_B 1
-#define WAKEUP_GESTURE 1
 #define NVT_WAKEUP_GESTURE_CUSTOMIZE 1
-#if WAKEUP_GESTURE
-extern const u16 gesture_key_array[];
-#endif
 #define BOOT_UPDATE_FIRMWARE 1
 #define BOOT_UPDATE_FIRMWARE_NAME "novatek_ts_fw.bin"
 #define MP_UPDATE_FIRMWARE_NAME   "novatek_ts_mp.bin"
@@ -89,7 +52,6 @@ struct nvt_ts_data {
 	struct gpio_desc *reset_gpio;
 	struct mutex lock;
 	const struct nvt_ts_mem_map *mmap;
-	u8 carrier_system;
 	u8 hw_crc;
 	u16 nvt_pid;
 	u8 *rbuf;
@@ -112,12 +74,6 @@ struct nvt_ts_data {
 	struct delayed_work nvt_fwu_work;
 };
 
-#if NVT_TOUCH_PROC
-struct nvt_flash_data{
-	rwlock_t lock;
-};
-#endif
-
 typedef enum {
 	RESET_STATE_INIT = 0xA0,// IC reset
 	RESET_STATE_REK,		// ReK baseline
@@ -127,25 +83,50 @@ typedef enum {
 } RST_COMPLETE_STATE;
 
 typedef enum {
-    EVENT_MAP_HOST_CMD                      = 0x50,
-    EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE   = 0x51,
-    EVENT_MAP_RESET_COMPLETE                = 0x60,
-    EVENT_MAP_FWINFO                        = 0x78,
-    EVENT_MAP_PROJECTID                     = 0x9A,
+	EVENT_MAP_HOST_CMD			= 0x50,
+	EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE	= 0x51,
+	EVENT_MAP_RESET_COMPLETE		= 0x60,
+	EVENT_MAP_FWINFO			= 0x78,
+	EVENT_MAP_PROJECTID			= 0x9A,
 } SPI_EVENT_MAP;
 
-//---SPI READ/WRITE---
-#define SPI_WRITE_MASK(a)	(a | 0x80)
-#define SPI_READ_MASK(a)	(a & 0x7F)
+#define DUMMY_BYTES		1
+#define NVT_TRANSFER_LEN	(63 * SZ_1K)
+#define NVT_READ_LEN		SZ_2K
 
-#define DUMMY_BYTES (1)
-#define NVT_TRANSFER_LEN	(63*1024)
-#define NVT_READ_LEN		(2*1024)
+#define NVT_ID_BYTE_MAX			6
+/* 0xff seems to be unused as far as actual matching goes, use it as an "ignore" */
+#define ID_MATCH_ANY			0xFF
+struct nt36xxx_hw_id {
+	const u8 bytes[NVT_ID_BYTE_MAX];
+};
 
-typedef enum {
-	NVTWRITE = 0,
-	NVTREAD  = 1
-} NVT_SPI_RW;
+struct nvt_ts_mem_map {
+	u32 event_buf;
+
+	/* Phase 2 Host Download */
+	u32 boot_rdy_addr;
+	u32 por_cd_addr;
+	u32 tx_auto_copy_en;
+	u32 spi_dma_tx_info;
+
+	/* Bootloader CRC */
+	u32 ilm_length_addr;
+	u32 dlm_length_addr;
+	u32 ilm_dest_addr;
+	u32 dlm_dest_addr;
+	u32 g_ilm_checksum_addr;
+	u32 g_dlm_checksum_addr;
+	u32 r_ilm_checksum_addr;
+	u32 bld_crc_en_addr;
+};
+
+struct nt36xxx_match_data {
+	const struct nt36xxx_hw_id *ids;
+	int num_ids;
+	const struct nvt_ts_mem_map *mmap;
+	u8 hw_crc;
+};
 
 //---extern functions---
 extern int CTP_SPI_READ(struct spi_device *client, u8 *buf, u16 len);

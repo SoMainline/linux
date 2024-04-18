@@ -477,10 +477,10 @@ static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 	memset(fwbuf, 0, (len + 1));
 
 	//---set xdata index to checksum---
-	nvt_set_addr(ts, ts->mmap->R_ILM_CHECKSUM_ADDR);
+	nvt_set_addr(ts, ts->mmap->r_ilm_checksum_addr);
 
 	/* read checksum */
-	fwbuf[0] = (ts->mmap->R_ILM_CHECKSUM_ADDR) & 0x7F;
+	fwbuf[0] = (ts->mmap->r_ilm_checksum_addr) & 0x7F;
 	ret = CTP_SPI_READ(ts->client, fwbuf, len+1);
 	if (ret) {
 		NVT_ERR("Read fw checksum failed\n");
@@ -511,9 +511,9 @@ static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 
 static void nt36xxx_set_bl_crc_bank(struct nvt_ts_data *ts, u8 bank_idx)
 {
-	u32 DEST_ADDR = bank_idx == 0 ? ts->mmap->ILM_DEST_ADDR : ts->mmap->DLM_DEST_ADDR;
-	u32 G_CHECKSUM_ADDR = bank_idx == 0 ? ts->mmap->G_ILM_CHECKSUM_ADDR : ts->mmap->G_DLM_CHECKSUM_ADDR;
-	u32 LENGTH_ADDR = bank_idx == 0 ? ts->mmap->ILM_LENGTH_ADDR : ts->mmap->DLM_LENGTH_ADDR;
+	u32 DEST_ADDR = bank_idx == 0 ? ts->mmap->ilm_dest_addr : ts->mmap->dlm_dest_addr;
+	u32 G_CHECKSUM_ADDR = bank_idx == 0 ? ts->mmap->g_ilm_checksum_addr : ts->mmap->g_dlm_checksum_addr;
+	u32 LENGTH_ADDR = bank_idx == 0 ? ts->mmap->ilm_length_addr : ts->mmap->dlm_length_addr;
 	u32 sram_addr = bin_map[bank_idx].SRAM_addr;
 	u32 size = bin_map[bank_idx].size;
 	u32 crc = bin_map[bank_idx].crc;
@@ -551,7 +551,7 @@ static int nvt_download_firmware_hw_crc(struct nvt_ts_data *ts)
 	nt36xxx_set_bl_crc_bank(ts, 1);
 
 	if (cascade_2nd_header_info)
-		nvt_write_addr(ts, ts->mmap->TX_AUTO_COPY_EN, 0x69);
+		nvt_write_addr(ts, ts->mmap->tx_auto_copy_en, 0x69);
 
 	ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
 	if (ret) {
@@ -591,7 +591,7 @@ static int nvt_download_firmware(struct nvt_ts_data *ts)
 	nvt_bootloader_reset(ts);
 
 	/* Clear FW reset status */
-	nvt_write_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_RESET_COMPLETE, 0);
+	nvt_write_addr(ts, ts->mmap->event_buf | EVENT_MAP_RESET_COMPLETE, 0);
 
 	ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
 	if (ret) {
