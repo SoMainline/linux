@@ -418,30 +418,23 @@ static int spi_probe(struct device *dev)
 	if (ret)
 		return ret;
 
-	pr_err("nvt aaaa\n");
 	if (dev->of_node) {
-		pr_err("nvt bbb\n");
 		spi->irq = of_irq_get(dev->of_node, 0);
-		if (spi->irq == -EPROBE_DEFER) {
-			pr_err("nvt cccc\n");
+		if (spi->irq == -EPROBE_DEFER)
 			return -EPROBE_DEFER;
-		}
 		if (spi->irq < 0)
 			spi->irq = 0;
 	}
-	pr_err("nvt dddd\n");
+
 	ret = dev_pm_domain_attach(dev, true);
 	if (ret)
 		return ret;
-	pr_err("nvt eeee\n");
+
 	if (sdrv->probe) {
-		pr_err("nvt fffff\n");
 		ret = sdrv->probe(spi);
 		if (ret)
 			dev_pm_domain_detach(dev, true);
 	}
-
-	pr_err("nvt gggg ret = %d\n", ret);
 
 	return ret;
 }
