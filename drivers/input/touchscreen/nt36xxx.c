@@ -422,7 +422,7 @@ static int nt36xxx_check_hw_id(struct nvt_ts_data *ts, bool legacy_addr)
 	for (retries = 5; retries > 0; retries--) {
 		nvt_bootloader_reset(ts);
 
-		nvt_set_page(ts, address);
+		nvt_set_addr(ts, address);
 
 		buf[0] = address & GENMASK(6, 0);
 		buf[1] = 0x00;

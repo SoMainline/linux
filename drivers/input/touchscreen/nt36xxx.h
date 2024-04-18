@@ -153,16 +153,16 @@ extern int CTP_SPI_WRITE(struct spi_device *client, u8 *buf, u16 len);
 void nvt_bootloader_reset(struct nvt_ts_data *ts);
 void nvt_eng_reset(struct nvt_ts_data *ts);
 void nvt_sw_reset(struct nvt_ts_data *ts);
-void nvt_boot_ready(struct nvt_ts_data *ts);
-void nvt_bld_crc_enable(struct nvt_ts_data *ts);
-void nvt_fw_crc_enable(struct nvt_ts_data *ts);
+void nt36xxx_set_boot_ready(struct nvt_ts_data *ts);
+void nt36xxx_enable_bl_crc(struct nvt_ts_data *ts);
+void nt36xxx_enable_fw_crc(struct nvt_ts_data *ts);
 int nvt_update_firmware(struct nvt_ts_data *ts, char *firmware_name);
 int nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_reset_state);
 int nvt_get_fw_info(struct nvt_ts_data *ts);
 int nvt_clear_fw_status(struct nvt_ts_data *ts);
 int nvt_check_fw_status(struct nvt_ts_data *ts);
 int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts);
-int nvt_set_page(struct nvt_ts_data *ts, int addr);
+int nvt_set_addr(struct nvt_ts_data *ts, int addr);
 int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data);
 
 #endif

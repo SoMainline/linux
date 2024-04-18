@@ -388,7 +388,7 @@ static int nvt_write_sram(struct nvt_ts_data *ts,
 		len = (size < NVT_TRANSFER_LEN) ? size : NVT_TRANSFER_LEN;
 
 		//---set xdata index to start address of SRAM---
-		ret = nvt_set_page(ts, SRAM_addr);
+		ret = nvt_set_addr(ts, SRAM_addr);
 		if (ret) {
 			NVT_ERR("set page failed, ret = %d\n", ret);
 			return ret;
@@ -477,7 +477,7 @@ static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 	memset(fwbuf, 0, (len + 1));
 
 	//---set xdata index to checksum---
-	nvt_set_page(ts, ts->mmap->R_ILM_CHECKSUM_ADDR);
+	nvt_set_addr(ts, ts->mmap->R_ILM_CHECKSUM_ADDR);
 
 	/* read checksum */
 	fwbuf[0] = (ts->mmap->R_ILM_CHECKSUM_ADDR) & 0x7F;
@@ -509,292 +509,111 @@ static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 	return ret;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen set bootload crc reg bank function.
-This function will set hw crc reg before enable crc function.
-
-return:
-	n.a.
-*******************************************************/
-static void nvt_set_bld_crc_bank(struct nvt_ts_data *ts,
-				 u32 DES_ADDR, u32 SRAM_ADDR,
-				 u32 LENGTH_ADDR, u32 size,
-				 u32 G_CHECKSUM_ADDR, u32 crc)
+static void nt36xxx_set_bl_crc_bank(struct nvt_ts_data *ts, u8 bank_idx)
 {
-	/* write destination address */
-	nvt_set_page(ts, DES_ADDR);
-	fwbuf[0] = DES_ADDR & 0x7F;
-	fwbuf[1] = (SRAM_ADDR) & GENMASK(7, 0);
-	fwbuf[2] = (SRAM_ADDR >> 8) & GENMASK(7, 0);
-	fwbuf[3] = (SRAM_ADDR >> 16) & GENMASK(7, 0);
+	u32 DEST_ADDR = bank_idx == 0 ? ts->mmap->ILM_DEST_ADDR : ts->mmap->DLM_DEST_ADDR;
+	u32 G_CHECKSUM_ADDR = bank_idx == 0 ? ts->mmap->G_ILM_CHECKSUM_ADDR : ts->mmap->G_DLM_CHECKSUM_ADDR;
+	u32 LENGTH_ADDR = bank_idx == 0 ? ts->mmap->ILM_LENGTH_ADDR : ts->mmap->DLM_LENGTH_ADDR;
+	u32 sram_addr = bin_map[bank_idx].SRAM_addr;
+	u32 size = bin_map[bank_idx].size;
+	u32 crc = bin_map[bank_idx].crc;
+
+	nvt_set_addr(ts, DEST_ADDR);
+	fwbuf[0] = DEST_ADDR & GENMASK(6, 0);
+	fwbuf[1] = (sram_addr) & GENMASK(7, 0);
+	fwbuf[2] = (sram_addr >> 8) & GENMASK(7, 0);
+	fwbuf[3] = (sram_addr >> 16) & GENMASK(7, 0);
 	CTP_SPI_WRITE(ts->client, fwbuf, 4);
 
-	/* write length */
-	//nvt_set_page(LENGTH_ADDR);
-	fwbuf[0] = LENGTH_ADDR & 0x7F;
+	fwbuf[0] = LENGTH_ADDR & GENMASK(6, 0);
 	fwbuf[1] = (size) & GENMASK(7, 0);
 	fwbuf[2] = (size >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (size >> 16) & 0x01;
-	if (ts->hw_crc == 1)
-		CTP_SPI_WRITE(ts->client, fwbuf, 3);
-	else if (ts->hw_crc > 1)
-		CTP_SPI_WRITE(ts->client, fwbuf, 4);
+	CTP_SPI_WRITE(ts->client, fwbuf, ts->hw_crc > 1 ? 4 : 3);
 
-	/* write golden dlm checksum */
-	//nvt_set_page(G_CHECKSUM_ADDR);
-	fwbuf[0] = G_CHECKSUM_ADDR & 0x7F;
+	fwbuf[0] = G_CHECKSUM_ADDR & GENMASK(6, 0);
 	fwbuf[1] = (crc) & GENMASK(7, 0);
 	fwbuf[2] = (crc >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (crc >> 16) & GENMASK(7, 0);
 	fwbuf[4] = (crc >> 24) & GENMASK(7, 0);
 	CTP_SPI_WRITE(ts->client, fwbuf, 5);
-
-	return;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen set BLD hw crc function.
-This function will set ILM and DLM crc information to register.
-
-return:
-	n.a.
-*******************************************************/
-static void nvt_set_bld_hw_crc(struct nvt_ts_data *ts)
-{
-	/* [0] ILM */
-	/* write register bank */
-	nvt_set_bld_crc_bank(ts, ts->mmap->ILM_DES_ADDR, bin_map[0].SRAM_addr,
-			     ts->mmap->ILM_LENGTH_ADDR, bin_map[0].size,
-			     ts->mmap->G_ILM_CHECKSUM_ADDR, bin_map[0].crc);
-
-	/* [1] DLM */
-	/* write register bank */
-	nvt_set_bld_crc_bank(ts, ts->mmap->DLM_DES_ADDR, bin_map[1].SRAM_addr,
-			     ts->mmap->DLM_LENGTH_ADDR, bin_map[1].size,
-			     ts->mmap->G_DLM_CHECKSUM_ADDR, bin_map[1].crc);
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen read BLD hw crc info function.
-This function will check crc results from register.
-
-return:
-	n.a.
-*******************************************************/
-static void nvt_read_bld_hw_crc(struct nvt_ts_data *ts)
-{
-	u8 buf[8] = {0};
-	u32 g_crc = 0, r_crc = 0;
-
-	/* CRC Flag */
-	nvt_set_page(ts, ts->mmap->BLD_ILM_DLM_CRC_ADDR);
-	buf[0] = ts->mmap->BLD_ILM_DLM_CRC_ADDR & 0x7F;
-	buf[1] = 0x00;
-	CTP_SPI_READ(ts->client, buf, 2);
-	NVT_ERR("crc_done = %d, ilm_crc_flag = %d, dlm_crc_flag = %d\n",
-			(buf[1] >> 2) & 0x01, (buf[1] >> 0) & 0x01, (buf[1] >> 1) & 0x01);
-
-	/* ILM CRC */
-	nvt_set_page(ts, ts->mmap->G_ILM_CHECKSUM_ADDR);
-	buf[0] = ts->mmap->G_ILM_CHECKSUM_ADDR & 0x7F;
-	buf[1] = 0x00;
-	buf[2] = 0x00;
-	buf[3] = 0x00;
-	buf[4] = 0x00;
-	CTP_SPI_READ(ts->client, buf, 5);
-	g_crc = byte_to_word(buf, 1);
-
-	nvt_set_page(ts, ts->mmap->R_ILM_CHECKSUM_ADDR);
-	buf[0] = ts->mmap->R_ILM_CHECKSUM_ADDR & 0x7F;
-	buf[1] = 0x00;
-	buf[2] = 0x00;
-	buf[3] = 0x00;
-	buf[4] = 0x00;
-	CTP_SPI_READ(ts->client, buf, 5);
-	r_crc = byte_to_word(buf, 1);
-
-	NVT_ERR("ilm: bin crc = 0x%08X, golden = 0x%08X, result = 0x%08X\n",
-			bin_map[0].crc, g_crc, r_crc);
-
-	/* DLM CRC */
-	nvt_set_page(ts, ts->mmap->G_DLM_CHECKSUM_ADDR);
-	buf[0] = ts->mmap->G_DLM_CHECKSUM_ADDR & 0x7F;
-	buf[1] = 0x00;
-	buf[2] = 0x00;
-	buf[3] = 0x00;
-	buf[4] = 0x00;
-	CTP_SPI_READ(ts->client, buf, 5);
-	g_crc = byte_to_word(buf, 1);
-
-	nvt_set_page(ts, ts->mmap->R_DLM_CHECKSUM_ADDR);
-	buf[0] = ts->mmap->R_DLM_CHECKSUM_ADDR & 0x7F;
-	buf[1] = 0x00;
-	buf[2] = 0x00;
-	buf[3] = 0x00;
-	buf[4] = 0x00;
-	CTP_SPI_READ(ts->client, buf, 5);
-	r_crc = byte_to_word(buf, 1);
-
-	NVT_ERR("dlm: bin crc = 0x%08X, golden = 0x%08X, result = 0x%08X\n",
-			bin_map[1].crc, g_crc, r_crc);
-
-	return;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen Download_Firmware with HW CRC
-function. It's complete download firmware flow.
-
-return:
-	Executive outcomes. 0---succeed. else---fail.
-*******************************************************/
 static int nvt_download_firmware_hw_crc(struct nvt_ts_data *ts)
 {
-	u8 retry = 0;
-	int ret = 0;
+	int ret;
 
-	while (1) {
-		/* bootloader reset to reset MCU */
-		nvt_bootloader_reset(ts);
+	/* bootloader reset to reset MCU */
+	nvt_bootloader_reset(ts);
 
-		/* set ilm & dlm reg bank */
-		nvt_set_bld_hw_crc(ts);
+	/* Set ILM & DLM register banks for bootloader HW CRC */
+	nt36xxx_set_bl_crc_bank(ts, 0);
+	nt36xxx_set_bl_crc_bank(ts, 1);
 
-		/* Start to write firmware process */
-		if (cascade_2nd_header_info) {
-			/* Enable TX_AUTO_COPY */
-			nvt_write_addr(ts, ts->mmap->TX_AUTO_COPY_EN, 0x69);
+	if (cascade_2nd_header_info)
+		nvt_write_addr(ts, ts->mmap->TX_AUTO_COPY_EN, 0x69);
 
-			ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
-			if (ret) {
-				NVT_ERR("Write_Firmware failed. (%d)\n", ret);
-				goto fail;
-			}
+	ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
+	if (ret) {
+		NVT_ERR("Write_Firmware failed. (%d)\n", ret);
+		return ret;
+	}
 
-			ret = nvt_check_spi_dma_tx_info(ts);
-			if (ret) {
-				NVT_ERR("spi dma tx info failed. (%d)\n", ret);
-				goto fail;
-			}
-		} else {
-			ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
-			if (ret) {
-				NVT_ERR("Write_Firmware failed. (%d)\n", ret);
-				goto fail;
-			}
-		}
-
-		/* enable hw bld crc function */
-		nvt_bld_crc_enable(ts);
-
-		/* clear fw reset status & enable fw crc check */
-		nvt_fw_crc_enable(ts);
-
-		/* Set Boot Ready Bit */
-		nvt_boot_ready(ts);
-
-		ret = nvt_check_fw_reset_state(ts, RESET_STATE_INIT);
+	if (cascade_2nd_header_info) {
+		ret = nvt_check_spi_dma_tx_info(ts);
 		if (ret) {
-			NVT_ERR("nvt_check_fw_reset_state failed. (%d)\n", ret);
-			goto fail;
-		} else {
-			break;
-		}
-
-fail:
-		retry++;
-		if (unlikely(retry > 2)) {
-			NVT_ERR("error, retry=%d\n", retry);
-			nvt_read_bld_hw_crc(ts);
-			break;
+			NVT_ERR("spi dma tx info failed. (%d)\n", ret);
+			return ret;
 		}
 	}
 
-	return ret;
+	nt36xxx_enable_bl_crc(ts);
+
+	nt36xxx_enable_fw_crc(ts);
+
+	nt36xxx_set_boot_ready(ts);
+
+	return nvt_check_fw_reset_state(ts, RESET_STATE_INIT);
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen Download_Firmware function. It's
-complete download firmware flow.
-
-return:
-	n.a.
-*******************************************************/
 static int nvt_download_firmware(struct nvt_ts_data *ts)
 {
-	u8 retry = 0;
-	int ret = 0;
+	int ret;
 
-	while (1) {
-		/*
-		 * Send eng reset cmd before download FW
-		 * Keep TP_RESX low when send eng reset cmd
-		 */
-#if NVT_TOUCH_SUPPORT_HW_RST
-		gpio_set_value(ts->reset_gpio, 1);
-		mdelay(1);	//wait 1ms
-#endif
-		nvt_eng_reset(ts);
-#if NVT_TOUCH_SUPPORT_HW_RST
-		gpio_set_value(ts->reset_gpio, 0);
-		mdelay(10);	//wait tRT2BRST after TP_RST
-#endif
-		nvt_bootloader_reset(ts);
+	gpiod_set_value_cansleep(ts->reset_gpio, 1);
+	mdelay(1);
 
-		/* clear fw reset status */
-		nvt_write_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_RESET_COMPLETE, 0x00);
+	nvt_eng_reset(ts);
 
-		/* Start to write firmware process */
-		ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
-		if (ret) {
-			NVT_ERR("Write_Firmware failed. (%d)\n", ret);
-			goto fail;
-		}
+	gpiod_set_value_cansleep(ts->reset_gpio, 0);
+	mdelay(10);
 
-		/* Set Boot Ready Bit */
-		nvt_boot_ready(ts);
+	nvt_bootloader_reset(ts);
 
-		ret = nvt_check_fw_reset_state(ts, RESET_STATE_INIT);
-		if (ret) {
-			NVT_ERR("nvt_check_fw_reset_state failed. (%d)\n", ret);
-			goto fail;
-		}
+	/* Clear FW reset status */
+	nvt_write_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_RESET_COMPLETE, 0);
 
-		/* check fw checksum result */
-		ret = nvt_check_fw_checksum(ts);
-		if (ret) {
-			NVT_ERR("firmware checksum not match, retry=%d\n", retry);
-			goto fail;
-		} else {
-			break;
-		}
-
-fail:
-		retry++;
-		if (unlikely(retry > 2)) {
-			NVT_ERR("error, retry=%d\n", retry);
-			break;
-		}
+	ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
+	if (ret) {
+		NVT_ERR("Write_Firmware failed. (%d)\n", ret);
+		return ret;
 	}
 
-	return ret;
+	nt36xxx_set_boot_ready(ts);
+
+	ret = nvt_check_fw_reset_state(ts, RESET_STATE_INIT);
+	if (ret) {
+		NVT_ERR("nvt_check_fw_reset_state failed. (%d)\n", ret);
+		return ret;
+	}
+
+	/* check fw checksum result */
+	return nvt_check_fw_checksum(ts);
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen update firmware main function.
-
-return:
-	n.a.
-*******************************************************/
 int nvt_update_firmware(struct nvt_ts_data *ts, char *firmware_name)
 {
-	int ret = 0;
+	int ret;
 
 	// request bin file in "/etc/firmware"
 	ret = update_firmware_request(ts, firmware_name);
@@ -810,13 +629,13 @@ int nvt_update_firmware(struct nvt_ts_data *ts, char *firmware_name)
 		goto download_fail;
 	}
 
-	/* download firmware process */
+	/* HW CRC-enabled chips require a slightly different procedure */
 	if (ts->hw_crc)
 		ret = nvt_download_firmware_hw_crc(ts);
 	else
 		ret = nvt_download_firmware(ts);
 	if (ret) {
-		NVT_ERR("Download Firmware failed. (%d)\n", ret);
+		pr_err("couldn't dl the fw\n");
 		goto download_fail;
 	}
 
@@ -832,7 +651,7 @@ download_fail:
 	}
 
 	update_firmware_release();
-request_firmware_fail:
 
+request_firmware_fail:
 	return ret;
 }

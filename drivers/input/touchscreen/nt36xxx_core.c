@@ -83,65 +83,44 @@ int CTP_SPI_WRITE(struct spi_device *client, u8 *buf, u16 len)
 	return ret;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen set index/page/addr address.
-
-return:
-	Executive outcomes. 0---succeed. -5---access fail.
-*******************************************************/
-int nvt_set_page(struct nvt_ts_data *ts, int addr)
+#define NVT_SET_ADDR_CMD		0xFF
+int nvt_set_addr(struct nvt_ts_data *ts, int addr)
 {
-	u8 buf[4] = {0};
+	u8 buf[4] = { 0 };
 
-	buf[0] = 0xFF;	//set index/page/addr command
-	buf[1] = (addr >> 15) & 0xFF;
-	buf[2] = (addr >> 7) & 0xFF;
+	buf[0] = NVT_SET_ADDR_CMD;	//set index/page/addr command
+	buf[1] = (addr >> 15) & GENMASK(7, 0);
+	buf[2] = (addr >> 7) & GENMASK(7, 0);
 
 	return CTP_SPI_WRITE(ts->client, buf, 3);
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen write data to specify address.
-
-return:
-	Executive outcomes. 0---succeed. -5---access fail.
-*******************************************************/
 int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data)
 {
-	int ret = 0;
-	u8 buf[4] = {0};
+	u8 buf[4] = { 0 };
+	int ret;
 
-	//---set xdata index---
-	buf[0] = 0xFF;	//set index/page/addr command
-	buf[1] = (addr >> 15) & 0xFF;
-	buf[2] = (addr >> 7) & 0xFF;
-	ret = CTP_SPI_WRITE(ts->client, buf, 3);
+	ret = nvt_set_addr(ts, addr);
 	if (ret) {
-		NVT_ERR("set page 0x%06X failed, ret = %d\n", addr, ret);
+		dev_err(&ts->client->dev, "Couldn't set page 0x%x\n", addr);
 		return ret;
 	}
 
-	//---write data to index---
 	buf[0] = addr & GENMASK(6, 0);
 	buf[1] = data;
 	ret = CTP_SPI_WRITE(ts->client, buf, 2);
-	if (ret) {
-		NVT_ERR("write data to 0x%06X failed, ret = %d\n", addr, ret);
-		return ret;
-	}
+	if (ret)
+		dev_err(&ts->client->dev, "Couldn't write 0x%x to 0x%x\n", data, addr);
 
 	return ret;
 }
 
-/* Bootloader CRC? */
-void nvt_bld_crc_enable(struct nvt_ts_data *ts)
+void nt36xxx_enable_bl_crc(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
 
 	//---set xdata index to BLD_CRC_EN_ADDR---
-	nvt_set_page(ts, ts->mmap->BLD_CRC_EN_ADDR);
+	nvt_set_addr(ts, ts->mmap->BLD_CRC_EN_ADDR);
 
 	//---read data from index---
 	buf[0] = ts->mmap->BLD_CRC_EN_ADDR & GENMASK(6, 0);
@@ -155,12 +134,12 @@ void nvt_bld_crc_enable(struct nvt_ts_data *ts)
 }
 
 /* Firmware CRC? */
-void nvt_fw_crc_enable(struct nvt_ts_data *ts)
+void nt36xxx_enable_fw_crc(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
 
 	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR);
+	nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR);
 
 	//---clear fw reset status---
 	buf[0] = EVENT_MAP_RESET_COMPLETE & GENMASK(6, 0);
@@ -174,7 +153,7 @@ void nvt_fw_crc_enable(struct nvt_ts_data *ts)
 }
 
 /* Set "boot ready" flag after flashing the firmware */
-void nvt_boot_ready(struct nvt_ts_data *ts)
+void nt36xxx_set_boot_ready(struct nvt_ts_data *ts)
 {
 	//---write BOOT_RDY status cmds---
 	nvt_write_addr(ts, ts->mmap->BOOT_RDY_ADDR, 1);
@@ -205,7 +184,7 @@ int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts)
 
 	for (i = 0; i < SPI_DMA_TX_INFO_MAX_RETRIES; i++) {
 		//---set xdata index to EVENT BUF ADDR---
-		nvt_set_page(ts, ts->mmap->SPI_DMA_TX_INFO);
+		nvt_set_addr(ts, ts->mmap->SPI_DMA_TX_INFO);
 
 		//---read fw status---
 		buf[0] = ts->mmap->SPI_DMA_TX_INFO & GENMASK(6, 0);
@@ -272,7 +251,7 @@ int nvt_clear_fw_status(struct nvt_ts_data *ts)
 
 	for (i = 0; i < CLEAR_FW_STATUS_MAX_RETRIES; i++) {
 		//---set xdata index to EVENT BUF ADDR---
-		nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
+		nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
 
 		//---clear fw status---
 		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
@@ -308,7 +287,7 @@ int nvt_check_fw_status(struct nvt_ts_data *ts)
 
 	for (i = 0; i < CHECK_FW_STATUS_MAX_RETRIES; i++) {
 		//---set xdata index to EVENT BUF ADDR---
-		nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
+		nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
 
 		//---read fw status---
 		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
@@ -339,7 +318,7 @@ int nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_re
 	int retry_max = (check_reset_state == RESET_STATE_INIT) ? 10 : 50;
 
 	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_RESET_COMPLETE);
+	nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_RESET_COMPLETE);
 
 	while (1) {
 		//---read reset state---
@@ -380,7 +359,7 @@ static int nvt_read_pid(struct nvt_ts_data *ts)
 	int ret = 0;
 
 	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_PROJECTID);
+	nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_PROJECTID);
 
 	//---read project id---
 	buf[0] = EVENT_MAP_PROJECTID;
@@ -391,7 +370,7 @@ static int nvt_read_pid(struct nvt_ts_data *ts)
 	ts->nvt_pid = (buf[2] << 8) + buf[1];
 
 	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR);
+	nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR);
 
 	NVT_LOG("PID=%04X\n", ts->nvt_pid);
 
@@ -412,7 +391,7 @@ int nvt_get_fw_info(struct nvt_ts_data *ts)
 	int retries;
 	int ret;
 
-	ret = nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_FWINFO);
+	ret = nvt_set_addr(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_FWINFO);
 	if (ret)
 		return ret;
 

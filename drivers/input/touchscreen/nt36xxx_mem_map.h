@@ -49,9 +49,9 @@ struct nvt_ts_mem_map {
 	u32 BLD_LENGTH_ADDR;
 	u32 ILM_LENGTH_ADDR;
 	u32 DLM_LENGTH_ADDR;
-	u32 BLD_DES_ADDR;
-	u32 ILM_DES_ADDR;
-	u32 DLM_DES_ADDR;
+	u32 BLD_DEST_ADDR;
+	u32 ILM_DEST_ADDR;
+	u32 DLM_DEST_ADDR;
 	u32 G_ILM_CHECKSUM_ADDR;
 	u32 G_DLM_CHECKSUM_ADDR;
 	u32 R_ILM_CHECKSUM_ADDR;
@@ -100,9 +100,9 @@ static const struct nvt_ts_mem_map nt36523_memory_map = {
 	.BLD_LENGTH_ADDR          = 0x3F138,	//0x3F138 ~ 0x3F13A	(3 bytes)
 	.ILM_LENGTH_ADDR          = 0x3F118,	//0x3F118 ~ 0x3F11A	(3 bytes)
 	.DLM_LENGTH_ADDR          = 0x3F130,	//0x3F130 ~ 0x3F132	(3 bytes)
-	.BLD_DES_ADDR             = 0x3F114,	//0x3F114 ~ 0x3F116	(3 bytes)
-	.ILM_DES_ADDR             = 0x3F128,	//0x3F128 ~ 0x3F12A	(3 bytes)
-	.DLM_DES_ADDR             = 0x3F12C,	//0x3F12C ~ 0x3F12E	(3 bytes)
+	.BLD_DEST_ADDR             = 0x3F114,	//0x3F114 ~ 0x3F116	(3 bytes)
+	.ILM_DEST_ADDR             = 0x3F128,	//0x3F128 ~ 0x3F12A	(3 bytes)
+	.DLM_DEST_ADDR             = 0x3F12C,	//0x3F12C ~ 0x3F12E	(3 bytes)
 	.G_ILM_CHECKSUM_ADDR      = 0x3F100,	//0x3F100 ~ 0x3F103	(4 bytes)
 	.G_DLM_CHECKSUM_ADDR      = 0x3F104,	//0x3F104 ~ 0x3F107	(4 bytes)
 	.R_ILM_CHECKSUM_ADDR      = 0x3F120,	//0x3F120 ~ 0x3F123 (4 bytes)
@@ -133,9 +133,9 @@ static const struct nvt_ts_mem_map nt36526_memory_map = {
 	.BLD_LENGTH_ADDR          = 0x3F138,	//0x3F138 ~ 0x3F13A	(3 bytes)
 	.ILM_LENGTH_ADDR          = 0x3F118,	//0x3F118 ~ 0x3F11A	(3 bytes)
 	.DLM_LENGTH_ADDR          = 0x3F130,	//0x3F130 ~ 0x3F132	(3 bytes)
-	.BLD_DES_ADDR             = 0x3F114,	//0x3F114 ~ 0x3F116	(3 bytes)
-	.ILM_DES_ADDR             = 0x3F128,	//0x3F128 ~ 0x3F12A	(3 bytes)
-	.DLM_DES_ADDR             = 0x3F12C,	//0x3F12C ~ 0x3F12E	(3 bytes)
+	.BLD_DEST_ADDR             = 0x3F114,	//0x3F114 ~ 0x3F116	(3 bytes)
+	.ILM_DEST_ADDR             = 0x3F128,	//0x3F128 ~ 0x3F12A	(3 bytes)
+	.DLM_DEST_ADDR             = 0x3F12C,	//0x3F12C ~ 0x3F12E	(3 bytes)
 	.G_ILM_CHECKSUM_ADDR      = 0x3F100,	//0x3F100 ~ 0x3F103	(4 bytes)
 	.G_DLM_CHECKSUM_ADDR      = 0x3F104,	//0x3F104 ~ 0x3F107	(4 bytes)
 	.R_ILM_CHECKSUM_ADDR      = 0x3F120,	//0x3F120 ~ 0x3F123 (4 bytes)
@@ -167,9 +167,9 @@ static const struct nvt_ts_mem_map nt36675_memory_map = {
 	.BLD_LENGTH_ADDR          = 0x3F138,	//0x3F138 ~ 0x3F13A	(3 bytes)
 	.ILM_LENGTH_ADDR          = 0x3F118,	//0x3F118 ~ 0x3F11A	(3 bytes)
 	.DLM_LENGTH_ADDR          = 0x3F130,	//0x3F130 ~ 0x3F132	(3 bytes)
-	.BLD_DES_ADDR             = 0x3F114,	//0x3F114 ~ 0x3F116	(3 bytes)
-	.ILM_DES_ADDR             = 0x3F128,	//0x3F128 ~ 0x3F12A	(3 bytes)
-	.DLM_DES_ADDR             = 0x3F12C,	//0x3F12C ~ 0x3F12E	(3 bytes)
+	.BLD_DEST_ADDR             = 0x3F114,	//0x3F114 ~ 0x3F116	(3 bytes)
+	.ILM_DEST_ADDR             = 0x3F128,	//0x3F128 ~ 0x3F12A	(3 bytes)
+	.DLM_DEST_ADDR             = 0x3F12C,	//0x3F12C ~ 0x3F12E	(3 bytes)
 	.G_ILM_CHECKSUM_ADDR      = 0x3F100,	//0x3F100 ~ 0x3F103	(4 bytes)
 	.G_DLM_CHECKSUM_ADDR      = 0x3F104,	//0x3F104 ~ 0x3F107	(4 bytes)
 	.R_ILM_CHECKSUM_ADDR      = 0x3F120,	//0x3F120 ~ 0x3F123 (4 bytes)
@@ -201,9 +201,9 @@ static const struct nvt_ts_mem_map nt36672a_memory_map = {
 	.BLD_LENGTH_ADDR          = 0x3F10E,	//0x3F10E ~ 0x3F10F	(2 bytes)
 	.ILM_LENGTH_ADDR          = 0x3F118,	//0x3F118 ~ 0x3F119	(2 bytes)
 	.DLM_LENGTH_ADDR          = 0x3F130,	//0x3F130 ~ 0x3F131	(2 bytes)
-	.BLD_DES_ADDR             = 0x3F114,	//0x3F114 ~ 0x3F116	(3 bytes)
-	.ILM_DES_ADDR             = 0x3F128,	//0x3F128 ~ 0x3F12A	(3 bytes)
-	.DLM_DES_ADDR             = 0x3F12C,	//0x3F12C ~ 0x3F12E	(3 bytes)
+	.BLD_DEST_ADDR             = 0x3F114,	//0x3F114 ~ 0x3F116	(3 bytes)
+	.ILM_DEST_ADDR             = 0x3F128,	//0x3F128 ~ 0x3F12A	(3 bytes)
+	.DLM_DEST_ADDR             = 0x3F12C,	//0x3F12C ~ 0x3F12E	(3 bytes)
 	.G_ILM_CHECKSUM_ADDR      = 0x3F100,	//0x3F100 ~ 0x3F103	(4 bytes)
 	.G_DLM_CHECKSUM_ADDR      = 0x3F104,	//0x3F104 ~ 0x3F107	(4 bytes)
 	.R_ILM_CHECKSUM_ADDR      = 0x3F120,	//0x3F120 ~ 0x3F123 (4 bytes)
