@@ -420,25 +420,26 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen check chip version trim function.
-
-return:
-	Executive outcomes. 0---NVT IC. -1---not NVT IC.
-*******************************************************/
-static int nvt_ts_check_chip_ver_trim(struct nvt_ts_data *ts, u32 chip_ver_trim_addr)
+static int nt36xxx_check_hw_id(struct nvt_ts_data *ts,
+			       struct device *dev,
+			       bool legacy_addr)
 {
+	u32 address = legacy_addr ? CHIP_VER_TRIM_OLD_ADDR : CHIP_VER_TRIM_ADDR;
+	const struct nt36xxx_match_data *data;
 	u8 buf[8] = { 0 };
-	int retry = 0;
 	int i, index;
+	int retries;
 
-	for (retry = 5; retry > 0; retry--) {
+	data = device_get_match_data(dev);
+	if (!data)
+		return -EINVAL;
+
+	for (retries = 5; retries > 0; retries--) {
 		nvt_bootloader_reset(ts);
 
-		nvt_set_page(ts, chip_ver_trim_addr);
+		nvt_set_page(ts, address);
 
-		buf[0] = chip_ver_trim_addr & 0x7F;
+		buf[0] = address & GENMASK(7, 0);
 		buf[1] = 0x00;
 		buf[2] = 0x00;
 		buf[3] = 0x00;
@@ -447,24 +448,24 @@ static int nvt_ts_check_chip_ver_trim(struct nvt_ts_data *ts, u32 chip_ver_trim_
 		buf[6] = 0x00;
 		CTP_SPI_READ(ts->client, buf, 7);
 
-		// compare read chip id on supported list
-		for (index = 0; index < ARRAY_SIZE(trim_id_table); index++) {
-			const u8 *match_id = trim_id_table[index].id;
+		/* Go over all expected IDs */
+		for (index = 0; index < data->num_ids; index++) {
+			const u8 *match_id = data->ids[index].bytes;
 
-			// compare each byte
 			for (i = 0; i < NVT_ID_BYTE_MAX; i++) {
+				/* Ignore some parts of the ID (by design) */
 				if (match_id[i] == ID_MATCH_ANY)
 					continue;
 
-				if (buf[i + 1] != match_id[i])
+				if (match_id[i] != buf[i + 1])
 					break;
 			}
 
 			if (i == NVT_ID_BYTE_MAX) {
-				NVT_LOG("This is NVT touch IC\n");
-				ts->mmap = trim_id_table[index].mmap;
-				ts->carrier_system = trim_id_table[index].hwinfo->carrier_system;
-				ts->hw_crc = trim_id_table[index].hwinfo->hw_crc;
+				print_hex_dump_bytes("Device id:\t", DUMP_PREFIX_NONE, match_id, NVT_ID_BYTE_MAX);
+				print_hex_dump_bytes("Matched id:\t", DUMP_PREFIX_NONE, (buf + 1), NVT_ID_BYTE_MAX);
+				ts->mmap = data->mmap;
+				ts->hw_crc = data->hw_crc;
 				return 0;
 			}
 		}
@@ -621,13 +622,13 @@ static int nvt_ts_probe(struct spi_device *client)
 	/* Wait at least 10ms after reset */
 	usleep_range(10000, 11000);
 
-	//---check chip version trim---
-	ret = nvt_ts_check_chip_ver_trim(ts, CHIP_VER_TRIM_ADDR);
+	/* Check the "new address" (depends on fw version?) first */
+	ret = nt36xxx_check_hw_id(ts, dev, false);
 	if (ret) {
-		NVT_LOG("try to check from old chip ver trim address\n");
-		ret = nvt_ts_check_chip_ver_trim(ts, CHIP_VER_TRIM_OLD_ADDR);
+		/* Retry with the legacy address if the above failed */
+		ret = nt36xxx_check_hw_id(ts, dev, true);
 		if (ret)
-			return dev_err_probe(dev, -ENODEV, "Unknown chip id\n"); // TODO: what chip id?
+			return dev_err_probe(dev, -ENODEV, "Unknown chip id\n");
 	}
 
 	ts->abs_x_max = TOUCH_DEFAULT_MAX_WIDTH;
@@ -843,8 +844,109 @@ static const struct spi_device_id nvt_ts_id[] = {
 };
 MODULE_DEVICE_TABLE(spi, nvt_ts_id);
 
+static const struct nt36xxx_hw_id nt36523_hw_ids[] = {
+	{ 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
+	{ 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
+	{ 0x0c, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
+	{ 0x20, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
+	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
+};
+
+static const struct nt36xxx_match_data nt36523_data = {
+	.ids = nt36523_hw_ids,
+	.num_ids = ARRAY_SIZE(nt36523_hw_ids),
+	.mmap = &nt36523_memory_map,
+	.hw_crc = 2,
+};
+
+static const struct nt36xxx_hw_id nt36675_hw_ids[] = {
+	{ 0x0c, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x66, 0x03 },
+	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x75, 0x66, 0x03 },
+};
+
+static const struct nt36xxx_match_data nt36675_data = {
+	.ids = nt36675_hw_ids,
+	.num_ids = ARRAY_SIZE(nt36675_hw_ids),
+	.mmap = &nt36675_memory_map,
+	.hw_crc = 2,
+};
+
+static const struct nt36xxx_hw_id nt36526_hw_ids[] = {
+	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x26, 0x65, 0x03 },
+};
+
+static const struct nt36xxx_match_data nt36526_data = {
+	.ids = nt36526_hw_ids,
+	.num_ids = ARRAY_SIZE(nt36526_hw_ids),
+	.mmap = &nt36526_memory_map,
+	.hw_crc = 2,
+};
+
+static const struct nt36xxx_hw_id nt36672a_hw_ids[] = {
+	{ 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x70, 0x66, 0x03 },
+	{ 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x65, 0x03 },
+	{ 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x66, 0x03 },
+	{ 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x67, 0x03 },
+	{ 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x82, 0x66, 0x03 },
+	{ 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x25, 0x65, 0x03 },
+	{ 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x70, 0x66, 0x03 },
+	{ 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x66, 0x03 },
+	{ 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x82, 0x66, 0x03 },
+};
+static const struct nt36xxx_match_data nt36672a_data = {
+	.ids = nt36672a_hw_ids,
+	.num_ids = ARRAY_SIZE(nt36672a_hw_ids),
+	.mmap = &nt36672a_memory_map,
+	.hw_crc = 1,
+};
+
+static const struct nt36xxx_hw_id nt36772_hw_ids[] = {
+	{ 0x55, 0x00, ID_MATCH_ANY, 0x00, 0x00, 0x00 },
+	{ 0x55, 0x72, ID_MATCH_ANY, 0x00, 0x00, 0x00 },
+	{ 0xaa, 0x00, ID_MATCH_ANY, 0x00, 0x00, 0x00 },
+	{ 0xaa, 0x72, ID_MATCH_ANY, 0x00, 0x00, 0x00 },
+	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x70, 0x66, 0x03 },
+	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x70, 0x67, 0x03 },
+	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x66, 0x03 },
+	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x67, 0x03 },
+};
+static const struct nt36xxx_match_data nt36772_data = {
+	.ids = nt36772_hw_ids,
+	.num_ids = ARRAY_SIZE(nt36772_hw_ids),
+	.mmap = &nt36772_memory_map,
+	.hw_crc = 0,
+};
+
+static const struct nt36xxx_hw_id nt36525_hw_ids[] = {
+	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x25, 0x65, 0x03 },
+};
+
+static const struct nt36xxx_match_data nt36525_data = {
+	.ids = nt36525_hw_ids,
+	.num_ids = ARRAY_SIZE(nt36525_hw_ids),
+	.mmap = &nt36525_memory_map,
+	.hw_crc = 0,
+};
+
+static const struct nt36xxx_hw_id nt36676f_hw_ids[] = {
+	{ ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x76, 0x66, 0x03 },
+};
+
+static const struct nt36xxx_match_data nt36676f_data = {
+	.ids = nt36676f_hw_ids,
+	.num_ids = ARRAY_SIZE(nt36676f_hw_ids),
+	.mmap = &nt36676f_memory_map,
+	.hw_crc = 0,
+};
+
 static const struct of_device_id nt36xxx_of_match_table[] = {
-	{ .compatible = "novatek,nt36xxx" },
+	{ .compatible = "novatek,nt36523", .data = &nt36523_data },
+	{ .compatible = "novatek,nt36675", .data = &nt36675_data },
+	{ .compatible = "novatek,nt36526", .data = &nt36526_data },
+	{ .compatible = "novatek,nt36672a", .data = &nt36672a_data },
+	{ .compatible = "novatek,nt36772", .data = &nt36772_data },
+	{ .compatible = "novatek,nt36525", .data = &nt36525_data },
+	{ .compatible = "novatek,nt36676f", .data = &nt36676f_data },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, nt36xxx_of_match_table);

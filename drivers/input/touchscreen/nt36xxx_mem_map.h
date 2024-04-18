@@ -4,6 +4,9 @@
  * Copyright (c) 2024, Linaro Ltd.
  */
 
+#ifndef _NT36XXX_MEM_MAP_H
+#define _NT36XXX_MEM_MAP_H
+
 #define CHIP_VER_TRIM_ADDR 0x3F004
 #define CHIP_VER_TRIM_OLD_ADDR 0x1F64E
 
@@ -57,11 +60,6 @@ struct nvt_ts_mem_map {
 	uint32_t DMA_CRC_EN_ADDR;
 	uint32_t BLD_ILM_DLM_CRC_ADDR;
 	uint32_t DMA_CRC_FLAG_ADDR;
-};
-
-struct nvt_ts_hw_info {
-	uint8_t carrier_system;
-	uint8_t hw_crc;
 };
 
 static const struct nvt_ts_mem_map nt36523_memory_map = {
@@ -274,165 +272,18 @@ static const struct nvt_ts_mem_map nt36676f_memory_map = {
 	.RW_FLASH_DATA_ADDR       = 0x14002,
 };
 
-static const struct nvt_ts_hw_info hw_info_0_1 = {
-	.carrier_system = 0,
-	.hw_crc = 1,
-};
-
-static const struct nvt_ts_hw_info hw_info_0_0 = {
-	.carrier_system = 0,
-	.hw_crc = 0,
-};
-
-static const struct nvt_ts_hw_info hw_info_2_2 = {
-	.carrier_system = 2,
-	.hw_crc = 2,
-};
-
-#define NVT_ID_BYTE_MAX 6
-struct nvt_ts_trim_id_table {
-	uint8_t id[NVT_ID_BYTE_MAX];
-	const struct nvt_ts_mem_map *mmap;
-	const struct nvt_ts_hw_info *hwinfo;
-};
-
+#define NVT_ID_BYTE_MAX			6
 /* 0xff seems to be unused as far as actual matching goes, use it as an "ignore" */
 #define ID_MATCH_ANY			0xFF
-static const struct nvt_ts_trim_id_table trim_id_table[] = {
-	{
-		/* nt36523 */
-		.id = { 0x20, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
-		.mmap = &nt36523_memory_map,
-		.hwinfo = &hw_info_2_2,
-	}, {
-		/* nt36523 */
-		.id = { 0x0c, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
-		.mmap = &nt36523_memory_map,
-		.hwinfo = &hw_info_2_2,
-	}, {
-		/* nt36523 */
-		.id = { 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
-		.mmap = &nt36523_memory_map,
-		.hwinfo = &hw_info_2_2,
-	}, {
-		/* nt36523 */
-		.id = { 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
-		.mmap = &nt36523_memory_map,
-		.hwinfo = &hw_info_2_2,
-	}, {
-		/* nt36523 */
-		.id = { ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
-		.mmap = &nt36523_memory_map,
-		.hwinfo = &hw_info_2_2,
-	}, {
-		/* nt36675 */
-		.id = { 0x0c, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x66, 0x03 },
-		.mmap = &nt36675_memory_map,
-		.hwinfo = &hw_info_2_2,
-	}, {
-		/* nt36526 */
-		.id = { ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x26, 0x65, 0x03 },
-		.mmap = &nt36526_memory_map,
-		.hwinfo = &hw_info_2_2,
-	}, {
-		/* nt36675 */
-		.id = { ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x75, 0x66, 0x03 },
-		.mmap = &nt36675_memory_map,
-		.hwinfo = &hw_info_2_2,
-	}, {
-		/* nt36672a */
-		.id = { 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x66, 0x03 },
-		.mmap = &nt36672a_memory_map,
-		.hwinfo = &hw_info_0_1,
-	}, {
-		/* nt36672a */
-		.id = { 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x82, 0x66, 0x03 },
-		.mmap = &nt36672a_memory_map,
-		.hwinfo = &hw_info_0_1,
-	}, {
-		/* nt36672a */
-		.id = { 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x25, 0x65, 0x03 },
-		.mmap = &nt36672a_memory_map,
-		.hwinfo = &hw_info_0_1,
-	}, {
-		/* nt36672a */
-		.id = { 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x65, 0x03 },
-		.mmap = &nt36672a_memory_map,
-		.hwinfo = &hw_info_0_1,
-	}, {
-		/* nt36672a */
-		.id = { 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x66, 0x03 },
-		.mmap = &nt36672a_memory_map,
-		.hwinfo = &hw_info_0_1,
-	}, {
-		/* nt36672a */
-		.id = { 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x82, 0x66, 0x03 },
-		.mmap = &nt36672a_memory_map,
-		.hwinfo = &hw_info_0_1,
-	}, {
-		/* nt36672a */
-		.id = { 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x70, 0x66, 0x03 },
-		.mmap = &nt36672a_memory_map,
-		.hwinfo = &hw_info_0_1,
-	}, {
-		/* nt36672a */
-		.id = { 0x0b, ID_MATCH_ANY, ID_MATCH_ANY, 0x70, 0x66, 0x03 },
-		.mmap = &nt36672a_memory_map,
-		.hwinfo = &hw_info_0_1,
-	}, {
-		/* nt36672a */
-		.id = { 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x67, 0x03 },
-		.mmap = &nt36672a_memory_map,
-		.hwinfo = &hw_info_0_1,
-	}, {
-		/* nt36772 */
-		.id = { 0x55, 0x00, ID_MATCH_ANY, 0x00, 0x00, 0x00 },
-		.mmap = &nt36772_memory_map,
-		.hwinfo = &hw_info_0_0,
-	}, {
-		/* nt36772 */
-		.id = { 0x55, 0x72, ID_MATCH_ANY, 0x00, 0x00, 0x00 },
-		.mmap = &nt36772_memory_map,
-		.hwinfo = &hw_info_0_0,
-	}, {
-		/* nt36772 */
-		.id = { 0xaa, 0x00, ID_MATCH_ANY, 0x00, 0x00, 0x00 },
-		.mmap = &nt36772_memory_map,
-		.hwinfo = &hw_info_0_0,
-	}, {
-		/* nt36772 */
-		.id = { 0xaa, 0x72, ID_MATCH_ANY, 0x00, 0x00, 0x00 },
-		.mmap = &nt36772_memory_map,
-		.hwinfo = &hw_info_0_0,
-	}, {
-		/* nt36772 */
-		.id = { ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x67, 0x03 },
-		.mmap = &nt36772_memory_map,
-		.hwinfo = &hw_info_0_0,
-	}, {
-		/* nt36772 */
-		.id = { ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x70, 0x66, 0x03 },
-		.mmap = &nt36772_memory_map,
-		.hwinfo = &hw_info_0_0,
-	}, {
-		/* nt36772 */
-		.id = { ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x70, 0x67, 0x03 },
-		.mmap = &nt36772_memory_map,
-		.hwinfo = &hw_info_0_0,
-	}, {
-		/* nt36772 */
-		.id = { ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x72, 0x66, 0x03 },
-		.mmap = &nt36772_memory_map,
-		.hwinfo = &hw_info_0_0,
-	}, {
-		/* nt36525 */
-		.id = { ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x25, 0x65, 0x03 },
-		.mmap = &nt36525_memory_map,
-		.hwinfo = &hw_info_0_0,
-	}, {
-		/* nt36676f */
-		.id = { ID_MATCH_ANY, ID_MATCH_ANY, ID_MATCH_ANY, 0x76, 0x66, 0x03 },
-		.mmap = &nt36676f_memory_map,
-		.hwinfo = &hw_info_0_0,
-	}
+struct nt36xxx_hw_id {
+	const u8 bytes[NVT_ID_BYTE_MAX];
 };
+
+struct nt36xxx_match_data {
+	const struct nt36xxx_hw_id *ids;
+	int num_ids;
+	const struct nvt_ts_mem_map *mmap;
+	u8 hw_crc;
+};
+
+#endif
