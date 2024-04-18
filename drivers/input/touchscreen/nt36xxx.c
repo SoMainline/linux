@@ -121,11 +121,11 @@ Description:
 return:
 	n.a.
 *******************************************************/
-static int32_t nvt_parse_dt(struct nvt_ts_data *ts)
+static int nvt_parse_dt(struct nvt_ts_data *ts)
 {
 	struct device *dev = &ts->client->dev;
 	struct device_node *np = dev->of_node;
-	int32_t ret = 0;
+	int ret = 0;
 
 	ts->reset_gpio = devm_gpiod_get_optional(dev, "reset", GPIOD_OUT_HIGH);
 	if (IS_ERR(ts->reset_gpio))
@@ -196,10 +196,10 @@ static u8 nvt_wdt_fw_recovery(u8 *point_data)
 
 #define PEN_DATA_LEN 14
 #if CHECK_PEN_DATA_CHECKSUM
-static int32_t nvt_ts_pen_data_checksum(u8 *buf, u8 length)
+static int nvt_ts_pen_data_checksum(u8 *buf, u8 length)
 {
 	u8 checksum = 0;
-	int32_t i = 0;
+	int i = 0;
 
 	// Calculate checksum
 	for (i = 0; i < length - 1; i++) {
@@ -743,7 +743,7 @@ return:
 *******************************************************/
 #define NVT_TS_SUSPEND_DEEP_SLEEP_MODE			0x11
 #define NVT_TS_SUSPEND_WAKEUP_GESTURE_MODE		0x13
-static int32_t nvt_ts_suspend(struct device *dev)
+static int nvt_ts_suspend(struct device *dev)
 {
 	struct spi_device *client = to_spi_device(dev);
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
@@ -804,7 +804,7 @@ Description:
 return:
 	Executive outcomes. 0---succeed.
 *******************************************************/
-static int32_t nvt_ts_resume(struct device *dev)
+static int nvt_ts_resume(struct device *dev)
 {
 	struct spi_device *client = to_spi_device(dev);
 	struct nvt_ts_data *ts = spi_get_drvdata(client);

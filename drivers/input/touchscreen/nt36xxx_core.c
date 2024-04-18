@@ -40,8 +40,8 @@ static int spi_read_write(struct spi_device *client,
 int CTP_SPI_READ(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
-	int32_t ret = -1;
-	int32_t retries = 0;
+	int ret = -1;
+	int retries = 0;
 
 	guard(mutex)(&ts->xbuf_lock);
 
@@ -65,11 +65,11 @@ int CTP_SPI_READ(struct spi_device *client, u8 *buf, u16 len)
 EXPORT_SYMBOL_GPL(CTP_SPI_READ);
 
 #define SPI_WRITE_MAX_RETRIES		5
-int32_t CTP_SPI_WRITE(struct spi_device *client, u8 *buf, u16 len)
+int CTP_SPI_WRITE(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
-	int32_t retries = 0;
-	int32_t ret = -1;
+	int retries = 0;
+	int ret = -1;
 
 	guard(mutex)(&ts->xbuf_lock);
 
@@ -90,7 +90,7 @@ Description:
 return:
 	Executive outcomes. 0---succeed. -5---access fail.
 *******************************************************/
-int32_t nvt_set_page(struct nvt_ts_data *ts, int addr)
+int nvt_set_page(struct nvt_ts_data *ts, int addr)
 {
 	u8 buf[4] = {0};
 
@@ -108,9 +108,9 @@ Description:
 return:
 	Executive outcomes. 0---succeed. -5---access fail.
 *******************************************************/
-int32_t nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data)
+int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data)
 {
-	int32_t ret = 0;
+	int ret = 0;
 	u8 buf[4] = {0};
 
 	//---set xdata index---
@@ -334,7 +334,7 @@ return:
 	Executive outcomes. 0---succeed. -1---fail.
 *******************************************************/
 #define CLEAR_FW_STATUS_MAX_RETRIES	20
-int32_t nvt_clear_fw_status(struct nvt_ts_data *ts)
+int nvt_clear_fw_status(struct nvt_ts_data *ts)
 {
 	u8 buf[8] = { 0 };
 	int i;
@@ -370,7 +370,7 @@ return:
 	Executive outcomes. 0---succeed. -1---failed.
 *******************************************************/
 #define CHECK_FW_STATUS_MAX_RETRIES	20
-int32_t nvt_check_fw_status(struct nvt_ts_data *ts)
+int nvt_check_fw_status(struct nvt_ts_data *ts)
 {
 	u8 buf[8] = { 0 };
 	int i = 0;
@@ -400,12 +400,12 @@ Description:
 return:
 	Executive outcomes. 0---succeed. -1---failed.
 *******************************************************/
-int32_t nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_reset_state)
+int nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_reset_state)
 {
 	u8 buf[8] = { 0 };
-	int32_t ret = 0;
-	int32_t retry = 0;
-	int32_t retry_max = (check_reset_state == RESET_STATE_INIT) ? 10 : 50;
+	int ret = 0;
+	int retry = 0;
+	int retry_max = (check_reset_state == RESET_STATE_INIT) ? 10 : 50;
 
 	//---set xdata index to EVENT BUF ADDR---
 	nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_RESET_COMPLETE);
@@ -443,10 +443,10 @@ Description:
 return:
 	Executive outcomes. 0---success. -1---fail.
 *******************************************************/
-static int32_t nvt_read_pid(struct nvt_ts_data *ts)
+static int nvt_read_pid(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
-	int32_t ret = 0;
+	int ret = 0;
 
 	//---set xdata index to EVENT BUF ADDR---
 	nvt_set_page(ts, ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_PROJECTID);
@@ -480,7 +480,7 @@ int nvt_get_fw_info(struct nvt_ts_data *ts)
 	char fw_version[64] = { 0 };
 	u8 buf[64] = {0};
 	int retry_count = 0;
-	int32_t ret = 0;
+	int ret = 0;
 
 info_retry:
 	//---set xdata index to EVENT BUF ADDR---

@@ -77,7 +77,7 @@ struct nvt_ts_data {
 	struct spi_device *client;
 	struct input_dev *input_dev;
 	u16 addr;
-	int8_t phys[32];
+	s8 phys[32];
 	u8 fw_ver;
 	bool suspended;
 	u8 x_num;
@@ -102,7 +102,7 @@ struct nvt_ts_data {
 	u8 x_gang_num;
 	u8 y_gang_num;
 	struct input_dev *pen_input_dev;
-	int8_t pen_phys[32];
+	s8 pen_phys[32];
 	bool gesture_support;
 	struct touchscreen_properties prop;
 	struct touchscreen_properties pen_prop;
