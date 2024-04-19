@@ -116,6 +116,7 @@ static int nvt_parse_dt(struct nvt_ts_data *ts)
 
 	ret = of_property_read_u32(np, "novatek,spi-rd-fast-addr", &ts->spi_rd_fast_addr);
 	if (ret) {
+		/* This one's optional */
 		ts->spi_rd_fast_addr = 0;
 		return 0;
 	}
@@ -128,7 +129,7 @@ static bool nvt_fw_recovery(u8 *point_data)
 	int i;
 
 	/* Look for 0x777777777777 */
-	for (i = 1; i < 7; i++)
+	for (i = 0; i < 6; i++)
 		if (point_data[i] != 0x77)
 			return false;
 
@@ -136,28 +137,23 @@ static bool nvt_fw_recovery(u8 *point_data)
 }
 
 #define RECOVERY_COUNT_MAX		10
-static u8 nvt_wdt_fw_recovery(u8 *point_data)
+static bool nvt_wdt_fw_recovery(u8 *point_data)
 {
-	bool recovery_enable = false;
-	static u8 recovery_cnt = 0;
+	static u8 recovery_count = 0;
 	int i;
 
-	recovery_cnt++;
+	recovery_count++;
 
-	/* check pattern */
-	for (i = 1; i < 7; i++) {
-		if ((point_data[i] != 0xFD) && (point_data[i] != 0xFE)) {
-			recovery_cnt = 0;
-			break;
+	/* Look for a watchdog cookie */
+	for (i = 0; i < 6; i++) {
+		if (point_data[i] != 0xFD &&
+		    point_data[i] != 0xFE) {
+			recovery_count = 0;
+			return false;
 		}
 	}
 
-	if (recovery_cnt > RECOVERY_COUNT_MAX){
-		recovery_enable = true;
-		recovery_cnt = 0;
-	}
-
-	return recovery_enable;
+	return recovery_count > RECOVERY_COUNT_MAX;
 }
 
 static int nt36xxx_data_checksum(u8 *buf, u8 length, bool is_pen)
@@ -165,16 +161,13 @@ static int nt36xxx_data_checksum(u8 *buf, u8 length, bool is_pen)
 	u8 checksum = 0;
 	int i;
 
-	// Generate checksum
 	for (i = 0; i < length - 1; i++)
 		checksum += buf[i];
 
 	checksum = ~checksum + 1;
 
-	if (checksum != buf[length - 1]) {
-		pr_err("Wrong checksum for %s data\n", is_pen ? "pen" : "touch");
+	if (checksum != buf[length - 1])
 		return -EINVAL;
-	}
 
 	return 0;
 }
@@ -219,14 +212,14 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	}
 
 	/* ESD protect by WDT */
-	if (nvt_wdt_fw_recovery(point_data)) {
+	if (nvt_wdt_fw_recovery(&point_data[1])) {
 		NVT_ERR("Recover for fw reset, %02X\n", point_data[1]);
 		nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME);
 		return IRQ_HANDLED;
 	}
 
 	/* ESD protect by FW handshake */
-	if (nvt_fw_recovery(point_data))
+	if (nvt_fw_recovery(&point_data[1]))
 		return IRQ_HANDLED;
 
 	if (nt36xxx_data_checksum(&point_data[1], POINT_DATA_CHECKSUM_LEN, false))
@@ -426,8 +419,8 @@ static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_X, 0, ts->abs_x_max, 0, 0);
 	input_set_abs_params(ts->input_dev, ABS_MT_POSITION_Y, 0, ts->abs_y_max, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0); //area = 255
-	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0); //pressure = TOUCH_FORCE_NUM
+	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0);
 
 	ret = input_mt_init_slots(ts->input_dev, ts->max_finger_num, INPUT_MT_DIRECT);
 	if (ret)
