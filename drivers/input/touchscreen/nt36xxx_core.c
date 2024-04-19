@@ -253,37 +253,26 @@ int nvt_check_fw_status(struct nvt_ts_data *ts)
 	return -EIO;
 }
 
-int nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_reset_state)
+int nvt_check_fw_reset_state(struct nvt_ts_data *ts, u8 desired_state)
 {
+	int retries = desired_state == RESET_STATE_INIT ? 10 : 50;
 	u8 buf[8] = { 0 };
-	int ret = 0;
-	int retry = 0;
-	int retry_max = (check_reset_state == RESET_STATE_INIT) ? 10 : 50;
 
 	nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_RESET_COMPLETE);
 
-	while (1) {
+	for (; retries > 0; retries--) {
 		/* Read the reset state */
 		buf[0] = EVENT_MAP_RESET_COMPLETE;
 		buf[1] = 0x00;
 		CTP_SPI_READ(ts->client, buf, 6);
 
-		if ((buf[1] >= check_reset_state) && (buf[1] <= RESET_STATE_MAX)) {
-			ret = 0;
-			break;
-		}
-
-		retry++;
-		if(unlikely(retry > retry_max)) {
-			NVT_ERR("error, retry=%d, buf[1]=0x%02X, 0x%02X, 0x%02X, 0x%02X, 0x%02X\n",
-				retry, buf[1], buf[2], buf[3], buf[4], buf[5]);
-			return -1;
-		}
+		if (buf[1] >= desired_state && buf[1] <= RESET_STATE_MAX)
+			return 0;
 
 		usleep_range(10000, 10000);
 	}
 
-	return ret;
+	return -ETIMEDOUT;
 }
 
 // "read project ID" for fw binary matching?

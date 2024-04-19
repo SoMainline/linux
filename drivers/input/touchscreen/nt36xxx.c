@@ -20,24 +20,6 @@
 // TODO: BOOT_UPDATE_FIRMWARE should prob be a module parameter
 // obv true for flashless chips, default to false for flash-equipped ones
 
-enum nt36xxx_gestures {
-	GESTURE_FIRST = 12,
-	GESTURE_WORD_C = GESTURE_FIRST,
-	GESTURE_WORD_W = 13,
-	GESTURE_WORD_V = 14,
-	GESTURE_DOUBLE_CLICK = 15,
-	GESTURE_WORD_Z = 16,
-	GESTURE_WORD_M = 17,
-	GESTURE_WORD_O = 18,
-	GESTURE_WORD_e = 19,
-	GESTURE_WORD_S = 20,
-	GESTURE_SLIDE_UP = 21,
-	GESTURE_SLIDE_DOWN = 22,
-	GESTURE_SLIDE_LEFT = 23,
-	GESTURE_SLIDE_RIGHT = 24,
-	GESTURE_MAX
-};
-
 static const u16 gesture_default_keycodes[] = {
 	[GESTURE_WORD_C]	= KEY_POWER,
 	[GESTURE_WORD_W]	= KEY_POWER,
@@ -126,7 +108,6 @@ static int nvt_parse_dt(struct nvt_ts_data *ts)
 		return dev_err_probe(dev, PTR_ERR(ts->reset_gpio), "Couldn't get reset gpio\n");
 
 	ts->pen_support = of_property_read_bool(np, "novatek,pen-support");
-
 	ts->wgp_stylus = of_property_read_bool(np, "novatek,wgp-stylus");
 
 	ret = of_property_read_u32(np, "novatek,swrst-n8-addr", &ts->swrst_n8_addr);
@@ -135,11 +116,8 @@ static int nvt_parse_dt(struct nvt_ts_data *ts)
 
 	ret = of_property_read_u32(np, "novatek,spi-rd-fast-addr", &ts->spi_rd_fast_addr);
 	if (ret) {
-		NVT_LOG("not support novatek,spi-rd-fast-addr\n");
 		ts->spi_rd_fast_addr = 0;
-		ret = 0;
-	} else {
-		NVT_LOG("spi_rd_fast_addr=0x%06X\n", ts->spi_rd_fast_addr);
+		return 0;
 	}
 
 	return ret;
@@ -222,7 +200,10 @@ static int nvt_ts_point_data_checksum(u8 *buf, u8 length)
 
 	checksum = (~checksum + 1);
 
-	return checksum != buf[length] ? -EINVAL : 0;
+	if (checksum != buf[length])
+		return -EINVAL;
+
+	return 0;
 }
 
 #define PEN_FORMAT_ID_PRESENT		0x01
@@ -667,13 +648,6 @@ err_create_nvt_fwu_wq_failed:
 	return ret;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen driver release function.
-
-return:
-	Executive outcomes. 0---succeed.
-*******************************************************/
 static void nvt_ts_remove(struct spi_device *client)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
@@ -790,21 +764,17 @@ static int nvt_ts_resume(struct device *dev)
 
 	NVT_LOG("start\n");
 
-	// please make sure display reset(RESX) sequence and mipi dsi cmds sent before this
 	gpiod_set_value_cansleep(ts->reset_gpio, 0);
 
-	if (nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME)) {
+	if (nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME))
 		NVT_ERR("download firmware failed, ignore check fw state\n");
-	} else {
+	else
 		nvt_check_fw_reset_state(ts, RESET_STATE_REK);
-	}
 
 	if (!ts->gesture_support)
 		nvt_irq_enable(ts, true);
 
 	ts->suspended = false;
-
-	NVT_LOG("end\n");
 
 	return 0;
 }

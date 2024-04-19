@@ -11,17 +11,14 @@
 #include <linux/spi/spi.h>
 #include <linux/input/touchscreen.h>
 
-//---SPI driver info.---
 #define NVT_LOG(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
 #define NVT_ERR(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
 
-//---Touch info.---
 #define TOUCH_DEFAULT_MAX_WIDTH		1200
 #define TOUCH_DEFAULT_MAX_HEIGHT	2000
 #define TOUCH_FORCE_NUM			1000
 #define TOUCH_MAX_FINGER_NUM		10
 
-//---Customerized func.---
 #define BOOT_UPDATE_FIRMWARE 1
 #define BOOT_UPDATE_FIRMWARE_NAME "novatek_ts_fw.bin"
 #define MP_UPDATE_FIRMWARE_NAME   "novatek_ts_mp.bin"
@@ -32,7 +29,6 @@
 struct nvt_ts_data {
 	struct spi_device *client;
 	struct input_dev *input_dev;
-	u16 addr;
 	s8 phys[32];
 	u8 fw_ver;
 	bool suspended;
@@ -67,29 +63,25 @@ struct nvt_ts_data {
 	struct delayed_work nvt_fwu_work;
 };
 
-typedef enum {
-	RESET_STATE_INIT = 0xA0,// IC reset
-	RESET_STATE_REK,		// ReK baseline
-	RESET_STATE_REK_FINISH,	// baseline is ready
-	RESET_STATE_NORMAL_RUN,	// normal run
-	RESET_STATE_MAX  = 0xAF
-} RST_COMPLETE_STATE;
+/* Right out of IC reset */
+#define RESET_STATE_INIT	0xA0
+/* Firmware loaded */
+#define RESET_STATE_REK		0xA1
+#define RESET_STATE_MAX		0xAF
 
-typedef enum {
-	EVENT_MAP_HOST_CMD			= 0x50,
-	EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE	= 0x51,
-	EVENT_MAP_RESET_COMPLETE		= 0x60,
-	EVENT_MAP_FWINFO			= 0x78,
-	EVENT_MAP_PROJECTID			= 0x9A,
-} SPI_EVENT_MAP;
+#define EVENT_MAP_HOST_CMD			0x50
+#define EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE	0x51
+#define EVENT_MAP_RESET_COMPLETE		0x60
+#define EVENT_MAP_FWINFO			0x78
+#define EVENT_MAP_PROJECTID			0x9A
 
 #define DUMMY_BYTES		1
 #define NVT_TRANSFER_LEN	(63 * SZ_1K)
 #define NVT_READ_LEN		SZ_2K
 
-#define NVT_ID_BYTE_MAX			6
+#define NVT_ID_BYTE_MAX		6
 /* 0xff seems to be unused as far as actual matching goes, use it as an "ignore" */
-#define ID_MATCH_ANY			0xFF
+#define ID_MATCH_ANY		0xFF
 struct nt36xxx_hw_id {
 	const u8 bytes[NVT_ID_BYTE_MAX];
 };
@@ -121,6 +113,24 @@ struct nt36xxx_match_data {
 	u8 hw_crc;
 };
 
+enum nt36xxx_gestures {
+	GESTURE_FIRST = 12,
+	GESTURE_WORD_C = GESTURE_FIRST,
+	GESTURE_WORD_W = 13,
+	GESTURE_WORD_V = 14,
+	GESTURE_DOUBLE_CLICK = 15,
+	GESTURE_WORD_Z = 16,
+	GESTURE_WORD_M = 17,
+	GESTURE_WORD_O = 18,
+	GESTURE_WORD_e = 19,
+	GESTURE_WORD_S = 20,
+	GESTURE_SLIDE_UP = 21,
+	GESTURE_SLIDE_DOWN = 22,
+	GESTURE_SLIDE_LEFT = 23,
+	GESTURE_SLIDE_RIGHT = 24,
+	GESTURE_MAX
+};
+
 //---extern functions---
 extern int CTP_SPI_READ(struct spi_device *client, u8 *buf, u16 len);
 extern int CTP_SPI_WRITE(struct spi_device *client, u8 *buf, u16 len);
@@ -131,7 +141,7 @@ void nt36xxx_set_boot_ready(struct nvt_ts_data *ts);
 void nt36xxx_enable_bl_crc(struct nvt_ts_data *ts);
 void nt36xxx_enable_fw_crc(struct nvt_ts_data *ts);
 int nvt_update_firmware(struct nvt_ts_data *ts, char *firmware_name);
-int nvt_check_fw_reset_state(struct nvt_ts_data *ts, RST_COMPLETE_STATE check_reset_state);
+int nvt_check_fw_reset_state(struct nvt_ts_data *ts, u8 desired_state);
 int nvt_get_fw_info(struct nvt_ts_data *ts);
 int nvt_clear_fw_status(struct nvt_ts_data *ts);
 int nvt_check_fw_status(struct nvt_ts_data *ts);
