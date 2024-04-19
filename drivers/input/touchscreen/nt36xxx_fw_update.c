@@ -398,7 +398,7 @@ static int nvt_write_sram(struct nvt_ts_data *ts,
 		//---write data into SRAM---
 		fwbuf[0] = SRAM_addr & 0x7F;	//offset
 		memcpy(fwbuf+1, &fwdata[BIN_addr], len);	//payload
-		ret = CTP_SPI_WRITE(ts->client, fwbuf, len + 1);
+		ret = nt36xxx_spi_write(ts->client, fwbuf, len + 1);
 		if (ret) {
 			NVT_ERR("write to sram failed, ret = %d\n", ret);
 			return ret;
@@ -482,7 +482,7 @@ static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 
 	/* read checksum */
 	fwbuf[0] = (ts->mmap->r_ilm_checksum_addr) & 0x7F;
-	ret = CTP_SPI_READ(ts->client, fwbuf, len+1);
+	ret = nt36xxx_spi_read(ts->client, fwbuf, len+1);
 	if (ret) {
 		NVT_ERR("Read fw checksum failed\n");
 		return ret;
@@ -524,20 +524,20 @@ static void nt36xxx_set_bl_crc_bank(struct nvt_ts_data *ts, u8 bank_idx)
 	fwbuf[1] = (sram_addr) & GENMASK(7, 0);
 	fwbuf[2] = (sram_addr >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (sram_addr >> 16) & GENMASK(7, 0);
-	CTP_SPI_WRITE(ts->client, fwbuf, 4);
+	nt36xxx_spi_write(ts->client, fwbuf, 4);
 
 	fwbuf[0] = LENGTH_ADDR & GENMASK(6, 0);
 	fwbuf[1] = (size) & GENMASK(7, 0);
 	fwbuf[2] = (size >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (size >> 16) & 0x01;
-	CTP_SPI_WRITE(ts->client, fwbuf, ts->hw_crc > 1 ? 4 : 3);
+	nt36xxx_spi_write(ts->client, fwbuf, ts->hw_crc > 1 ? 4 : 3);
 
 	fwbuf[0] = G_CHECKSUM_ADDR & GENMASK(6, 0);
 	fwbuf[1] = (crc) & GENMASK(7, 0);
 	fwbuf[2] = (crc >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (crc >> 16) & GENMASK(7, 0);
 	fwbuf[4] = (crc >> 24) & GENMASK(7, 0);
-	CTP_SPI_WRITE(ts->client, fwbuf, 5);
+	nt36xxx_spi_write(ts->client, fwbuf, 5);
 }
 
 static int nvt_download_firmware_hw_crc(struct nvt_ts_data *ts)

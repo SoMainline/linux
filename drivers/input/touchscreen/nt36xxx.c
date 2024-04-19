@@ -203,11 +203,11 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	guard(mutex)(&ts->lock);
 
 	if (ts->pen_support)
-		ret = CTP_SPI_READ(ts->client, point_data, POINT_DATA_LEN + PEN_DATA_LEN + 1);
+		ret = nt36xxx_spi_read(ts->client, point_data, POINT_DATA_LEN + PEN_DATA_LEN + 1);
 	else
-		ret = CTP_SPI_READ(ts->client, point_data, POINT_DATA_LEN + 1);
+		ret = nt36xxx_spi_read(ts->client, point_data, POINT_DATA_LEN + 1);
 	if (ret < 0) {
-		NVT_ERR("CTP_SPI_READ failed.(%d)\n", ret);
+		NVT_ERR("nt36xxx_spi_read failed.(%d)\n", ret);
 		return IRQ_HANDLED;
 	}
 
@@ -369,7 +369,7 @@ static int nt36xxx_check_hw_id(struct nvt_ts_data *ts, bool legacy_addr)
 		buf[4] = 0x00;
 		buf[5] = 0x00;
 		buf[6] = 0x00;
-		CTP_SPI_READ(ts->client, buf, 7);
+		nt36xxx_spi_read(ts->client, buf, 7);
 
 		/* Go over all expected IDs */
 		for (index = 0; index < data->num_ids; index++) {
@@ -681,12 +681,12 @@ static int nvt_ts_suspend(struct device *dev)
 	buf[0] = EVENT_MAP_HOST_CMD;
 	if (ts->gesture_support) {
 		buf[1] = NVT_TS_SUSPEND_WAKEUP_GESTURE_MODE;
-		CTP_SPI_WRITE(ts->client, buf, 2);
+		nt36xxx_spi_write(ts->client, buf, 2);
 		enable_irq_wake(ts->client->irq);
 		NVT_LOG("Enabled touch wakeup gesture\n");
 	} else {
 		buf[1] = NVT_TS_SUSPEND_DEEP_SLEEP_MODE;
-		CTP_SPI_WRITE(ts->client, buf, 2);
+		nt36xxx_spi_write(ts->client, buf, 2);
 		NVT_LOG("deep sleep mode\n");
 	} 
 

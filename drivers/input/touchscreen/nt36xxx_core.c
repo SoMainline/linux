@@ -46,7 +46,7 @@ static int spi_read_write(struct spi_device *client,
 	return ret;
 }
 
-int CTP_SPI_READ(struct spi_device *client, u8 *buf, u16 len)
+int nt36xxx_spi_read(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
 	int ret;
@@ -59,9 +59,9 @@ int CTP_SPI_READ(struct spi_device *client, u8 *buf, u16 len)
 
 	return ret;
 }
-EXPORT_SYMBOL_GPL(CTP_SPI_READ);
+EXPORT_SYMBOL_GPL(nt36xxx_spi_read);
 
-int CTP_SPI_WRITE(struct spi_device *client, u8 *buf, u16 len)
+int nt36xxx_spi_write(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
 
@@ -79,7 +79,7 @@ int nvt_set_addr(struct nvt_ts_data *ts, int addr)
 	buf[1] = (addr >> 15) & GENMASK(7, 0);
 	buf[2] = (addr >> 7) & GENMASK(7, 0);
 
-	return CTP_SPI_WRITE(ts->client, buf, 3);
+	return nt36xxx_spi_write(ts->client, buf, 3);
 }
 
 int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data)
@@ -95,7 +95,7 @@ int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data)
 
 	buf[0] = addr & GENMASK(6, 0);
 	buf[1] = data;
-	ret = CTP_SPI_WRITE(ts->client, buf, 2);
+	ret = nt36xxx_spi_write(ts->client, buf, 2);
 	if (ret)
 		dev_err(&ts->client->dev, "Couldn't write 0x%x to 0x%x\n", data, addr);
 
@@ -111,12 +111,12 @@ void nt36xxx_enable_bl_crc(struct nvt_ts_data *ts)
 	/* Read back the current value */
 	buf[0] = ts->mmap->bld_crc_en_addr & GENMASK(6, 0);
 	buf[1] = 0xFF;
-	CTP_SPI_READ(ts->client, buf, 2);
+	nt36xxx_spi_read(ts->client, buf, 2);
 
 	/* Set bit 7 */
 	buf[0] = ts->mmap->bld_crc_en_addr & GENMASK(6, 0);
 	buf[1] = buf[1] | BIT(7);
-	CTP_SPI_WRITE(ts->client, buf, 2);
+	nt36xxx_spi_write(ts->client, buf, 2);
 }
 
 #define NT36XXX_EVENT_MAP_HOST_CMD_EN_FW_CRC		0xAE
@@ -129,12 +129,12 @@ void nt36xxx_enable_fw_crc(struct nvt_ts_data *ts)
 	//---clear fw reset status---
 	buf[0] = EVENT_MAP_RESET_COMPLETE & GENMASK(6, 0);
 	buf[1] = 0x00;
-	CTP_SPI_WRITE(ts->client, buf, 2);
+	nt36xxx_spi_write(ts->client, buf, 2);
 
 	//---enable fw crc---
 	buf[0] = EVENT_MAP_HOST_CMD & GENMASK(6, 0);
 	buf[1] = NT36XXX_EVENT_MAP_HOST_CMD_EN_FW_CRC;
-	CTP_SPI_WRITE(ts->client, buf, 2);
+	nt36xxx_spi_write(ts->client, buf, 2);
 }
 
 /* Set "boot ready" flag after flashing the firmware */
@@ -161,7 +161,7 @@ int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts)
 
 		buf[0] = ts->mmap->spi_dma_tx_info & GENMASK(6, 0);
 		buf[1] = 0xFF;
-		CTP_SPI_READ(ts->client, buf, 2);
+		nt36xxx_spi_read(ts->client, buf, 2);
 
 		/* "Things are as expected", not very well documented */
 		if (!buf[1])
@@ -213,12 +213,12 @@ int nvt_clear_fw_status(struct nvt_ts_data *ts)
 		/* Clear firmware status */
 		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
 		buf[1] = 0x00;
-		CTP_SPI_WRITE(ts->client, buf, 2);
+		nt36xxx_spi_write(ts->client, buf, 2);
 
 		/* Read it back */
 		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
 		buf[1] = 0xFF;
-		CTP_SPI_READ(ts->client, buf, 2);
+		nt36xxx_spi_read(ts->client, buf, 2);
 
 		/* Keep retrying until the write has been committed */
 		if (!buf[1])
@@ -242,7 +242,7 @@ int nvt_check_fw_status(struct nvt_ts_data *ts)
 		/* Read the firwmare status */
 		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
 		buf[1] = 0x00;
-		CTP_SPI_READ(ts->client, buf, 2);
+		nt36xxx_spi_read(ts->client, buf, 2);
 
 		if ((buf[1] & 0xF0) == 0xA0)
 			return 0;
@@ -264,7 +264,7 @@ int nvt_check_fw_reset_state(struct nvt_ts_data *ts, u8 desired_state)
 		/* Read the reset state */
 		buf[0] = EVENT_MAP_RESET_COMPLETE;
 		buf[1] = 0x00;
-		CTP_SPI_READ(ts->client, buf, 6);
+		nt36xxx_spi_read(ts->client, buf, 6);
 
 		if (buf[1] >= desired_state && buf[1] <= RESET_STATE_MAX)
 			return 0;
@@ -288,7 +288,7 @@ static int nvt_read_pid(struct nvt_ts_data *ts)
 	buf[0] = EVENT_MAP_PROJECTID;
 	buf[1] = 0x00;
 	buf[2] = 0x00;
-	CTP_SPI_READ(ts->client, buf, 3);
+	nt36xxx_spi_read(ts->client, buf, 3);
 
 	ts->nvt_pid = (buf[2] << 8) + buf[1];
 
@@ -312,7 +312,7 @@ int nvt_get_fw_info(struct nvt_ts_data *ts)
 
 	for (retries = 3; retries > 0; retries--) {
 		buf[0] = EVENT_MAP_FWINFO;
-		CTP_SPI_READ(ts->client, buf, 39);
+		nt36xxx_spi_read(ts->client, buf, 39);
 
 		/* buf[2] should hold a NOT-ed buf[1], otherwise assume a broken state */
 		if (~buf[1] == buf[2])

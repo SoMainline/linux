@@ -132,8 +132,8 @@ enum nt36xxx_gestures {
 };
 
 //---extern functions---
-extern int CTP_SPI_READ(struct spi_device *client, u8 *buf, u16 len);
-extern int CTP_SPI_WRITE(struct spi_device *client, u8 *buf, u16 len);
+extern int nt36xxx_spi_read(struct spi_device *client, u8 *buf, u16 len);
+extern int nt36xxx_spi_write(struct spi_device *client, u8 *buf, u16 len);
 void nvt_bootloader_reset(struct nvt_ts_data *ts);
 void nvt_eng_reset(struct nvt_ts_data *ts);
 void nvt_sw_reset(struct nvt_ts_data *ts);
