@@ -24,7 +24,7 @@
 #define MP_UPDATE_FIRMWARE_NAME   "novatek_ts_mp.bin"
 #define POINT_DATA_CHECKSUM 1
 #define POINT_DATA_CHECKSUM_LEN 65
-#define CHECK_PEN_DATA_CHECKSUM 0
+#define CHECK_PEN_DATA_CHECKSUM 1
 
 struct nvt_ts_data {
 	struct spi_device *client;

@@ -160,48 +160,21 @@ static u8 nvt_wdt_fw_recovery(u8 *point_data)
 	return recovery_enable;
 }
 
-#if CHECK_PEN_DATA_CHECKSUM
-static int nvt_ts_pen_data_checksum(u8 *buf, u8 length)
-{
-	u8 checksum = 0;
-	int i = 0;
-
-	// Calculate checksum
-	for (i = 0; i < length - 1; i++) {
-		checksum += buf[i];
-	}
-	checksum = (~checksum + 1);
-
-	// Compare ckecksum and dump fail data
-	if (checksum != buf[length - 1]) {
-		NVT_ERR("pen packet checksum not match. (buf[%d]=0x%02X, checksum=0x%02X)\n",
-			length - 1, buf[length - 1], checksum);
-		//--- dump pen buf ---
-		for (i = 0; i < length; i++) {
-			printk("%02X ", buf[i]);
-		}
-		printk("\n");
-
-		return -1;
-	}
-
-	return 0;
-}
-#endif
-
-static int nvt_ts_point_data_checksum(u8 *buf, u8 length)
+static int nt36xxx_data_checksum(u8 *buf, u8 length, bool is_pen)
 {
 	u8 checksum = 0;
 	int i;
 
 	// Generate checksum
 	for (i = 0; i < length - 1; i++)
-		checksum += buf[i + 1];
+		checksum += buf[i];
 
-	checksum = (~checksum + 1);
+	checksum = ~checksum + 1;
 
-	if (checksum != buf[length])
+	if (checksum != buf[length - 1]) {
+		pr_err("Wrong checksum for %s data\n", is_pen ? "pen" : "touch");
 		return -EINVAL;
+	}
 
 	return 0;
 }
@@ -256,14 +229,11 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	if (nvt_fw_recovery(point_data))
 		return IRQ_HANDLED;
 
-	if (POINT_DATA_LEN >= POINT_DATA_CHECKSUM_LEN) {
-		ret = nvt_ts_point_data_checksum(point_data, POINT_DATA_CHECKSUM_LEN);
-		if (ret)
-			return IRQ_HANDLED;
-	}
+	if (nt36xxx_data_checksum(&point_data[1], POINT_DATA_CHECKSUM_LEN, false))
+		return IRQ_HANDLED;
 
 	if (ts->gesture_support && ts->suspended) {
-		input_id = (u8)(point_data[1] >> 3);
+		input_id = point_data[1] >> 3;
 
 		nvt_ts_wakeup_gesture_report(ts, input_id, point_data);
 		return IRQ_HANDLED;
@@ -271,20 +241,22 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 
 	for (i = 0; i < ts->max_finger_num; i++) {
 		index = 1 + 6 * i;
-		input_id = (u8)(point_data[index + 0] >> 3);
-		if ((!input_id) || (input_id > ts->max_finger_num))
+		input_id = point_data[index + 0] >> 3;
+		if (!input_id || input_id > ts->max_finger_num)
 			continue;
 
-		if (((point_data[index] & 0x07) == 0x01) || ((point_data[index] & 0x07) == 0x02)) {	//finger down (enter & moving)
-			touch_x = (u32)(point_data[index + 1] << 4) + (u32) (point_data[index + 3] >> 4);
+		//finger down (enter & moving)
+		if ((point_data[index] & GENMASK(2, 0)) == BIT(0) ||
+		    (point_data[index] & GENMASK(2, 0)) == BIT(1)) {
+			touch_x = (u32)(point_data[index + 1] << 4) + (u32)FIELD_GET(GENMASK(7, 4), point_data[index + 3]);
 			if (touch_x > ts->abs_x_max)
 				continue;
 
-			touch_y = (u32)(point_data[index + 2] << 4) + (u32) (point_data[index + 3] & 0x0F);
+			touch_y = (u32)(point_data[index + 2] << 4) + (u32)FIELD_GET(GENMASK(3, 0), point_data[index + 3]);
 			if (touch_y > ts->abs_y_max)
 				continue;
 
-			touch_major = (u32)(point_data[index + 4]);
+			touch_major = point_data[index + 4];
 
 			if (i < 2) {
 				max_touch_pressure = (u32)(point_data[index + 5]) + (u32)(point_data[i + 63] << 8);
@@ -321,12 +293,8 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	if (!ts->pen_support)
 		return IRQ_HANDLED;
 
-#if CHECK_PEN_DATA_CHECKSUM
-	if (nvt_ts_pen_data_checksum(&point_data[66], PEN_DATA_LEN)) {
-		// pen data packet checksum not match, skip it
-		goto XFER_ERROR;
-	}
-#endif
+	if (nt36xxx_data_checksum(&point_data[66], PEN_DATA_LEN, true))
+		return IRQ_HANDLED;
 
 	/* Parse and handle pen report data */
 	pen_format_id = point_data[66];
@@ -354,7 +322,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			pen_button1 = point_data[77] & BIT(0);
 			pen_button2 = point_data[77] & BIT(1);
 
-			// TODO: returns 0x10 when the pen works ok, maybe check for "low bat" warnings?
+			// TODO: returns BIT(4) when the pen works ok, maybe check for "low bat" warnings?
 			pen_battery = (u32)point_data[78];
 
 			// HACK invert xy
