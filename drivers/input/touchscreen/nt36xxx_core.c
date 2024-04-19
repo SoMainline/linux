@@ -60,12 +60,12 @@ int nt36xxx_spi_write(struct spi_device *client, u8 *buf, u16 len)
 	return spi_sync(client, &m);
 }
 
-#define nvt_set_page_CMD		0xFF
+#define NVT_SET_PAGE_CMD		0xFF
 int nvt_set_page(struct nvt_ts_data *ts, int addr)
 {
 	u8 buf[4] = { 0 };
 
-	buf[0] = nvt_set_page_CMD;
+	buf[0] = NVT_SET_PAGE_CMD;
 	buf[1] = (addr >> 15) & GENMASK(7, 0);
 	buf[2] = (addr >> 7) & GENMASK(7, 0);
 

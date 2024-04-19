@@ -124,7 +124,7 @@ static int nvt_parse_dt(struct nvt_ts_data *ts)
 	return ret;
 }
 
-static bool nvt_fw_recovery(u8 *point_data)
+static bool nt36xxx_esd_prot_violated(u8 *point_data)
 {
 	int i;
 
@@ -136,24 +136,24 @@ static bool nvt_fw_recovery(u8 *point_data)
 	return true;
 }
 
-#define RECOVERY_COUNT_MAX		10
-static bool nvt_wdt_fw_recovery(u8 *point_data)
+static bool nt36xxx_wdog_broken_fw(u8 *point_data)
 {
-	static u8 recovery_count = 0;
+	static u8 bark_count = 0;
 	int i;
 
-	recovery_count++;
+	bark_count++;
 
-	/* Look for a watchdog cookie */
+	/* Look for a watchdog cookie (sequence of 6 0xFD/0xFE). If not found, reset the counter */
 	for (i = 0; i < 6; i++) {
 		if (point_data[i] != 0xFD &&
 		    point_data[i] != 0xFE) {
-			recovery_count = 0;
+			bark_count = 0;
 			return false;
 		}
 	}
 
-	return recovery_count > RECOVERY_COUNT_MAX;
+	/* Enough barking, time to bite */
+	return bark_count > 10;
 }
 
 static int nt36xxx_data_checksum(u8 *buf, u8 length, bool is_pen)
@@ -186,6 +186,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	bool any_finger_present = false;
 	u32 pen_pressure, pen_distance;
 	struct nvt_ts_data *ts = data;
+	struct device *dev = &ts->client->dev;
 	u32 pen_button1, pen_button2;
 	s8 pen_tilt_x, pen_tilt_y;
 	u32 max_touch_pressure;
@@ -211,15 +212,14 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		return IRQ_HANDLED;
 	}
 
-	/* ESD protect by WDT */
-	if (nvt_wdt_fw_recovery(&point_data[1])) {
-		NVT_ERR("Recover for fw reset, %02X\n", point_data[1]);
+	if (nt36xxx_wdog_broken_fw(&point_data[1])) {
+		dev_err(dev, "Watchdog bite! Firmware reflash required.\n");
 		nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME);
 		return IRQ_HANDLED;
 	}
 
-	/* ESD protect by FW handshake */
-	if (nvt_fw_recovery(&point_data[1]))
+	/* ESD protection through a firmware handshake */
+	if (nt36xxx_esd_prot_violated(&point_data[1]))
 		return IRQ_HANDLED;
 
 	if (nt36xxx_data_checksum(&point_data[1], POINT_DATA_CHECKSUM_LEN, false))
@@ -316,7 +316,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			pen_button2 = point_data[77] & BIT(1);
 
 			// TODO: returns BIT(4) when the pen works ok, maybe check for "low bat" warnings?
-			pen_battery = (u32)point_data[78];
+			pen_battery = point_data[78];
 
 			// HACK invert xy
 			input_report_abs(ts->pen_input_dev, ABS_X, ts->abs_x_max * 2 - pen_x);
@@ -327,7 +327,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			input_report_abs(ts->pen_input_dev, ABS_TILT_X, pen_tilt_x);
 			input_report_abs(ts->pen_input_dev, ABS_TILT_Y, pen_tilt_y);
 			input_report_abs(ts->pen_input_dev, ABS_DISTANCE, pen_distance);
-			input_report_key(ts->pen_input_dev, BTN_TOOL_PEN, !!pen_distance || !!pen_pressure);
+			input_report_key(ts->pen_input_dev, BTN_TOOL_PEN, pen_distance || pen_pressure);
 			input_report_key(ts->pen_input_dev, BTN_STYLUS, pen_button1);
 			input_report_key(ts->pen_input_dev, BTN_STYLUS2, pen_button2);
 		} else if (pen_format_id == PEN_FORMAT_ID_DIDNT_MOVE) {
@@ -588,11 +588,11 @@ static int nvt_ts_probe(struct spi_device *client)
 	ts->nvt_fwu_wq = alloc_workqueue("nvt_fwu_wq", WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
 	if (!ts->nvt_fwu_wq) {
 		NVT_ERR("nvt_fwu_wq create workqueue failed\n");
-		ret = -ENOMEM;
-		goto err_create_nvt_fwu_wq_failed;
+		device_init_wakeup(&ts->input_dev->dev, false);
+		return -ENOMEM;
 	}
+
 	INIT_DELAYED_WORK(&ts->nvt_fwu_work, Boot_Update_Firmware);
-	// please make sure boot update start after display reset(RESX) sequence
 	queue_delayed_work(ts->nvt_fwu_wq, &ts->nvt_fwu_work, msecs_to_jiffies(14000));
 
 	ts->suspended = false;
@@ -600,22 +600,13 @@ static int nvt_ts_probe(struct spi_device *client)
 	nvt_irq_enable(ts, true);
 
 	return 0;
-
-err_create_nvt_fwu_wq_failed:
-#if WAKEUP_GESTURE
-	device_init_wakeup(&ts->input_dev->dev, false);
-#endif
-
-	return ret;
 }
 
 static void nvt_ts_remove(struct spi_device *client)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
 
-#if WAKEUP_GESTURE
 	device_init_wakeup(&ts->input_dev->dev, false);
-#endif
 
 	if (ts->nvt_fwu_wq) {
 		cancel_delayed_work_sync(&ts->nvt_fwu_work);
@@ -650,9 +641,7 @@ static void nvt_ts_shutdown(struct spi_device *client)
 		ts->nvt_fwu_wq = NULL;
 	}
 
-#if WAKEUP_GESTURE
 	device_init_wakeup(&ts->input_dev->dev, false);
-#endif
 }
 
 #define NVT_TS_SUSPEND_DEEP_SLEEP_MODE			0x11

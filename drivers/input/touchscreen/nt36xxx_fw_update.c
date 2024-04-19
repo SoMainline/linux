@@ -15,58 +15,20 @@
 #define FW_BIN_VER_OFFSET		(fw_need_write_size - SZ_4K)
 #define FW_BIN_VER_BAR_OFFSET		(FW_BIN_VER_OFFSET + 1)
 
-#define NVT_FLASH_END_FLAG_ADDR		(fw_need_write_size - NVT_FLASH_END_FLAG_LEN)
-#define NVT_FLASH_END_FLAG_LEN		3
 
 const struct firmware *fw_entry = NULL;
 static size_t fw_need_write_size = 0;
 static u8 *fwbuf = NULL;
 
 struct nvt_ts_bin_map {
-	char name[12];
-	u32 BIN_addr;
-	u32 SRAM_addr;
-	u32 size;
-	u32 crc;
-};
+	__le32 SRAM_addr;
+	__le32 size;
+	__le32 BIN_addr;
+	__le32 crc;
+} __packed;
 
 static struct nvt_ts_bin_map *bin_map;
 
-static int nvt_get_fw_need_write_size(const struct firmware *fw_entry)
-{
-	int total_sectors_to_check = fw_entry->size / FLASH_SECTOR_SIZE;
-	int i;
-
-	for (i = total_sectors_to_check; i > 0; i--) {
-		/* printk("current end flag address checked = 0x%X\n", i * FLASH_SECTOR_SIZE - NVT_FLASH_END_FLAG_LEN); */
-		/* check if there is end flag "NVT" at the end of this sector */
-		if (strncmp(&fw_entry->data[i * FLASH_SECTOR_SIZE - NVT_FLASH_END_FLAG_LEN], "NVT", NVT_FLASH_END_FLAG_LEN) == 0) {
-			fw_need_write_size = i * FLASH_SECTOR_SIZE;
-			NVT_LOG("fw_need_write_size = %zu(0x%zx), NVT end flag\n", fw_need_write_size, fw_need_write_size);
-			return 0;
-		}
-
-		/* check if there is end flag "MOD" at the end of this sector */
-		if (strncmp(&fw_entry->data[i * FLASH_SECTOR_SIZE - NVT_FLASH_END_FLAG_LEN], "MOD", NVT_FLASH_END_FLAG_LEN) == 0) {
-			fw_need_write_size = i * FLASH_SECTOR_SIZE;
-			NVT_LOG("fw_need_write_size = %zu(0x%zx), MOD end flag\n", fw_need_write_size, fw_need_write_size);
-			return 0;
-		}
-	}
-
-	NVT_ERR("end flag \"NVT\" \"MOD\" not found!\n");
-
-	return -1;
-}
-
-/*******************************************************
-Description:
-	Novatek touchscreen init variable and allocate buffer
-for download firmware function.
-
-return:
-	n.a.
-*******************************************************/
 static int nvt_download_init(struct nvt_ts_data *ts)
 {
 	if (fwbuf)
@@ -79,14 +41,6 @@ static int nvt_download_init(struct nvt_ts_data *ts)
 	return 0;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen checksum function. Calculate bin
-file checksum for comparison.
-
-return:
-	n.a.
-*******************************************************/
 static u32 CheckSum(const u8 *data, size_t len)
 {
 	u32 checksum = 0;
@@ -101,243 +55,148 @@ static u32 CheckSum(const u8 *data, size_t len)
 	return checksum;
 }
 
-static u32 byte_to_word(const u8 *data, unsigned int start_idx)
-{
-	return (data[start_idx] << 0) |
-	       (data[start_idx + 1] << 8) |
-	       (data[start_idx + 2] << 16) |
-	       (data[start_idx + 3] << 24);
-}
+enum fw_partition_indices {
+	PART_IDX_ILM,
+	PART_IDX_DLM,
+	PART_IDX_OTHER,
+};
 
-/*******************************************************
-Description:
-	Novatek touchscreen parsing bin header function.
-
-return:
-	n.a.
-*******************************************************/
-static u32 partition = 0;
-static u8 ilm_dlm_num = 2;
+static u32 num_parts = 0;
 static u8 cascade_2nd_header_info = 0;
 static int nvt_bin_header_parser(struct nvt_ts_data *ts, const u8 *fwdata, size_t fwsize)
 {
-	u32 list = 0;
-	u32 pos = 0x00;
-	u32 end = 0x00;
-	u8 info_sec_num = 0;
-	u8 ovly_sec_num = 0;
-	u8 ovly_info = 0;
-	u8 find_bin_header = 0;
+	struct device *dev = &ts->client->dev;
+	bool overlay_present = false;
+	u8 num_overlay_sections = 0;
+	bool bin_hdr_found = false;
+	u8 num_info_sections = 0;
+	u32 header_end;
+	u32 part_idx;
+	u32 pos;
 
 	/* Find the header size */
-	end = byte_to_word(fwdata, 0);
+	header_end = ((__le32 *)fwdata)[0];
 
 	/* check cascade next header */
-	cascade_2nd_header_info = (fwdata[0x20] & 0x02) >> 1;
+	cascade_2nd_header_info = !!(fwdata[0x20] & BIT(1));
 	NVT_LOG("cascade_2nd_header_info = %d\n", cascade_2nd_header_info);
 
+	/* Info section start */
+	pos = 0x30;
 	if (cascade_2nd_header_info) {
-		pos = 0x30;	// info section start at 0x30 offset
-		while (pos < (end / 2)) {
-			info_sec_num ++;
-			pos += 0x10;	/* each header info is 16 bytes */
+		while (pos < (header_end / 2)) {
+			num_info_sections++;
+			pos += 0x10;
 		}
 
-		info_sec_num = info_sec_num + 1; //next header section
+		num_info_sections++;
 	} else {
-		pos = 0x30;	// info section start at 0x30 offset
-		while (pos < end) {
-			info_sec_num ++;
-			pos += 0x10;	/* each header info is 16 bytes */
+		while (pos < header_end) {
+			num_info_sections++;
+			pos += 0x10;
 		}
 	}
 
-	/*
-	 * Find the DLM OVLY section
-	 * [0:3] Overlay Section Number
-	 * [4]   Overlay Info
-	 */
-	ovly_info = (fwdata[0x28] & 0x10) >> 4;
-	ovly_sec_num = (ovly_info) ? (fwdata[0x28] & GENMASK(3, 0)) : 0;
+	overlay_present = FIELD_GET(BIT(4), fwdata[0x28]);
+	if (overlay_present)
+		num_overlay_sections = FIELD_GET(GENMASK(3, 0), fwdata[0x28]);
 
 	/*
-	 * calculate all partition number
-	 * ilm_dlm_num (ILM & DLM) + ovly_sec_num + info_sec_num
+	 * Count the total number of partitions
+	 * 1 (ILM) + 1 (DLM) + num_overlay_sections + num_info_sections
 	 */
-	partition = ilm_dlm_num + ovly_sec_num + info_sec_num;
-	NVT_LOG("ovly_info = %d, ilm_dlm_num = %d, ovly_sec_num = %d, info_sec_num = %d, partition = %d\n",
-			ovly_info, ilm_dlm_num, ovly_sec_num, info_sec_num, partition);
+	num_parts = 2 + num_overlay_sections + num_info_sections;
+	NVT_LOG("overlay_present = %d, num_overlay_sections = %d, num_info_sections = %d, num_parts = %d\n",
+		overlay_present, num_overlay_sections, num_info_sections, num_parts);
 
-	/* allocated memory for header info */
-	bin_map = kcalloc((partition+1), sizeof(struct nvt_ts_bin_map), GFP_KERNEL);
-	if (!bin_map) {
-		NVT_ERR("kzalloc for bin_map failed!\n");
+	bin_map = kcalloc(num_parts + 1, sizeof(struct nvt_ts_bin_map), GFP_KERNEL);
+	if (!bin_map)
 		return -ENOMEM;
-	}
 
-	for (list = 0; list < partition; list++) {
-		/*
-		 * [1] parsing ILM & DLM header info
-		 * BIN_addr : SRAM_addr : size (12-bytes)
-		 * crc located at 0x18 & 0x1C
-		 */
-		if (list < ilm_dlm_num) {
-			bin_map[list].BIN_addr = byte_to_word(fwdata, 12 * list);
-			bin_map[list].SRAM_addr = byte_to_word(fwdata, 12 * list + 4);
-			bin_map[list].size = byte_to_word(fwdata, 12 * list + 8);
-			if (ts->hw_crc)
-				bin_map[list].crc = byte_to_word(fwdata, 4 * list + 0x18);
-			else {
-				if ((bin_map[list].BIN_addr + bin_map[list].size) < fwsize)
-					bin_map[list].crc = CheckSum(&fwdata[bin_map[list].BIN_addr], bin_map[list].size);
-				else {
-					NVT_ERR("access range (0x%08X to 0x%08X) is larger than bin size!\n",
-							bin_map[list].BIN_addr, bin_map[list].BIN_addr + bin_map[list].size);
-					return -EINVAL;
-				}
-			}
-			if (list == 0)
-				sprintf(bin_map[list].name, "ILM");
-			else if (list == 1)
-				sprintf(bin_map[list].name, "DLM");
-		}
+	bin_map[PART_IDX_ILM].BIN_addr = header_end;
+	bin_map[PART_IDX_ILM].SRAM_addr = ((__le32 *)fwdata)[0x4];
+	bin_map[PART_IDX_ILM].size = ((__le32 *)fwdata)[0x8];
+	bin_map[PART_IDX_ILM].crc = ((__le32 *)fwdata)[0x18];
 
-		/*
-		 * [2] parsing others header info
-		 * SRAM_addr : size : BIN_addr : crc (16-bytes)
-		 */
-		if ((list >= ilm_dlm_num) && (list < (ilm_dlm_num + info_sec_num))) {
-			if (find_bin_header == 0) {
+	bin_map[PART_IDX_DLM].BIN_addr = ((__le32 *)fwdata)[0xc];
+	bin_map[PART_IDX_DLM].SRAM_addr = ((__le32 *)fwdata)[0x10];
+	bin_map[PART_IDX_DLM].size = ((__le32 *)fwdata)[0x14];
+	bin_map[PART_IDX_DLM].crc = ((__le32 *)fwdata)[0x1c];
+
+	for (part_idx = PART_IDX_OTHER; part_idx < num_parts; part_idx++) {
+		if (part_idx < PART_IDX_OTHER + num_info_sections) {
+			if (!bin_hdr_found) {
 				/* others partition located at 0x30 offset */
-				pos = 0x30 + (0x10 * (list - ilm_dlm_num));
-			} else if (find_bin_header && cascade_2nd_header_info) {
+				pos = 0x30 + (0x10 * (part_idx - PART_IDX_OTHER));
+			} else if (bin_hdr_found && cascade_2nd_header_info) {
 				/* cascade 2nd header info */
-				pos = end - 0x10;
+				pos = header_end - 0x10;
 			}
 
-			bin_map[list].SRAM_addr = byte_to_word(fwdata, pos);
-			bin_map[list].size = byte_to_word(fwdata, pos + 4);
-			bin_map[list].BIN_addr = byte_to_word(fwdata, pos + 8);
-			if (ts->hw_crc)
-				bin_map[list].crc = byte_to_word(fwdata, pos + 12);
-			else {
-				if ((bin_map[list].BIN_addr + bin_map[list].size) < fwsize)
-					bin_map[list].crc = CheckSum(&fwdata[bin_map[list].BIN_addr], bin_map[list].size);
-				else {
-					NVT_ERR("access range (0x%08X to 0x%08X) is larger than bin size!\n",
-							bin_map[list].BIN_addr, bin_map[list].BIN_addr + bin_map[list].size);
-					return -EINVAL;
-				}
-			}
-			/* detect header end to protect parser function */
-			if ((bin_map[list].BIN_addr < end) && (bin_map[list].size != 0)) {
-				sprintf(bin_map[list].name, "Header");
-				find_bin_header = 1;
-			} else {
-				sprintf(bin_map[list].name, "Info-%d", (list - ilm_dlm_num));
-			}
-		}
+			memcpy(&bin_map[part_idx], &fwdata[pos], sizeof(struct nvt_ts_bin_map));
 
-		/*
-		 * [3] parsing overlay section header info
-		 * SRAM_addr : size : BIN_addr : crc (16-bytes)
-		 */
-		if (list >= (ilm_dlm_num + info_sec_num)) {
+			/* ... */
+			if (bin_map[part_idx].BIN_addr < header_end && bin_map[part_idx].size)
+				bin_hdr_found = true;
+		} else {
 			/* overlay info located at DLM (list = 1) start addr */
-			pos = bin_map[1].BIN_addr + (0x10 * (list- ilm_dlm_num - info_sec_num));
+			pos = bin_map[PART_IDX_DLM].BIN_addr + (0x10 * (part_idx - PART_IDX_OTHER - num_info_sections));
 
-			bin_map[list].SRAM_addr = byte_to_word(fwdata, pos);
-			bin_map[list].size = byte_to_word(fwdata, pos + 4);
-			bin_map[list].BIN_addr = byte_to_word(fwdata, pos + 8);
-			if (ts->hw_crc)
-				bin_map[list].crc = byte_to_word(fwdata, pos + 12);
-			else {
-				if ((bin_map[list].BIN_addr + bin_map[list].size) < fwsize)
-					bin_map[list].crc = CheckSum(&fwdata[bin_map[list].BIN_addr], bin_map[list].size);
-				else {
-					NVT_ERR("access range (0x%08X to 0x%08X) is larger than bin size!\n",
-							bin_map[list].BIN_addr, bin_map[list].BIN_addr + bin_map[list].size);
-					return -EINVAL;
-				}
-			}
-			sprintf(bin_map[list].name, "Overlay-%d", (list- ilm_dlm_num - info_sec_num));
+			memcpy(&bin_map[part_idx], &fwdata[pos], sizeof(struct nvt_ts_bin_map));
 		}
 
-		/* BIN size error detect */
-		if ((bin_map[list].BIN_addr + bin_map[list].size) > fwsize) {
-			NVT_ERR("access range (0x%08X to 0x%08X) is larger than bin size!\n",
-					bin_map[list].BIN_addr, bin_map[list].BIN_addr + bin_map[list].size);
+		if (bin_map[part_idx].BIN_addr + bin_map[part_idx].size > fwsize) {
+			dev_err(dev, "Access range [0x%8x-0x%8x] goes out of firwmare bounds\n",
+				bin_map[part_idx].BIN_addr, bin_map[part_idx].BIN_addr + bin_map[part_idx].size);
 			return -EINVAL;
 		}
+
+		if (!ts->hw_crc)
+			bin_map[part_idx].crc = CheckSum(&fwdata[bin_map[part_idx].BIN_addr], bin_map[part_idx].size);
 	}
 
 	return 0;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen release update firmware function.
-
-return:
-	n.a.
-*******************************************************/
 static void update_firmware_release(void)
 {
-	if (fw_entry) {
+	if (fw_entry)
 		release_firmware(fw_entry);
-	}
 
 	fw_entry = NULL;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen request update firmware function.
-
-return:
-	Executive outcomes. 0---succeed. -1,-22---failed.
-*******************************************************/
 static int update_firmware_request(struct nvt_ts_data *ts, char *filename)
 {
-	u8 retry = 0;
+	struct device *dev = &ts->client->dev;
 	int ret = 0;
 
-	if (NULL == filename) {
+	if (!filename)
 		return -ENOENT;
-	}
 
 	while (1) {
 		NVT_LOG("filename is %s\n", filename);
 
-		ret = request_firmware(&fw_entry, filename, &ts->client->dev);
+		ret = request_firmware(&fw_entry, filename, dev);
 		if (ret) {
 			NVT_ERR("firmware load failed, ret=%d\n", ret);
-			goto request_fail;
-		}
-
-		// check FW need to write size
-		if (nvt_get_fw_need_write_size(fw_entry)) {
-			NVT_ERR("get fw need to write size fail!\n");
-			ret = -EINVAL;
-			goto invalid;
+			return ret;
 		}
 
 		// check if FW version add FW version bar equals 0xFF
 		if (*(fw_entry->data + FW_BIN_VER_OFFSET) + *(fw_entry->data + FW_BIN_VER_BAR_OFFSET) != 0xFF) {
 			NVT_ERR("bin file FW_VER + FW_VER_BAR should be 0xFF!\n");
-			NVT_ERR("FW_VER=0x%02X, FW_VER_BAR=0x%02X\n", *(fw_entry->data+FW_BIN_VER_OFFSET), *(fw_entry->data+FW_BIN_VER_BAR_OFFSET));
+			NVT_ERR("FW_VER=0x%02X, FW_VER_BAR=0x%02X\n", *(fw_entry->data + FW_BIN_VER_OFFSET), *(fw_entry->data + FW_BIN_VER_BAR_OFFSET));
 			ret = -ENOEXEC;
 			goto invalid;
 		}
 
 		/* BIN Header Parser */
 		ret = nvt_bin_header_parser(ts, fw_entry->data, fw_entry->size);
-		if (ret) {
-			NVT_ERR("bin header parser failed\n");
-			goto invalid;
-		} else {
-			break;
-		}
+		if (!ret)
+			return 0;
+
+		NVT_ERR("bin header parser failed\n");
 
 invalid:
 		update_firmware_release();
@@ -345,36 +204,18 @@ invalid:
 			kfree(bin_map);
 			bin_map = NULL;
 		}
-
-request_fail:
-		retry++;
-		if(unlikely(retry > 2)) {
-			NVT_ERR("error, retry=%d\n", retry);
-			break;
-		}
 	}
 
 	return ret;
 }
 
-/*******************************************************
-Description:
-	Novatek touchscreen write data to sram function.
-
-- fwdata   : The buffer is written
-- SRAM_addr: The sram destination address
-- size     : Number of data bytes in @fwdata being written
-- BIN_addr : The transferred data offset of @fwdata
-
-return:
-	Executive outcomes. 0---succeed. else---fail.
-*******************************************************/
 static int nvt_write_sram(struct nvt_ts_data *ts,
 			  const u8 *fwdata,
 			  u32 SRAM_addr,
 			  u32 size,
 			  u32 BIN_addr)
 {
+	struct device *dev = &ts->client->dev;
 	int ret = 0;
 	u32 i = 0;
 	u16 len = 0;
@@ -385,22 +226,22 @@ static int nvt_write_sram(struct nvt_ts_data *ts,
 	else
 		count = (size / NVT_TRANSFER_LEN);
 
-	for (i = 0 ; i < count ; i++) {
-		len = (size < NVT_TRANSFER_LEN) ? size : NVT_TRANSFER_LEN;
+	pr_err("foobarbaz = %d\n", count);
+	for (i = 0; i < count; i++) {
+		len = min(size, NVT_TRANSFER_LEN);
 
-		//---set xdata index to start address of SRAM---
 		ret = nvt_set_page(ts, SRAM_addr);
 		if (ret) {
 			NVT_ERR("set page failed, ret = %d\n", ret);
 			return ret;
 		}
 
-		//---write data into SRAM---
-		fwbuf[0] = SRAM_addr & 0x7F;	//offset
-		memcpy(fwbuf+1, &fwdata[BIN_addr], len);	//payload
+		fwbuf[0] = ADDR_WITHIN_PAGE(SRAM_addr);
+		memcpy(fwbuf + 1, &fwdata[BIN_addr], len);
+
 		ret = nt36xxx_spi_write(ts->client, fwbuf, len + 1);
 		if (ret) {
-			NVT_ERR("write to sram failed, ret = %d\n", ret);
+			dev_err(dev, "Couldn't write firmware to SRAM: %d\n", ret);
 			return ret;
 		}
 
@@ -424,17 +265,15 @@ static int nvt_write_firmware(struct nvt_ts_data *ts, const u8 *fwdata, size_t f
 {
 	u32 BIN_addr, SRAM_addr, size;
 	u32 list = 0;
-	char *name;
 	int ret;
 
 	memset(fwbuf, 0, (NVT_TRANSFER_LEN + 1));
 
-	for (list = 0; list < partition; list++) {
+	for (list = 0; list < num_parts; list++) {
 		/* initialize variable */
 		SRAM_addr = bin_map[list].SRAM_addr;
 		size = bin_map[list].size;
 		BIN_addr = bin_map[list].BIN_addr;
-		name = bin_map[list].name;
 
 		/* Check data size */
 		if ((BIN_addr + size) > fwsize) {
@@ -470,9 +309,9 @@ return:
 *******************************************************/
 static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 {
-	u32 len = partition * 4;
+	u32 len = num_parts * 4;
 	u32 fw_checksum;
-	u32 list = 0;
+	u32 part_idx;
 	int ret;
 
 	memset(fwbuf, 0, (len + 1));
@@ -491,18 +330,17 @@ static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 	/*
 	 * Compare each checksum from fw
 	 * ILM + DLM + Overlay + Info
-	 * ilm_dlm_num (ILM & DLM) + ovly_sec_num + info_sec_num
 	 */
-	for (list = 0; list < partition; list++) {
-		fw_checksum = byte_to_word(fwbuf, 4 * list + 1);
+	for (part_idx = 0; part_idx < num_parts; part_idx++) {
+		fw_checksum = ((__le32 *)fwbuf)[4 * part_idx + 1];
 
 		/* ignore reserved partition (Reserved Partition size is zero) */
-		if (!bin_map[list].size)
+		if (!bin_map[part_idx].size)
 			continue;
 
-		if (bin_map[list].crc != fw_checksum) {
+		if (bin_map[part_idx].crc != fw_checksum) {
 			NVT_ERR("[%d] BIN_checksum=0x%08X, FW_checksum=0x%08X\n",
-					list, bin_map[list].crc, fw_checksum);
+				part_idx, bin_map[part_idx].crc, fw_checksum);
 			ret = -EIO;
 		}
 	}
@@ -521,19 +359,19 @@ static void nt36xxx_set_bl_crc_bank(struct nvt_ts_data *ts, u8 bank_idx)
 
 	nvt_set_page(ts, DEST_ADDR);
 	fwbuf[0] = ADDR_WITHIN_PAGE(DEST_ADDR);
-	fwbuf[1] = (sram_addr) & GENMASK(7, 0);
+	fwbuf[1] = sram_addr & GENMASK(7, 0);
 	fwbuf[2] = (sram_addr >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (sram_addr >> 16) & GENMASK(7, 0);
 	nt36xxx_spi_write(ts->client, fwbuf, 4);
 
 	fwbuf[0] = ADDR_WITHIN_PAGE(LENGTH_ADDR);
-	fwbuf[1] = (size) & GENMASK(7, 0);
+	fwbuf[1] = size & GENMASK(7, 0);
 	fwbuf[2] = (size >> 8) & GENMASK(7, 0);
-	fwbuf[3] = (size >> 16) & 0x01;
+	fwbuf[3] = (size >> 16) & BIT(0);
 	nt36xxx_spi_write(ts->client, fwbuf, ts->hw_crc > 1 ? 4 : 3);
 
 	fwbuf[0] = ADDR_WITHIN_PAGE(G_CHECKSUM_ADDR);
-	fwbuf[1] = (crc) & GENMASK(7, 0);
+	fwbuf[1] = crc & GENMASK(7, 0);
 	fwbuf[2] = (crc >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (crc >> 16) & GENMASK(7, 0);
 	fwbuf[4] = (crc >> 24) & GENMASK(7, 0);
@@ -614,9 +452,9 @@ static int nvt_download_firmware(struct nvt_ts_data *ts)
 
 int nvt_update_firmware(struct nvt_ts_data *ts, char *firmware_name)
 {
+	struct device *dev = &ts->client->dev;
 	int ret;
 
-	// request bin file in "/etc/firmware"
 	ret = update_firmware_request(ts, firmware_name);
 	if (ret) {
 		NVT_ERR("update_firmware_request failed. (%d)\n", ret);
@@ -636,14 +474,14 @@ int nvt_update_firmware(struct nvt_ts_data *ts, char *firmware_name)
 	else
 		ret = nvt_download_firmware(ts);
 	if (ret) {
-		pr_err("couldn't dl the fw\n");
+		pr_err("Firmware download failed: %d\n", ret);
 		goto download_fail;
 	}
 
 	/* Get FW Info */
 	ret = nvt_get_fw_info(ts);
 	if (ret)
-		NVT_ERR("nvt_get_fw_info failed. (%d)\n", ret);
+		dev_err(dev, "Couldn't get firmware info: %d\n", ret);
 
 download_fail:
 	if (!IS_ERR_OR_NULL(bin_map)) {
