@@ -9,51 +9,28 @@
 #include "nt36xxx.h"
 
 #define NT36XXX_SPI_WRITE		BIT(7)
-static int spi_read_write(struct spi_device *client,
-			  u8 *buf, size_t len,
-			  bool read)
-{
-	struct nvt_ts_data *ts = spi_get_drvdata(client);
-	int retries;
-	int ret;
-
-	for (retries = 5; retries > 0; retries--) {
-		struct spi_transfer t = {
-			.tx_buf = ts->xbuf,
-			.len = len,
-		};
-		struct spi_message m = { 0 };
-
-		if (read) {
-			t.rx_buf = ts->rbuf;
-			t.len += DUMMY_BYTES;
-			buf[0] &= ~NT36XXX_SPI_WRITE;
-		} else {
-			buf[0] |= NT36XXX_SPI_WRITE;
-		}
-
-		memset(ts->xbuf, 0, len + DUMMY_BYTES);
-		memcpy(ts->xbuf, buf, len);
-
-		spi_message_init(&m);
-		spi_message_add_tail(&t, &m);
-
-		ret = spi_sync(client, &m);
-		if (!ret)
-			return 0;
-	}
-
-	return ret;
-}
-
 int nt36xxx_spi_read(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
+	struct spi_message m = { 0 };
+	struct spi_transfer t = {
+		.tx_buf = ts->xbuf,
+		.rx_buf = ts->rbuf,
+		.len = len + DUMMY_BYTES,
+	};
 	int ret;
 
 	guard(mutex)(&ts->xbuf_lock);
 
-	ret = spi_read_write(client, buf, len, true);
+	buf[0] &= ~NT36XXX_SPI_WRITE;
+
+	memset(ts->xbuf, 0, len + DUMMY_BYTES);
+	memcpy(ts->xbuf, buf, len);
+
+	spi_message_init(&m);
+	spi_message_add_tail(&t, &m);
+
+	ret = spi_sync(client, &m);
 	if (!ret)
 		memcpy(buf + 1, ts->rbuf + 2, len - 1);
 
@@ -64,18 +41,31 @@ EXPORT_SYMBOL_GPL(nt36xxx_spi_read);
 int nt36xxx_spi_write(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
+	struct spi_message m = { 0 };
+	struct spi_transfer t = {
+		.tx_buf = ts->xbuf,
+		.len = len,
+	};
 
 	guard(mutex)(&ts->xbuf_lock);
 
-	return spi_read_write(client, buf, len, false);
+	buf[0] |= NT36XXX_SPI_WRITE;
+
+	memset(ts->xbuf, 0, len + DUMMY_BYTES);
+	memcpy(ts->xbuf, buf, len);
+
+	spi_message_init(&m);
+	spi_message_add_tail(&t, &m);
+
+	return spi_sync(client, &m);
 }
 
-#define NVT_SET_ADDR_CMD		0xFF
-int nvt_set_addr(struct nvt_ts_data *ts, int addr)
+#define nvt_set_page_CMD		0xFF
+int nvt_set_page(struct nvt_ts_data *ts, int addr)
 {
 	u8 buf[4] = { 0 };
 
-	buf[0] = NVT_SET_ADDR_CMD;
+	buf[0] = nvt_set_page_CMD;
 	buf[1] = (addr >> 15) & GENMASK(7, 0);
 	buf[2] = (addr >> 7) & GENMASK(7, 0);
 
@@ -87,13 +77,13 @@ int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data)
 	u8 buf[4] = { 0 };
 	int ret;
 
-	ret = nvt_set_addr(ts, addr);
+	ret = nvt_set_page(ts, addr);
 	if (ret) {
 		dev_err(&ts->client->dev, "Couldn't set page 0x%x\n", addr);
 		return ret;
 	}
 
-	buf[0] = addr & GENMASK(6, 0);
+	buf[0] = ADDR_WITHIN_PAGE(addr);
 	buf[1] = data;
 	ret = nt36xxx_spi_write(ts->client, buf, 2);
 	if (ret)
@@ -106,15 +96,15 @@ void nt36xxx_enable_bl_crc(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
 
-	nvt_set_addr(ts, ts->mmap->bld_crc_en_addr);
+	nvt_set_page(ts, ts->mmap->bld_crc_en_addr);
 
 	/* Read back the current value */
-	buf[0] = ts->mmap->bld_crc_en_addr & GENMASK(6, 0);
+	buf[0] = ADDR_WITHIN_PAGE(ts->mmap->bld_crc_en_addr);
 	buf[1] = 0xFF;
 	nt36xxx_spi_read(ts->client, buf, 2);
 
 	/* Set bit 7 */
-	buf[0] = ts->mmap->bld_crc_en_addr & GENMASK(6, 0);
+	buf[0] = ADDR_WITHIN_PAGE(ts->mmap->bld_crc_en_addr);
 	buf[1] = buf[1] | BIT(7);
 	nt36xxx_spi_write(ts->client, buf, 2);
 }
@@ -124,15 +114,15 @@ void nt36xxx_enable_fw_crc(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
 
-	nvt_set_addr(ts, ts->mmap->event_buf);
+	nvt_set_page(ts, ts->mmap->event_buf);
 
-	//---clear fw reset status---
-	buf[0] = EVENT_MAP_RESET_COMPLETE & GENMASK(6, 0);
+	/* Clear the firmware reset status first */
+	buf[0] = EVENT_MAP_RESET_COMPLETE;
 	buf[1] = 0x00;
 	nt36xxx_spi_write(ts->client, buf, 2);
 
-	//---enable fw crc---
-	buf[0] = EVENT_MAP_HOST_CMD & GENMASK(6, 0);
+	/* Enable firmware CRC */
+	buf[0] = EVENT_MAP_HOST_CMD;
 	buf[1] = NT36XXX_EVENT_MAP_HOST_CMD_EN_FW_CRC;
 	nt36xxx_spi_write(ts->client, buf, 2);
 }
@@ -157,9 +147,9 @@ int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts)
 	int i;
 
 	for (i = 0; i < SPI_DMA_TX_INFO_MAX_RETRIES; i++) {
-		nvt_set_addr(ts, ts->mmap->spi_dma_tx_info);
+		nvt_set_page(ts, ts->mmap->spi_dma_tx_info);
 
-		buf[0] = ts->mmap->spi_dma_tx_info & GENMASK(6, 0);
+		buf[0] = ADDR_WITHIN_PAGE(ts->mmap->spi_dma_tx_info);
 		buf[1] = 0xFF;
 		nt36xxx_spi_read(ts->client, buf, 2);
 
@@ -208,7 +198,7 @@ int nvt_clear_fw_status(struct nvt_ts_data *ts)
 	int i;
 
 	for (i = 0; i < CLEAR_FW_STATUS_MAX_RETRIES; i++) {
-		nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
+		nvt_set_page(ts, ts->mmap->event_buf | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
 
 		/* Clear firmware status */
 		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
@@ -237,7 +227,7 @@ int nvt_check_fw_status(struct nvt_ts_data *ts)
 	int i = 0;
 
 	for (i = 0; i < CHECK_FW_STATUS_MAX_RETRIES; i++) {
-		nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
+		nvt_set_page(ts, ts->mmap->event_buf | EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE);
 
 		/* Read the firwmare status */
 		buf[0] = EVENT_MAP_HANDSHAKING_or_SUB_CMD_BYTE;
@@ -258,7 +248,7 @@ int nvt_check_fw_reset_state(struct nvt_ts_data *ts, u8 desired_state)
 	int retries = desired_state == RESET_STATE_INIT ? 10 : 50;
 	u8 buf[8] = { 0 };
 
-	nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_RESET_COMPLETE);
+	nvt_set_page(ts, ts->mmap->event_buf | EVENT_MAP_RESET_COMPLETE);
 
 	for (; retries > 0; retries--) {
 		/* Read the reset state */
@@ -282,7 +272,7 @@ static int nvt_read_pid(struct nvt_ts_data *ts)
 	int ret = 0;
 
 	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_PROJECTID);
+	nvt_set_page(ts, ts->mmap->event_buf | EVENT_MAP_PROJECTID);
 
 	//---read project id---
 	buf[0] = EVENT_MAP_PROJECTID;
@@ -293,7 +283,7 @@ static int nvt_read_pid(struct nvt_ts_data *ts)
 	ts->nvt_pid = (buf[2] << 8) + buf[1];
 
 	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_addr(ts, ts->mmap->event_buf);
+	nvt_set_page(ts, ts->mmap->event_buf);
 
 	NVT_LOG("PID=%04X\n", ts->nvt_pid);
 
@@ -306,7 +296,7 @@ int nvt_get_fw_info(struct nvt_ts_data *ts)
 	int retries;
 	int ret;
 
-	ret = nvt_set_addr(ts, ts->mmap->event_buf | EVENT_MAP_FWINFO);
+	ret = nvt_set_page(ts, ts->mmap->event_buf | EVENT_MAP_FWINFO);
 	if (ret)
 		return ret;
 

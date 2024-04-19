@@ -360,9 +360,9 @@ static int nt36xxx_check_hw_id(struct nvt_ts_data *ts, bool legacy_addr)
 	for (retries = 5; retries > 0; retries--) {
 		nvt_bootloader_reset(ts);
 
-		nvt_set_addr(ts, address);
+		nvt_set_page(ts, address);
 
-		buf[0] = address & GENMASK(6, 0);
+		buf[0] = ADDR_WITHIN_PAGE(address);
 		buf[1] = 0x00;
 		buf[2] = 0x00;
 		buf[3] = 0x00;

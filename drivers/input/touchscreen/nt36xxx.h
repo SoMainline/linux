@@ -86,6 +86,7 @@ struct nt36xxx_hw_id {
 	const u8 bytes[NVT_ID_BYTE_MAX];
 };
 
+#define ADDR_WITHIN_PAGE(x) (x & GENMASK(6, 0))
 struct nvt_ts_mem_map {
 	u32 event_buf;
 
@@ -146,7 +147,7 @@ int nvt_get_fw_info(struct nvt_ts_data *ts);
 int nvt_clear_fw_status(struct nvt_ts_data *ts);
 int nvt_check_fw_status(struct nvt_ts_data *ts);
 int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts);
-int nvt_set_addr(struct nvt_ts_data *ts, int addr);
+int nvt_set_page(struct nvt_ts_data *ts, int addr);
 int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data);
 
 #endif

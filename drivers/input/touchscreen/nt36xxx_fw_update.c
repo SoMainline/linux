@@ -389,7 +389,7 @@ static int nvt_write_sram(struct nvt_ts_data *ts,
 		len = (size < NVT_TRANSFER_LEN) ? size : NVT_TRANSFER_LEN;
 
 		//---set xdata index to start address of SRAM---
-		ret = nvt_set_addr(ts, SRAM_addr);
+		ret = nvt_set_page(ts, SRAM_addr);
 		if (ret) {
 			NVT_ERR("set page failed, ret = %d\n", ret);
 			return ret;
@@ -478,7 +478,7 @@ static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 	memset(fwbuf, 0, (len + 1));
 
 	//---set xdata index to checksum---
-	nvt_set_addr(ts, ts->mmap->r_ilm_checksum_addr);
+	nvt_set_page(ts, ts->mmap->r_ilm_checksum_addr);
 
 	/* read checksum */
 	fwbuf[0] = (ts->mmap->r_ilm_checksum_addr) & 0x7F;
@@ -519,20 +519,20 @@ static void nt36xxx_set_bl_crc_bank(struct nvt_ts_data *ts, u8 bank_idx)
 	u32 size = bin_map[bank_idx].size;
 	u32 crc = bin_map[bank_idx].crc;
 
-	nvt_set_addr(ts, DEST_ADDR);
-	fwbuf[0] = DEST_ADDR & GENMASK(6, 0);
+	nvt_set_page(ts, DEST_ADDR);
+	fwbuf[0] = ADDR_WITHIN_PAGE(DEST_ADDR);
 	fwbuf[1] = (sram_addr) & GENMASK(7, 0);
 	fwbuf[2] = (sram_addr >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (sram_addr >> 16) & GENMASK(7, 0);
 	nt36xxx_spi_write(ts->client, fwbuf, 4);
 
-	fwbuf[0] = LENGTH_ADDR & GENMASK(6, 0);
+	fwbuf[0] = ADDR_WITHIN_PAGE(LENGTH_ADDR);
 	fwbuf[1] = (size) & GENMASK(7, 0);
 	fwbuf[2] = (size >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (size >> 16) & 0x01;
 	nt36xxx_spi_write(ts->client, fwbuf, ts->hw_crc > 1 ? 4 : 3);
 
-	fwbuf[0] = G_CHECKSUM_ADDR & GENMASK(6, 0);
+	fwbuf[0] = ADDR_WITHIN_PAGE(G_CHECKSUM_ADDR);
 	fwbuf[1] = (crc) & GENMASK(7, 0);
 	fwbuf[2] = (crc >> 8) & GENMASK(7, 0);
 	fwbuf[3] = (crc >> 16) & GENMASK(7, 0);
