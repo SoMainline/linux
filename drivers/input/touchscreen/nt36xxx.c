@@ -5,6 +5,7 @@
  */
 
 #include <linux/cleanup.h>
+#include <linux/delay.h>
 #include <linux/gpio.h>
 #include <linux/input/mt.h>
 #include <linux/interrupt.h>

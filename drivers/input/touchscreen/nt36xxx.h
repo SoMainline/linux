@@ -6,11 +6,9 @@
 #ifndef __NT36XXX_SPI_H__
 #define __NT36XXX_SPI_H__
 
-#include <linux/delay.h>
 #include <linux/input.h>
 #include <linux/of.h>
 #include <linux/spi/spi.h>
-#include <linux/uaccess.h>
 #include <linux/input/touchscreen.h>
 
 //---SPI driver info.---
@@ -24,11 +22,6 @@
 #define TOUCH_MAX_FINGER_NUM		10
 
 //---Customerized func.---
-#define NVT_TOUCH_PROC 1
-#define NVT_TOUCH_EXT_PROC 1
-#define NVT_TOUCH_MP 1
-#define MT_PROTOCOL_B 1
-#define NVT_WAKEUP_GESTURE_CUSTOMIZE 1
 #define BOOT_UPDATE_FIRMWARE 1
 #define BOOT_UPDATE_FIRMWARE_NAME "novatek_ts_fw.bin"
 #define MP_UPDATE_FIRMWARE_NAME   "novatek_ts_mp.bin"

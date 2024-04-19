@@ -4,6 +4,8 @@
  * Copyright (c) 2024, Linaro Ltd.
  */
 
+#include <linux/delay.h>
+
 #include "nt36xxx.h"
 
 #define NT36XXX_SPI_WRITE		BIT(7)

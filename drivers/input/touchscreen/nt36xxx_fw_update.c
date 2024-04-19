@@ -4,6 +4,7 @@
  * Copyright (c) 2024, Linaro Ltd.
  */
 
+#include <linux/delay.h>
 #include <linux/firmware.h>
 #include <linux/gpio.h>
 
