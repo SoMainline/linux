@@ -17,9 +17,6 @@
 
 #include "nt36xxx.h"
 
-// TODO: BOOT_UPDATE_FIRMWARE should prob be a module parameter
-// obv true for flashless chips, default to false for flash-equipped ones
-
 static const u16 gesture_default_keycodes[] = {
 	[GESTURE_WORD_C]	= KEY_POWER,
 	[GESTURE_WORD_W]	= KEY_POWER,
@@ -36,23 +33,16 @@ static const u16 gesture_default_keycodes[] = {
 	[GESTURE_SLIDE_RIGHT]	= KEY_POWER,
 };
 
-static void nvt_irq_enable(struct nvt_ts_data *ts, bool enable)
+static void nt36xxx_irq_enable(struct nt36xxx_data *ts, bool enable)
 {
 	struct irq_desc *desc;
 
-	// TODO: cleanup at the end of the journey
-	if (enable) {
-		if (!WARN_ON(ts->irq_enabled))
-			enable_irq(ts->client->irq);
-	} else {
-		if (WARN_ON(ts->irq_enabled))
-			disable_irq(ts->client->irq);
-	}
-
-	ts->irq_enabled = enable;
+	if (enable)
+		enable_irq(ts->client->irq);
+	else
+		disable_irq(ts->client->irq);
 
 	desc = irq_data_to_desc(irq_get_irq_data(ts->client->irq));
-	NVT_LOG("enable=%d, desc->depth=%d\n", enable, desc->depth);
 }
 
 /* customized gesture id */
@@ -61,7 +51,7 @@ static void nvt_irq_enable(struct nvt_ts_data *ts, bool enable)
 #define FUNCPAGE_GESTURE	1
 
 #define GESTURE_DOUBLE_CLICK	15
-static void nvt_ts_wakeup_gesture_report(struct nvt_ts_data *ts, u8 gesture_id, u8 *data)
+static void nt36xxx_ts_wakeup_gesture_report(struct nt36xxx_data *ts, u8 gesture_id, u8 *data)
 {
 	u8 func_type = data[2];
 	u8 func_id = data[3];
@@ -71,18 +61,16 @@ static void nvt_ts_wakeup_gesture_report(struct nvt_ts_data *ts, u8 gesture_id, 
 		return;
 
 	/* support fw specifal data protocol */
-	if (gesture_id == DATA_PROTOCOL && func_type == FUNCPAGE_GESTURE) {
+	if (gesture_id == DATA_PROTOCOL && func_type == FUNCPAGE_GESTURE)
 		gesture_id = func_id;
-	} else if (gesture_id > DATA_PROTOCOL) {
-		NVT_ERR("gesture_id %d is invalid, func_type=%d, func_id=%d\n", gesture_id, func_type, func_id);
+	else if (gesture_id > DATA_PROTOCOL)
 		return;
-	}
 
-	NVT_LOG("gesture_id = %d\n", gesture_id);
+	//TODO:
+	pr_err("gesture_id = %d\n", gesture_id);
 
 	switch (gesture_id) {
 		case GESTURE_DOUBLE_CLICK:
-			pr_err("Triggered gesture %d\n", gesture_id);
 			keycode = gesture_default_keycodes[gesture_id];
 			break;
 		default:
@@ -97,7 +85,7 @@ static void nvt_ts_wakeup_gesture_report(struct nvt_ts_data *ts, u8 gesture_id, 
 	}
 }
 
-static int nvt_parse_dt(struct nvt_ts_data *ts)
+static int nt36xxx_parse_dt(struct nt36xxx_data *ts)
 {
 	struct device *dev = &ts->client->dev;
 	struct device_node *np = dev->of_node;
@@ -178,14 +166,14 @@ static int nt36xxx_data_checksum(u8 *buf, u8 length, bool is_pen)
 
 #define POINT_DATA_LEN			65
 #define PEN_DATA_LEN			14
-static irqreturn_t nvt_ts_work_func(int irq, void *data)
+static irqreturn_t nt36xxx_ts_work_func(int irq, void *data)
 {
 	u8 point_data[POINT_DATA_LEN + PEN_DATA_LEN + 1 + DUMMY_BYTES] = { 0 };
 	bool finger_present[TOUCH_MAX_FINGER_NUM] = { false };
 	u32 touch_x, touch_y, touch_major;
 	bool any_finger_present = false;
 	u32 pen_pressure, pen_distance;
-	struct nvt_ts_data *ts = data;
+	struct nt36xxx_data *ts = data;
 	struct device *dev = &ts->client->dev;
 	u32 pen_button1, pen_button2;
 	s8 pen_tilt_x, pen_tilt_y;
@@ -207,14 +195,12 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		ret = nt36xxx_spi_read(ts->client, point_data, POINT_DATA_LEN + PEN_DATA_LEN + 1);
 	else
 		ret = nt36xxx_spi_read(ts->client, point_data, POINT_DATA_LEN + 1);
-	if (ret < 0) {
-		NVT_ERR("nt36xxx_spi_read failed.(%d)\n", ret);
+	if (ret < 0)
 		return IRQ_HANDLED;
-	}
 
 	if (nt36xxx_wdog_broken_fw(&point_data[1])) {
 		dev_err(dev, "Watchdog bite! Firmware reflash required.\n");
-		nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME);
+		nt36xxx_update_fw(ts, BOOT_UPDATE_FIRMWARE_NAME);
 		return IRQ_HANDLED;
 	}
 
@@ -228,7 +214,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	if (ts->gesture_support && ts->suspended) {
 		input_id = point_data[1] >> 3;
 
-		nvt_ts_wakeup_gesture_report(ts, input_id, point_data);
+		nt36xxx_ts_wakeup_gesture_report(ts, input_id, point_data);
 		return IRQ_HANDLED;
 	}
 
@@ -238,7 +224,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		if (!input_id || input_id > ts->max_finger_num)
 			continue;
 
-		//finger down (enter & moving)
+		/* Finger down (touching & moving) */
 		if ((point_data[index] & GENMASK(2, 0)) == BIT(0) ||
 		    (point_data[index] & GENMASK(2, 0)) == BIT(1)) {
 			touch_x = (u32)(point_data[index + 1] << 4) + (u32)FIELD_GET(GENMASK(7, 4), point_data[index + 3]);
@@ -305,7 +291,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		input_report_key(ts->pen_input_dev, BTN_STYLUS2, 0);
 	} else {
 		if (pen_format_id == PEN_FORMAT_ID_PRESENT) {
-			// report pen data
+			/* Report pen data */
 			pen_x = (u32)(point_data[67] << 8) + (u32)(point_data[68]);
 			pen_y = (u32)(point_data[69] << 8) + (u32)(point_data[70]);
 			pen_pressure = (u32)(point_data[71] << 8) + (u32)(point_data[72]);
@@ -315,7 +301,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			pen_button1 = point_data[77] & BIT(0);
 			pen_button2 = point_data[77] & BIT(1);
 
-			// TODO: returns BIT(4) when the pen works ok, maybe check for "low bat" warnings?
+			/* TODO: returns BIT(4) when the pen works ok, maybe check for "low bat" warnings? */
 			pen_battery = point_data[78];
 
 			// HACK invert xy
@@ -333,7 +319,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		} else if (pen_format_id == PEN_FORMAT_ID_DIDNT_MOVE) {
 			/* No change */
 		} else {
-			NVT_ERR("Unknown pen format id!\n");
+			dev_err(dev, "Unknown pen format id!\n");
 			return IRQ_HANDLED;
 		}
 	}
@@ -345,7 +331,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 
 #define CHIP_VER_TRIM_ADDR		0x3F004
 #define CHIP_VER_TRIM_OLD_ADDR		0x1F64E
-static int nt36xxx_check_hw_id(struct nvt_ts_data *ts, bool legacy_addr)
+static int nt36xxx_check_hw_id(struct nt36xxx_data *ts, bool legacy_addr)
 {
 	u32 address = legacy_addr ? CHIP_VER_TRIM_OLD_ADDR : CHIP_VER_TRIM_ADDR;
 	const struct nt36xxx_match_data *data;
@@ -358,9 +344,9 @@ static int nt36xxx_check_hw_id(struct nvt_ts_data *ts, bool legacy_addr)
 		return -EINVAL;
 
 	for (retries = 5; retries > 0; retries--) {
-		nvt_bootloader_reset(ts);
+		nt36xxx_bootloader_reset(ts);
 
-		nvt_set_page(ts, address);
+		nt36xxx_set_page(ts, address);
 
 		buf[0] = ADDR_WITHIN_PAGE(address);
 		buf[1] = 0x00;
@@ -399,7 +385,7 @@ static int nt36xxx_check_hw_id(struct nvt_ts_data *ts, bool legacy_addr)
 	return -ENODEV;
 }
 
-static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
+static int nt36xxx_touch_inputdev_init(struct nt36xxx_data *ts)
 {
 	struct device *dev = &ts->client->dev;
 	int ret;
@@ -449,7 +435,7 @@ static int nt36xxx_touch_inputdev_init(struct nvt_ts_data *ts)
 #define PEN_DISTANCE_MAX	1
 #define PEN_TILT_MIN		(-60)
 #define PEN_TILT_MAX		60
-static int nt36xxx_pen_inputdev_init(struct nvt_ts_data *ts)
+static int nt36xxx_pen_inputdev_init(struct nt36xxx_data *ts)
 {
 	struct device *dev = &ts->client->dev;
 	u16 x_max = ts->abs_x_max;
@@ -497,23 +483,23 @@ static int nt36xxx_pen_inputdev_init(struct nvt_ts_data *ts)
 
 static void Boot_Update_Firmware(struct work_struct *work)
 {
-	struct nvt_ts_data *ts = container_of(work, struct nvt_ts_data, nvt_fwu_work.work);
+	struct nt36xxx_data *ts = container_of(work, struct nt36xxx_data, nt36xxx_fwu_work.work);
 
 	mutex_lock(&ts->lock);
-	nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME);
+	nt36xxx_update_fw(ts, BOOT_UPDATE_FIRMWARE_NAME);
 	mutex_unlock(&ts->lock);
 }
 
-static int nvt_ts_probe(struct spi_device *client)
+static int nt36xxx_ts_probe(struct spi_device *client)
 {
 	struct device *dev = &client->dev;
-	struct nvt_ts_data *ts;
+	struct nt36xxx_data *ts;
 	int ret;
 
 	if (client->controller->flags & SPI_CONTROLLER_HALF_DUPLEX)
 		return dev_err_probe(dev, -EIO, "The controller doesn't support full duplex\n");
 
-	ts = devm_kzalloc(dev, sizeof(struct nvt_ts_data), GFP_KERNEL);
+	ts = devm_kzalloc(dev, sizeof(struct nt36xxx_data), GFP_KERNEL);
 	if (!ts)
 		return -ENOMEM;
 
@@ -534,7 +520,7 @@ static int nvt_ts_probe(struct spi_device *client)
 	if (ret < 0)
 		return dev_err_probe(dev, ret, "Failed to perform SPI setup\n");
 
-	ret = nvt_parse_dt(ts);
+	ret = nt36xxx_parse_dt(ts);
 	if (ret)
 		return dev_err_probe(dev, ret, "Couldn't parse DT properties \n");
 
@@ -542,7 +528,7 @@ static int nvt_ts_probe(struct spi_device *client)
 	mutex_init(&ts->xbuf_lock);
 
 	/* Perform a software reset before pulling the reset pin */
-	nvt_eng_reset(ts);
+	nt36xxx_eng_reset(ts);
 
 	gpiod_set_value_cansleep(ts->reset_gpio, 0);
 
@@ -558,7 +544,6 @@ static int nvt_ts_probe(struct spi_device *client)
 			return dev_err_probe(dev, -ENODEV, "Unknown chip id\n");
 	}
 
-	// TODO: remove and load fw in probe instead?
 	ts->abs_x_max = TOUCH_DEFAULT_MAX_WIDTH;
 	ts->abs_y_max = TOUCH_DEFAULT_MAX_HEIGHT;
 
@@ -576,7 +561,7 @@ static int nvt_ts_probe(struct spi_device *client)
 	if (client->irq < 0)
 		return dev_err_probe(dev, -EINVAL, "Couldn't get IRQ\n");
 
-	ret = devm_request_threaded_irq(dev, client->irq, NULL, nvt_ts_work_func,
+	ret = devm_request_threaded_irq(dev, client->irq, NULL, nt36xxx_ts_work_func,
 					IRQ_TYPE_EDGE_RISING | IRQF_NO_AUTOEN | IRQF_ONESHOT,
 					"nt36xxx-spi", ts);
 	if (ret)
@@ -585,37 +570,36 @@ static int nvt_ts_probe(struct spi_device *client)
 	ts->gesture_support = of_property_read_bool(dev->of_node, "novatek,gesture-support");
 	device_init_wakeup(&ts->input_dev->dev, ts->gesture_support);
 
-	ts->nvt_fwu_wq = alloc_workqueue("nvt_fwu_wq", WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
-	if (!ts->nvt_fwu_wq) {
-		NVT_ERR("nvt_fwu_wq create workqueue failed\n");
+	ts->nt36xxx_fwu_wq = alloc_workqueue("nt36xxx_fwu_wq", WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
+	if (!ts->nt36xxx_fwu_wq) {
+		dev_err(dev, "nt36xxx_fwu_wq create workqueue failed\n");
 		device_init_wakeup(&ts->input_dev->dev, false);
 		return -ENOMEM;
 	}
 
-	INIT_DELAYED_WORK(&ts->nvt_fwu_work, Boot_Update_Firmware);
-	queue_delayed_work(ts->nvt_fwu_wq, &ts->nvt_fwu_work, msecs_to_jiffies(14000));
+	INIT_DELAYED_WORK(&ts->nt36xxx_fwu_work, Boot_Update_Firmware);
+	queue_delayed_work(ts->nt36xxx_fwu_wq, &ts->nt36xxx_fwu_work, msecs_to_jiffies(14000));
 
 	ts->suspended = false;
 
-	nvt_irq_enable(ts, true);
+	nt36xxx_irq_enable(ts, true);
 
 	return 0;
 }
 
-static void nvt_ts_remove(struct spi_device *client)
+static void nt36xxx_ts_remove(struct spi_device *client)
 {
-	struct nvt_ts_data *ts = spi_get_drvdata(client);
+	struct nt36xxx_data *ts = spi_get_drvdata(client);
 
 	device_init_wakeup(&ts->input_dev->dev, false);
 
-	if (ts->nvt_fwu_wq) {
-		cancel_delayed_work_sync(&ts->nvt_fwu_work);
-		destroy_workqueue(ts->nvt_fwu_wq);
-		ts->nvt_fwu_wq = NULL;
+	if (ts->nt36xxx_fwu_wq) {
+		cancel_delayed_work_sync(&ts->nt36xxx_fwu_work);
+		destroy_workqueue(ts->nt36xxx_fwu_wq);
+		ts->nt36xxx_fwu_wq = NULL;
 	}
 
-	if (ts->irq_enabled)
-		nvt_irq_enable(ts, false);
+	nt36xxx_irq_enable(ts, false);
 
 	if (ts->pen_input_dev)
 		input_unregister_device(ts->pen_input_dev);
@@ -626,19 +610,16 @@ static void nvt_ts_remove(struct spi_device *client)
 	mutex_destroy(&ts->xbuf_lock);
 }
 
-static void nvt_ts_shutdown(struct spi_device *client)
+static void nt36xxx_ts_shutdown(struct spi_device *client)
 {
-	struct nvt_ts_data *ts = spi_get_drvdata(client);
+	struct nt36xxx_data *ts = spi_get_drvdata(client);
 
-	NVT_LOG("Shutdown driver...\n");
+	nt36xxx_irq_enable(ts, false);
 
-	if (ts->irq_enabled)
-		nvt_irq_enable(ts, false);
-
-	if (ts->nvt_fwu_wq) {
-		cancel_delayed_work_sync(&ts->nvt_fwu_work);
-		destroy_workqueue(ts->nvt_fwu_wq);
-		ts->nvt_fwu_wq = NULL;
+	if (ts->nt36xxx_fwu_wq) {
+		cancel_delayed_work_sync(&ts->nt36xxx_fwu_work);
+		destroy_workqueue(ts->nt36xxx_fwu_wq);
+		ts->nt36xxx_fwu_wq = NULL;
 	}
 
 	device_init_wakeup(&ts->input_dev->dev, false);
@@ -646,24 +627,20 @@ static void nvt_ts_shutdown(struct spi_device *client)
 
 #define NVT_TS_SUSPEND_DEEP_SLEEP_MODE			0x11
 #define NVT_TS_SUSPEND_WAKEUP_GESTURE_MODE		0x13
-static int nvt_ts_suspend(struct device *dev)
+static int nt36xxx_ts_suspend(struct device *dev)
 {
 	struct spi_device *client = to_spi_device(dev);
-	struct nvt_ts_data *ts = spi_get_drvdata(client);
+	struct nt36xxx_data *ts = spi_get_drvdata(client);
 	u8 buf[4] = { 0 };
 	int i;
 
-	if (ts->suspended) {
-		NVT_LOG("Touch is already suspend\n");
+	if (ts->suspended)
 		return 0;
-	}
 
 	if (!ts->gesture_support)
-		nvt_irq_enable(ts, false);
+		nt36xxx_irq_enable(ts, false);
 
 	mutex_lock(&ts->lock);
-
-	NVT_LOG("start\n");
 
 	ts->suspended = true;
 
@@ -672,11 +649,9 @@ static int nvt_ts_suspend(struct device *dev)
 		buf[1] = NVT_TS_SUSPEND_WAKEUP_GESTURE_MODE;
 		nt36xxx_spi_write(ts->client, buf, 2);
 		enable_irq_wake(ts->client->irq);
-		NVT_LOG("Enabled touch wakeup gesture\n");
 	} else {
 		buf[1] = NVT_TS_SUSPEND_DEEP_SLEEP_MODE;
 		nt36xxx_spi_write(ts->client, buf, 2);
-		NVT_LOG("deep sleep mode\n");
 	} 
 
 	mutex_unlock(&ts->lock);
@@ -695,46 +670,44 @@ static int nvt_ts_suspend(struct device *dev)
 
 	msleep(50);
 
-	NVT_LOG("end\n");
-
 	return 0;
 }
 
-static int nvt_ts_resume(struct device *dev)
+static int nt36xxx_ts_resume(struct device *dev)
 {
 	struct spi_device *client = to_spi_device(dev);
-	struct nvt_ts_data *ts = spi_get_drvdata(client);
+	struct nt36xxx_data *ts = spi_get_drvdata(client);
+	int ret;
 
-	if (!ts->suspended) {
-		NVT_LOG("Touch is already resume\n");
+	if (!ts->suspended)
 		return 0;
-	}
 
 	guard(mutex)(&ts->lock);
 
-	NVT_LOG("start\n");
-
 	gpiod_set_value_cansleep(ts->reset_gpio, 0);
 
-	if (nvt_update_firmware(ts, BOOT_UPDATE_FIRMWARE_NAME))
-		NVT_ERR("download firmware failed, ignore check fw state\n");
-	else
-		nvt_check_fw_reset_state(ts, RESET_STATE_REK);
+	ret = nt36xxx_update_fw(ts, BOOT_UPDATE_FIRMWARE_NAME);
+	if (ret)
+		return ret;
+
+	ret = nt36xxx_check_fw_reset_state(ts, RESET_STATE_REK);
+	if (ret)
+		return ret;
 
 	if (!ts->gesture_support)
-		nvt_irq_enable(ts, true);
+		nt36xxx_irq_enable(ts, true);
 
 	ts->suspended = false;
 
 	return 0;
 }
-static DEFINE_SIMPLE_DEV_PM_OPS(nt36xxx_pm_ops, nvt_ts_suspend, nvt_ts_resume);
+static DEFINE_SIMPLE_DEV_PM_OPS(nt36xxx_pm_ops, nt36xxx_ts_suspend, nt36xxx_ts_resume);
 
-static const struct spi_device_id nvt_ts_id[] = {
+static const struct spi_device_id nt36xxx_ts_id[] = {
 	{ .name = "nt36xxx" },
 	{ },
 };
-MODULE_DEVICE_TABLE(spi, nvt_ts_id);
+MODULE_DEVICE_TABLE(spi, nt36xxx_ts_id);
 
 static const struct nt36xxx_hw_id nt36523_hw_ids[] = {
 	{ 0x0a, ID_MATCH_ANY, ID_MATCH_ANY, 0x23, 0x65, 0x03 },
@@ -747,7 +720,7 @@ static const struct nt36xxx_hw_id nt36523_hw_ids[] = {
 static const struct nt36xxx_match_data nt36523_data = {
 	.ids = nt36523_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36523_hw_ids),
-	.mmap = &(const struct nvt_ts_mem_map) {
+	.mmap = &(const struct nt36xxx_ts_mem_map) {
 		.event_buf		= 0x2fe00,
 
 		.boot_rdy_addr		= 0x3f10d,
@@ -774,7 +747,7 @@ static const struct nt36xxx_hw_id nt36675_hw_ids[] = {
 static const struct nt36xxx_match_data nt36675_data = {
 	.ids = nt36675_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36675_hw_ids),
-	.mmap = &(const struct nvt_ts_mem_map) {
+	.mmap = &(const struct nt36xxx_ts_mem_map) {
 		.event_buf		= 0x22d00,
 
 		.boot_rdy_addr		= 0x3f10d,
@@ -798,7 +771,7 @@ static const struct nt36xxx_hw_id nt36526_hw_ids[] = {
 static const struct nt36xxx_match_data nt36526_data = {
 	.ids = nt36526_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36526_hw_ids),
-	.mmap = &(const struct nvt_ts_mem_map) {
+	.mmap = &(const struct nt36xxx_ts_mem_map) {
 		.event_buf		= 0x22d00,
 
 		.boot_rdy_addr		= 0x3f10d,
@@ -830,7 +803,7 @@ static const struct nt36xxx_hw_id nt36672a_hw_ids[] = {
 static const struct nt36xxx_match_data nt36672a_data = {
 	.ids = nt36672a_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36672a_hw_ids),
-	.mmap = &(const struct nvt_ts_mem_map) {
+	.mmap = &(const struct nt36xxx_ts_mem_map) {
 		.event_buf		= 0x21c00,
 
 		.boot_rdy_addr		= 0x3f10d,
@@ -861,7 +834,7 @@ static const struct nt36xxx_hw_id nt36772_hw_ids[] = {
 static const struct nt36xxx_match_data nt36772_data = {
 	.ids = nt36772_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36772_hw_ids),
-	.mmap = &(const struct nvt_ts_mem_map) {
+	.mmap = &(const struct nt36xxx_ts_mem_map) {
 		.event_buf		= 0x11e00,
 
 		.boot_rdy_addr		= 0x1f141,
@@ -879,7 +852,7 @@ static const struct nt36xxx_hw_id nt36525_hw_ids[] = {
 static const struct nt36xxx_match_data nt36525_data = {
 	.ids = nt36525_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36525_hw_ids),
-	.mmap = &(const struct nvt_ts_mem_map) {
+	.mmap = &(const struct nt36xxx_ts_mem_map) {
 		.event_buf		= 0x11a00,
 
 		.boot_rdy_addr		= 0x1f141,
@@ -897,7 +870,7 @@ static const struct nt36xxx_hw_id nt36676f_hw_ids[] = {
 static const struct nt36xxx_match_data nt36676f_data = {
 	.ids = nt36676f_hw_ids,
 	.num_ids = ARRAY_SIZE(nt36676f_hw_ids),
-	.mmap = &(const struct nvt_ts_mem_map) {
+	.mmap = &(const struct nt36xxx_ts_mem_map) {
 		.event_buf		= 0x11a00,
 	},
 	.hw_crc = 0,
@@ -915,19 +888,18 @@ static const struct of_device_id nt36xxx_of_match_table[] = {
 };
 MODULE_DEVICE_TABLE(of, nt36xxx_of_match_table);
 
-static struct spi_driver nvt_spi_driver = {
+static struct spi_driver nt36xxx_spi_driver = {
 	.driver = {
 		.name = "nt36xxx-spi",
 		.of_match_table = nt36xxx_of_match_table,
-		// TODO:
 		// .pm = pm_sleep_ptr(&nt36xxx_pm_ops),
 	},
-	.probe = nvt_ts_probe,
-	.remove = nvt_ts_remove,
-	// .shutdown = nvt_ts_shutdown,
-	.id_table = nvt_ts_id,
+	.probe = nt36xxx_ts_probe,
+	.remove = nt36xxx_ts_remove,
+	// .shutdown = nt36xxx_ts_shutdown,
+	.id_table = nt36xxx_ts_id,
 };
-module_spi_driver(nvt_spi_driver);
+module_spi_driver(nt36xxx_spi_driver);
 
 MODULE_DESCRIPTION("Novatek Touchscreen Driver");
 MODULE_LICENSE("GPL");

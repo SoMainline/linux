@@ -11,9 +11,6 @@
 #include <linux/spi/spi.h>
 #include <linux/input/touchscreen.h>
 
-#define NVT_LOG(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
-#define NVT_ERR(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
-
 #define NT36XXX_SPI_WRITE		BIT(7)
 #define NVT_SET_PAGE_CMD		0xFF
 
@@ -29,7 +26,7 @@
 #define POINT_DATA_CHECKSUM_LEN 65
 #define CHECK_PEN_DATA_CHECKSUM 1
 
-struct nvt_ts_data {
+struct nt36xxx_data {
 	struct spi_device *client;
 	struct input_dev *input_dev;
 	s8 phys[32];
@@ -43,13 +40,12 @@ struct nvt_ts_data {
 	u8 max_button_num;
 	struct gpio_desc *reset_gpio;
 	struct mutex lock;
-	const struct nvt_ts_mem_map *mmap;
+	const struct nt36xxx_ts_mem_map *mmap;
 	u8 hw_crc;
-	u16 nvt_pid;
+	u16 nt36xxx_pid;
 	u8 *rbuf;
 	u8 *xbuf;
 	struct mutex xbuf_lock;
-	bool irq_enabled;
 	u8 cascade;
 	bool pen_support;
 	bool wgp_stylus;
@@ -62,8 +58,8 @@ struct nvt_ts_data {
 	struct touchscreen_properties pen_prop;
 	u32 swrst_n8_addr;
 	u32 spi_rd_fast_addr;
-	struct workqueue_struct *nvt_fwu_wq;
-	struct delayed_work nvt_fwu_work;
+	struct workqueue_struct *nt36xxx_fwu_wq;
+	struct delayed_work nt36xxx_fwu_work;
 };
 
 /* Right out of IC reset */
@@ -90,7 +86,7 @@ struct nt36xxx_hw_id {
 };
 
 #define ADDR_WITHIN_PAGE(x) (x & GENMASK(6, 0))
-struct nvt_ts_mem_map {
+struct nt36xxx_ts_mem_map {
 	u32 event_buf;
 
 	/* Phase 2 Host Download */
@@ -113,7 +109,7 @@ struct nvt_ts_mem_map {
 struct nt36xxx_match_data {
 	const struct nt36xxx_hw_id *ids;
 	int num_ids;
-	const struct nvt_ts_mem_map *mmap;
+	const struct nt36xxx_ts_mem_map *mmap;
 	u8 hw_crc;
 };
 
@@ -135,22 +131,18 @@ enum nt36xxx_gestures {
 	GESTURE_MAX
 };
 
-//---extern functions---
-extern int nt36xxx_spi_read(struct spi_device *client, u8 *buf, u16 len);
-extern int nt36xxx_spi_write(struct spi_device *client, u8 *buf, u16 len);
-void nvt_bootloader_reset(struct nvt_ts_data *ts);
-void nvt_eng_reset(struct nvt_ts_data *ts);
-void nvt_sw_reset(struct nvt_ts_data *ts);
-void nt36xxx_set_boot_ready(struct nvt_ts_data *ts);
-void nt36xxx_enable_bl_crc(struct nvt_ts_data *ts);
-void nt36xxx_enable_fw_crc(struct nvt_ts_data *ts);
-int nvt_update_firmware(struct nvt_ts_data *ts, char *firmware_name);
-int nvt_check_fw_reset_state(struct nvt_ts_data *ts, u8 desired_state);
-int nvt_get_fw_info(struct nvt_ts_data *ts);
-int nvt_clear_fw_status(struct nvt_ts_data *ts);
-int nvt_check_fw_status(struct nvt_ts_data *ts);
-int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts);
-int nvt_set_page(struct nvt_ts_data *ts, int addr);
-int nvt_write_addr(struct nvt_ts_data *ts, int addr, u8 data);
+int nt36xxx_check_fw_reset_state(struct nt36xxx_data *ts, u8 desired_state);
+int nt36xxx_check_spi_dma_tx_info(struct nt36xxx_data *ts);
+int nt36xxx_get_fw_info(struct nt36xxx_data *ts);
+int nt36xxx_set_page(struct nt36xxx_data *ts, int addr);
+int nt36xxx_spi_read(struct spi_device *client, u8 *buf, u16 len);
+int nt36xxx_spi_write(struct spi_device *client, u8 *buf, u16 len);
+int nt36xxx_update_fw(struct nt36xxx_data *ts, char *firmware_name);
+int nt36xxx_write_addr(struct nt36xxx_data *ts, int addr, u8 data);
+void nt36xxx_bootloader_reset(struct nt36xxx_data *ts);
+void nt36xxx_enable_bl_crc(struct nt36xxx_data *ts);
+void nt36xxx_enable_fw_crc(struct nt36xxx_data *ts);
+void nt36xxx_eng_reset(struct nt36xxx_data *ts);
+void nt36xxx_set_boot_ready(struct nt36xxx_data *ts);
 
 #endif

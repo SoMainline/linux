@@ -20,16 +20,15 @@ struct nt36xxx_part_hdr {
 	u32 size;
 	u32 addr_in_fw;
 	u32 crc;
-} __packed;
+} __packed *part_hdr;
 
-static struct nt36xxx_part_hdr *part_hdr;
-static u32 CheckSum(const u8 *data, size_t len)
+static u32 nt36xxx_calc_part_crc(const u8 *data, u32 addr, u32 len)
 {
 	u32 checksum = 0;
 	u32 i;
 
 	for (i = 0; i <= len; i++)
-		checksum += data[i];
+		checksum += data[addr + i];
 
 	checksum += len;
 	checksum = ~checksum +1;
@@ -44,8 +43,8 @@ enum fw_partition_indices {
 };
 
 static u32 num_parts = 0;
-static bool cascade_2nd_header_info = 0;
-static int nvt_bin_header_parser(struct nvt_ts_data *ts, const u32 *fwdata, size_t fwsize)
+static bool cascade_2nd_header = false;
+static int nt36xxx_fw_header_parser(struct nt36xxx_data *ts, const u32 *fwdata, size_t fwsize)
 {
 	struct device *dev = &ts->client->dev;
 	bool overlay_present = false;
@@ -56,16 +55,12 @@ static int nvt_bin_header_parser(struct nvt_ts_data *ts, const u32 *fwdata, size
 	u32 part_idx;
 	u32 pos;
 
-	/* Find the header size */
 	header_end = le32_to_cpu(((__le32 *)fwdata)[0]) / sizeof(u32);
-
-	/* check cascade next header */
-	cascade_2nd_header_info = !!(fwdata[8] & BIT(1));
-	NVT_LOG("cascade_2nd_header_info = %d\n", cascade_2nd_header_info);
+	cascade_2nd_header = !!(fwdata[8] & BIT(1));
 
 	/* Info section start */
 	pos = 3 * sizeof(u32);
-	if (cascade_2nd_header_info) {
+	if (cascade_2nd_header) {
 		while (pos < (header_end / 2)) {
 			num_info_sections++;
 			pos += sizeof(u32);
@@ -88,8 +83,6 @@ static int nvt_bin_header_parser(struct nvt_ts_data *ts, const u32 *fwdata, size
 	 * 1 (ILM) + 1 (DLM) + num_overlay_sections + num_info_sections
 	 */
 	num_parts = 2 + num_overlay_sections + num_info_sections;
-	NVT_LOG("overlay_present = %d, num_overlay_sections = %d, num_info_sections = %d, num_parts = %d\n",
-		overlay_present, num_overlay_sections, num_info_sections, num_parts);
 
 	part_hdr = kcalloc(num_parts + 1, sizeof(struct nt36xxx_part_hdr), GFP_KERNEL);
 	if (!part_hdr)
@@ -108,12 +101,13 @@ static int nvt_bin_header_parser(struct nvt_ts_data *ts, const u32 *fwdata, size
 
 	/* The overlays follow a more structured pattern */
 	for (part_idx = PART_IDX_OTHER; part_idx < num_parts; part_idx++) {
+		/* "info" / "other" partitions */
 		if (part_idx < PART_IDX_OTHER + num_info_sections) {
 			if (!bin_hdr_found) {
 				/* others partition located at 0x30 offset */
 				pos = 3 * sizeof(u32);
 				pos += sizeof(u32) * (part_idx - PART_IDX_OTHER);
-			} else if (bin_hdr_found && cascade_2nd_header_info) {
+			} else if (bin_hdr_found && cascade_2nd_header) {
 				/* cascade 2nd header info */
 				pos = header_end - sizeof(u32);
 			}
@@ -124,6 +118,7 @@ static int nvt_bin_header_parser(struct nvt_ts_data *ts, const u32 *fwdata, size
 			if (le32_to_cpu(part_hdr[part_idx].addr_in_fw) < header_end && le32_to_cpu(part_hdr[part_idx].size))
 				bin_hdr_found = true;
 		} else {
+			/* Overlay partitions */
 			/* overlay info located at DLM (list = 1) start addr */
 			pos = part_hdr[PART_IDX_DLM].addr_in_fw + sizeof(u32) * (part_idx - PART_IDX_OTHER - num_info_sections);
 
@@ -140,17 +135,26 @@ static int nvt_bin_header_parser(struct nvt_ts_data *ts, const u32 *fwdata, size
 				part_idx,
 				part_hdr[part_idx].addr_in_fw,
 				part_hdr[part_idx].addr_in_fw + part_hdr[part_idx].size);
-			return -EINVAL;
+			goto fail;
 		}
 
-		if (!ts->hw_crc)
-			part_hdr[part_idx].crc = CheckSum((const u8 *)&fwdata[part_hdr[part_idx].addr_in_fw], part_hdr[part_idx].size);
+		if (!ts->hw_crc) {
+			part_hdr[part_idx].crc = nt36xxx_calc_part_crc((const u8 *)&fwdata,
+								       part_hdr[part_idx].addr_in_fw,
+								       part_hdr[part_idx].size);
+		}
 	}
 
 	return 0;
+
+fail:
+	kfree(part_hdr);
+	part_hdr = NULL;
+
+	return -EINVAL;
 }
 
-static int update_firmware_request(struct nvt_ts_data *ts, char *filename)
+static int nt36xxx_prepare_fw(struct nt36xxx_data *ts, char *filename)
 {
 	struct device *dev = &ts->client->dev;
 	u32 real_fw_size = 0;
@@ -164,7 +168,7 @@ static int update_firmware_request(struct nvt_ts_data *ts, char *filename)
 	ret = request_firmware(&fw_entry, filename, &ts->client->dev);
 	if (ret) {
 		dev_err(dev, "request_firmware failed: %d\n", ret);
-		return ret;
+		goto fail;
 	}
 
 	/* The firmware can apparently contain some trailing garbage/data.. Find the "real end" */
@@ -172,8 +176,10 @@ static int update_firmware_request(struct nvt_ts_data *ts, char *filename)
 		if (!strncmp(&fw_entry->data[sector * FLASH_SECTOR_SIZE - 3], "NVT", 3))
 			real_fw_size = sector * FLASH_SECTOR_SIZE;
 
-	if (!real_fw_size)
-		return -EINVAL;
+	if (!real_fw_size) {
+		ret = -EINVAL;
+		goto fail;
+	}
 
 	/* Sanity check */
 	version_offset = real_fw_size - FLASH_SECTOR_SIZE;
@@ -190,18 +196,27 @@ static int update_firmware_request(struct nvt_ts_data *ts, char *filename)
 			part_hdr = NULL;
 		}
 
-		return -ENOEXEC;
+		ret = -ENOEXEC;
+		goto fail;
 	}
 
 	/* BIN Header Parser */
-	ret = nvt_bin_header_parser(ts, (const u32 *)fw_entry->data, fw_entry->size);
-	if (ret)
+	ret = nt36xxx_fw_header_parser(ts, (const u32 *)fw_entry->data, fw_entry->size);
+	if (ret) {
 		dev_err(dev, "Failed to parse the firmware header\n");
+		goto fail;
+	}
+
+	return 0;
+
+fail:
+	kfree(part_hdr);
+	part_hdr = NULL;
 
 	return ret;
 }
 
-static int nvt_write_sram(struct nvt_ts_data *ts, const u8 *fwdata,
+static int nt36xxx_write_sram(struct nt36xxx_data *ts, const u8 *fwdata,
 			  u32 sram_dest_addr, u32 size, u32 addr_in_fw)
 {
 	int count = size / NVT_TRANSFER_LEN;
@@ -215,7 +230,7 @@ static int nvt_write_sram(struct nvt_ts_data *ts, const u8 *fwdata,
 	for (i = 0; i < count; i++) {
 		len = min(size, NVT_TRANSFER_LEN);
 
-		ret = nvt_set_page(ts, sram_dest_addr);
+		ret = nt36xxx_set_page(ts, sram_dest_addr);
 		if (ret)
 			return ret;
 
@@ -234,7 +249,7 @@ static int nvt_write_sram(struct nvt_ts_data *ts, const u8 *fwdata,
 	return 0;
 }
 
-static int nvt_write_firmware(struct nvt_ts_data *ts, const u8 *fwdata, size_t fwsize)
+static int nt36xxx_write_firmware(struct nt36xxx_data *ts, const u8 *fwdata, size_t fwsize)
 {
 	struct device *dev = &ts->client->dev;
 	u32 part_idx;
@@ -248,7 +263,7 @@ static int nvt_write_firmware(struct nvt_ts_data *ts, const u8 *fwdata, size_t f
 			continue;
 
 		/* Write data to SRAM */
-		ret = nvt_write_sram(ts, fwdata,
+		ret = nt36xxx_write_sram(ts, fwdata,
 				     part_hdr[part_idx].sram_dest_addr,
 				     part_hdr[part_idx].size + 1,
 				     part_hdr[part_idx].addr_in_fw);
@@ -261,7 +276,7 @@ static int nvt_write_firmware(struct nvt_ts_data *ts, const u8 *fwdata, size_t f
 	return 0;
 }
 
-static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
+static int nt36xxx_check_fw_checksum(struct nt36xxx_data *ts)
 {
 	struct device *dev = &ts->client->dev;
 	u32 len = num_parts * 4;
@@ -271,9 +286,9 @@ static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 
 	memset(fwbuf, 0, (len + 1));
 
-	nvt_set_page(ts, ts->mmap->r_ilm_checksum_addr);
+	nt36xxx_set_page(ts, ts->mmap->r_ilm_checksum_addr);
 
-	/* read checksum */
+	/* Read the checksum */
 	fwbuf[0] = ADDR_WITHIN_PAGE(ts->mmap->r_ilm_checksum_addr);
 	ret = nt36xxx_spi_read(ts->client, fwbuf, len + 1);
 	if (ret)
@@ -295,7 +310,7 @@ static int nvt_check_fw_checksum(struct nvt_ts_data *ts)
 	return 0;
 }
 
-static void nt36xxx_set_bl_crc_bank(struct nvt_ts_data *ts, u8 bank_idx)
+static void nt36xxx_set_bl_crc_bank(struct nt36xxx_data *ts, u8 bank_idx)
 {
 	u32 DEST_ADDR = bank_idx == 0 ? ts->mmap->ilm_dest_addr : ts->mmap->dlm_dest_addr;
 	u32 G_CHECKSUM_ADDR = bank_idx == 0 ? ts->mmap->g_ilm_checksum_addr : ts->mmap->g_dlm_checksum_addr;
@@ -304,7 +319,7 @@ static void nt36xxx_set_bl_crc_bank(struct nvt_ts_data *ts, u8 bank_idx)
 	u32 size = part_hdr[bank_idx].size;
 	u32 crc = part_hdr[bank_idx].crc;
 
-	nvt_set_page(ts, DEST_ADDR);
+	nt36xxx_set_page(ts, DEST_ADDR);
 	fwbuf[0] = ADDR_WITHIN_PAGE(DEST_ADDR);
 	fwbuf[1] = FIELD_GET(GENMASK(7, 0), sram_dest_addr);
 	fwbuf[2] = FIELD_GET(GENMASK(15, 8), sram_dest_addr);
@@ -325,28 +340,28 @@ static void nt36xxx_set_bl_crc_bank(struct nvt_ts_data *ts, u8 bank_idx)
 	nt36xxx_spi_write(ts->client, fwbuf, 5);
 }
 
-static int nvt_download_firmware_hw_crc(struct nvt_ts_data *ts)
+static int nt36xxx_download_fw_hw_crc(struct nt36xxx_data *ts)
 {
 	struct device *dev = &ts->client->dev;
 	int ret;
 
-	nvt_bootloader_reset(ts);
+	nt36xxx_bootloader_reset(ts);
 
 	/* Set ILM & DLM register banks for bootloader HW CRC */
 	nt36xxx_set_bl_crc_bank(ts, 0);
 	nt36xxx_set_bl_crc_bank(ts, 1);
 
-	if (cascade_2nd_header_info)
-		nvt_write_addr(ts, ts->mmap->tx_auto_copy_en, 0x69);
+	if (cascade_2nd_header)
+		nt36xxx_write_addr(ts, ts->mmap->tx_auto_copy_en, 0x69);
 
-	ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
+	ret = nt36xxx_write_firmware(ts, fw_entry->data, fw_entry->size);
 	if (ret) {
 		dev_err(dev, "Failed to write firmware: %d\n", ret);
 		return ret;
 	}
 
-	if (cascade_2nd_header_info) {
-		ret = nvt_check_spi_dma_tx_info(ts);
+	if (cascade_2nd_header) {
+		ret = nt36xxx_check_spi_dma_tx_info(ts);
 		if (ret) {
 			dev_err(dev, "SPI DMA TX info check failed: %d\n", ret);
 			return ret;
@@ -357,10 +372,10 @@ static int nvt_download_firmware_hw_crc(struct nvt_ts_data *ts)
 	nt36xxx_enable_fw_crc(ts);
 	nt36xxx_set_boot_ready(ts);
 
-	return nvt_check_fw_reset_state(ts, RESET_STATE_INIT);
+	return nt36xxx_check_fw_reset_state(ts, RESET_STATE_INIT);
 }
 
-static int nvt_download_firmware(struct nvt_ts_data *ts)
+static int nt36xxx_download_fw(struct nt36xxx_data *ts)
 {
 	struct device *dev = &ts->client->dev;
 	int ret;
@@ -368,17 +383,17 @@ static int nvt_download_firmware(struct nvt_ts_data *ts)
 	gpiod_set_value_cansleep(ts->reset_gpio, 1);
 	mdelay(1);
 
-	nvt_eng_reset(ts);
+	nt36xxx_eng_reset(ts);
 
 	gpiod_set_value_cansleep(ts->reset_gpio, 0);
 	mdelay(10);
 
-	nvt_bootloader_reset(ts);
+	nt36xxx_bootloader_reset(ts);
 
 	/* Clear FW reset status */
-	nvt_write_addr(ts, ts->mmap->event_buf | EVENT_MAP_RESET_COMPLETE, 0);
+	nt36xxx_write_addr(ts, ts->mmap->event_buf | EVENT_MAP_RESET_COMPLETE, 0);
 
-	ret = nvt_write_firmware(ts, fw_entry->data, fw_entry->size);
+	ret = nt36xxx_write_firmware(ts, fw_entry->data, fw_entry->size);
 	if (ret) {
 		dev_err(dev, "Failed to write firmware: %d\n", ret);
 		return ret;
@@ -386,60 +401,59 @@ static int nvt_download_firmware(struct nvt_ts_data *ts)
 
 	nt36xxx_set_boot_ready(ts);
 
-	ret = nvt_check_fw_reset_state(ts, RESET_STATE_INIT);
+	ret = nt36xxx_check_fw_reset_state(ts, RESET_STATE_INIT);
 	if (ret) {
 		dev_err(dev, "Firmware reset state check failed: %d\n", ret);
 		return ret;
 	}
 
-	/* check fw checksum result */
-	return nvt_check_fw_checksum(ts);
+	/* Validate the flashed firmware checksum */
+	return nt36xxx_check_fw_checksum(ts);
 }
 
-int nvt_update_firmware(struct nvt_ts_data *ts, char *firmware_name)
+int nt36xxx_update_fw(struct nt36xxx_data *ts, char *firmware_name)
 {
 	struct device *dev = &ts->client->dev;
 	int ret;
 
-	ret = update_firmware_request(ts, firmware_name);
+	ret = nt36xxx_prepare_fw(ts, firmware_name);
 	if (ret) {
-		NVT_ERR("update_firmware_request failed. (%d)\n", ret);
-		goto request_firmware_fail;
+		dev_err(dev, "Couldn't prepare firmware: %d\n", ret);
+		return ret;
 	}
 
 	/* initial buffer and variable */
 	if (!fwbuf) {
-		fwbuf = kzalloc((NVT_TRANSFER_LEN + 1 + DUMMY_BYTES), GFP_KERNEL);
-		if (!fwbuf)
-			return -ENOMEM;
+		fwbuf = kzalloc(NVT_TRANSFER_LEN + 1 + DUMMY_BYTES, GFP_KERNEL);
+		if (!fwbuf) {
+			ret = -ENOMEM;
+			goto fail;
+		}
 	}
 
 	/* HW CRC-enabled chips require a slightly different procedure */
 	if (ts->hw_crc)
-		ret = nvt_download_firmware_hw_crc(ts);
+		ret = nt36xxx_download_fw_hw_crc(ts);
 	else
-		ret = nvt_download_firmware(ts);
+		ret = nt36xxx_download_fw(ts);
 	if (ret) {
 		dev_err(dev, "Firmware download failed: %d\n", ret);
-		goto download_fail;
+		goto fail;
 	}
 
 	/* Get FW Info */
-	ret = nvt_get_fw_info(ts);
+	ret = nt36xxx_get_fw_info(ts);
 	if (ret)
 		dev_err(dev, "Couldn't get firmware info: %d\n", ret);
 
-download_fail:
-	if (!IS_ERR_OR_NULL(part_hdr)) {
-		kfree(part_hdr);
-		part_hdr = NULL;
-	}
+fail:
+	kfree(part_hdr);
+	part_hdr = NULL;
 
 	if (fw_entry)
 		release_firmware(fw_entry);
 
 	fw_entry = NULL;
 
-request_firmware_fail:
 	return ret;
 }
