@@ -14,6 +14,9 @@
 #define NVT_LOG(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
 #define NVT_ERR(fmt, args...)    pr_err("[%s] nt36xxx-spi %d: " fmt, __func__, __LINE__, ##args)
 
+#define NT36XXX_SPI_WRITE		BIT(7)
+#define NVT_SET_PAGE_CMD		0xFF
+
 #define TOUCH_DEFAULT_MAX_WIDTH		1200
 #define TOUCH_DEFAULT_MAX_HEIGHT	2000
 #define TOUCH_FORCE_NUM			1000

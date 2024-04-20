@@ -8,7 +8,6 @@
 
 #include "nt36xxx.h"
 
-#define NT36XXX_SPI_WRITE		BIT(7)
 int nt36xxx_spi_read(struct spi_device *client, u8 *buf, u16 len)
 {
 	struct nvt_ts_data *ts = spi_get_drvdata(client);
@@ -60,7 +59,6 @@ int nt36xxx_spi_write(struct spi_device *client, u8 *buf, u16 len)
 	return spi_sync(client, &m);
 }
 
-#define NVT_SET_PAGE_CMD		0xFF
 int nvt_set_page(struct nvt_ts_data *ts, int addr)
 {
 	u8 buf[4] = { 0 };
@@ -109,7 +107,7 @@ void nt36xxx_enable_bl_crc(struct nvt_ts_data *ts)
 	nt36xxx_spi_write(ts->client, buf, 2);
 }
 
-#define NT36XXX_EVENT_MAP_HOST_CMD_EN_FW_CRC		0xAE
+#define NT36XXX_EVENT_MAP_HOST_CMD_EN_FW_CRC	0xAE
 void nt36xxx_enable_fw_crc(struct nvt_ts_data *ts)
 {
 	u8 buf[4] = { 0 };
@@ -153,7 +151,7 @@ int nvt_check_spi_dma_tx_info(struct nvt_ts_data *ts)
 		buf[1] = 0xFF;
 		nt36xxx_spi_read(ts->client, buf, 2);
 
-		/* "Things are as expected", not very well documented */
+		/* "Things are as expected", this is not very well explained */
 		if (!buf[1])
 			return 0;
 
@@ -191,7 +189,7 @@ void nvt_bootloader_reset(struct nvt_ts_data *ts)
 }
 EXPORT_SYMBOL_GPL(nvt_bootloader_reset);
 
-#define CLEAR_FW_STATUS_MAX_RETRIES	20
+#define CLEAR_FW_STATUS_MAX_RETRIES		20
 int nvt_clear_fw_status(struct nvt_ts_data *ts)
 {
 	u8 buf[8] = { 0 };
