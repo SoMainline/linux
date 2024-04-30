@@ -111,6 +111,12 @@ static inline void gmu_write(struct a6xx_gmu *gmu, u32 offset, u32 value)
 	writel(value, gmu->mmio + (offset << 2));
 }
 
+#define GEN7_GMU_PWR_COL_PREEMPT_KEEPALIVE	0x1f8c4
+static inline void gmu_set_keepalive(struct a6xx_gmu *gmu, bool on)
+{
+	gmu_write(gmu, GEN7_GMU_PWR_COL_PREEMPT_KEEPALIVE, on);
+}
+
 static inline void
 gmu_write_bulk(struct a6xx_gmu *gmu, u32 offset, const u32 *data, u32 size)
 {

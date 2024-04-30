@@ -182,6 +182,9 @@ struct adreno_gpu {
 	 */
 	const unsigned int *reg_offsets;
 	bool gmu_is_wrapper;
+
+	spinlock_t core_preempt_lock;
+	bool preempting;
 };
 #define to_adreno_gpu(x) container_of(x, struct adreno_gpu, base)
 

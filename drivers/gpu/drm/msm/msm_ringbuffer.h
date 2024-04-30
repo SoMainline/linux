@@ -99,6 +99,10 @@ struct msm_ringbuffer {
 	 * preemption.  Can be aquired from irq context.
 	 */
 	spinlock_t preempt_lock;
+
+	int64_t preempt_iova;
+	void *preempt_ptr;
+	struct drm_gem_object *preempt_bo;
 };
 
 struct msm_ringbuffer *msm_ringbuffer_new(struct msm_gpu *gpu, int id,
@@ -118,5 +122,6 @@ OUT_RING(struct msm_ringbuffer *ring, uint32_t data)
 		ring->next = ring->start;
 	*(ring->next++) = data;
 }
+#define OUT_RING64(ring, val) OUT_RING(ring, lower_32_bits(val)); OUT_RING(ring, upper_32_bits(val))
 
 #endif /* __MSM_RINGBUFFER_H__ */
