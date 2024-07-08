@@ -383,8 +383,8 @@ static int qcom_cpufreq_hw_target_index(struct cpufreq_policy *policy,
 		for (i = 1; i < cpumask_weight(policy->related_cpus); i++)
 			writel_relaxed(index, data->base + soc_data->reg_perf_state + i * 4);
 
-	if (icc_scaling_enabled)
-		qcom_cpufreq_set_bw(policy, freq);
+	// if (icc_scaling_enabled)
+	// 	qcom_cpufreq_set_bw(policy, freq);
 
 	return 0;
 }
