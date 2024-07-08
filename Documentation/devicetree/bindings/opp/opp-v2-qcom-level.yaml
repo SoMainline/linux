@@ -16,6 +16,8 @@ properties:
   compatible:
     const: operating-points-v2-qcom-level
 
+  opp-shared: true
+
 patternProperties:
   '^opp-?[0-9]+$':
     type: object
