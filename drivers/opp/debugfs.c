@@ -190,6 +190,13 @@ static void opp_list_debug_create_link(struct opp_device *opp_dev,
 
 	opp_set_dev_name(opp_dev->dev, name);
 
+	/*
+	 * In some rare cases (e.g. pmdomain consumer's OPP table being initialized
+	 * in pmdomain->attach), the link may have already been created.
+	 */
+	if (unlikely(debugfs_lookup(name, rootdir)))
+		return;
+
 	/* Create device specific directory link */
 	opp_dev->dentry = debugfs_create_symlink(name, rootdir,
 						 opp_table->dentry_name);
