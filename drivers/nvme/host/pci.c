@@ -3014,17 +3014,9 @@ static struct nvme_dev *nvme_pci_alloc_dev(struct pci_dev *pdev,
 	dev->dev = get_device(&pdev->dev);
 
 	quirks |= check_vendor_combination_bug(pdev);
-	if (!noacpi &&
-	    !(quirks & NVME_QUIRK_FORCE_NO_SIMPLE_SUSPEND) &&
-	    acpi_storage_d3(&pdev->dev)) {
-		/*
-		 * Some systems use a bios work around to ask for D3 on
-		 * platforms that support kernel managed suspend.
-		 */
 		dev_info(&pdev->dev,
 			 "platform quirk: setting simple suspend\n");
 		quirks |= NVME_QUIRK_SIMPLE_SUSPEND;
-	}
 	ret = nvme_init_ctrl(&dev->ctrl, &pdev->dev, &nvme_pci_ctrl_ops,
 			     quirks);
 	if (ret)
