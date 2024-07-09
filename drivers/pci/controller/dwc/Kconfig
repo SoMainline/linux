@@ -271,6 +271,7 @@ config PCIE_QCOM_COMMON
 config PCIE_QCOM
 	bool "Qualcomm PCIe controller (host mode)"
 	depends on OF && (ARCH_QCOM || COMPILE_TEST)
+	depends on QCOM_COMMAND_DB || QCOM_COMMAND_DB=n
 	depends on PCI_MSI
 	select PCIE_DW_HOST
 	select CRC8
