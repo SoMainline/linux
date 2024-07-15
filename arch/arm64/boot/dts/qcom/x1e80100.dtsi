@@ -302,6 +302,34 @@
 				exit-latency-us = <4000>;
 				min-residency-us = <7000>;
 			};
+
+			PLATFORM_S1: system-sleep-0 {
+				compatible = "domain-idle-state";
+				idle-state-name = "s1";
+				arm,psci-suspend-param = <0x02000154>;
+				entry-latency-us = <2200>;
+				exit-latency-us = <500>;
+				min-residency-us = <7500>;
+			};
+
+			PLATFORM_CX_RET: system-sleep-1 {
+				compatible = "domain-idle-state";
+				idle-state-name = "cx-retention";
+				arm,psci-suspend-param = <0x02000254>;
+				entry-latency-us = <2200>;
+				exit-latency-us = <3000>;
+				min-residency-us = <8000>;
+			};
+
+			PLATFORM_DRIPS: system-sleep-2 {
+				compatible = "domain-idle-state";
+				idle-state-name = "drips";
+				arm,psci-suspend-param = <0x4200c354>;
+				entry-latency-us = <2200>;
+				exit-latency-us = <5000>;
+				min-residency-us = <9000>;
+				local-timer-stop;
+			};
 		};
 	};
 
@@ -420,7 +448,9 @@
 
 		SYSTEM_PD: power-domain-system {
 			#power-domain-cells = <0>;
-			/* TODO: system-wide idle states */
+			domain-idle-states = <&PLATFORM_S1>,
+					     <&PLATFORM_CX_RET>,
+					     <&PLATFORM_DRIPS>;
 		};
 	};
 
