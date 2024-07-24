@@ -978,9 +978,8 @@ int dw_pcie_resume_noirq(struct dw_pcie *pci)
 	if (ret)
 		return ret;
 
-	ret = dw_pcie_wait_for_link(pci);
-	if (ret)
-		return ret;
+	/* Ignore the retval, the devices may come up later. */
+	dw_pcie_wait_for_link(pci);
 
 	return ret;
 }
