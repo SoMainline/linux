@@ -57,6 +57,20 @@ int icc_bulk_set_bw(int num_paths, const struct icc_bulk_data *paths);
 int icc_bulk_enable(int num_paths, const struct icc_bulk_data *paths);
 void icc_bulk_disable(int num_paths, const struct icc_bulk_data *paths);
 
+static inline int icc_set_tag_flush(struct icc_path *path, u32 tag)
+{
+	int ret = 0;
+
+	icc_set_tag(path, tag);
+
+	/* Flush the tag change */
+	ret = icc_enable(path);
+	if (ret)
+		pr_err("Failed to set tag %u on %s\n", tag, icc_get_name(path));
+
+	return ret;
+}
+
 #else
 
 static inline struct icc_path *of_icc_get(struct device *dev,
@@ -96,6 +110,10 @@ static inline int icc_set_bw(struct icc_path *path, u32 avg_bw, u32 peak_bw)
 }
 
 static inline void icc_set_tag(struct icc_path *path, u32 tag)
+{
+}
+
+static inline int icc_set_tag_flush(struct icc_path *path, u32 tag)
 {
 }
 
