@@ -126,7 +126,7 @@ static void ls_pcie_pf_lut_writel(struct ls_pcie *pcie, u32 off, u32 val)
 		iowrite32(val, pcie->pf_lut_base + off);
 }
 
-static void ls_pcie_send_turnoff_msg(struct dw_pcie_rp *pp)
+static int ls_pcie_send_turnoff_msg(struct dw_pcie_rp *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct ls_pcie *pcie = to_ls_pcie(pci);
@@ -143,6 +143,8 @@ static void ls_pcie_send_turnoff_msg(struct dw_pcie_rp *pp)
 				 PCIE_PME_TO_L2_TIMEOUT_US);
 	if (ret)
 		dev_err(pcie->pci->dev, "PME_Turn_off timeout\n");
+
+	return ret;
 }
 
 static int ls_pcie_exit_from_l2(struct dw_pcie_rp *pp)
@@ -190,7 +192,7 @@ static int ls_pcie_host_init(struct dw_pcie_rp *pp)
 	return 0;
 }
 
-static void scfg_pcie_send_turnoff_msg(struct regmap *scfg, u32 reg, u32 mask)
+static int scfg_pcie_send_turnoff_msg(struct regmap *scfg, u32 reg, u32 mask)
 {
 	/* Send PME_Turn_Off message */
 	regmap_write_bits(scfg, reg, mask, mask);
@@ -206,6 +208,8 @@ static void scfg_pcie_send_turnoff_msg(struct regmap *scfg, u32 reg, u32 mask)
 	 * to complete the PME_Turn_Off handshake.
 	 */
 	regmap_write_bits(scfg, reg, mask, 0);
+
+	return 0;
 }
 
 static void ls1021a_pcie_send_turnoff_msg(struct dw_pcie_rp *pp)
@@ -233,12 +237,12 @@ static int ls1021a_pcie_exit_from_l2(struct dw_pcie_rp *pp)
 	return scfg_pcie_exit_from_l2(pcie->scfg, SCFG_PEXSFTRSTCR, PEXSR(pcie->index));
 }
 
-static void ls1043a_pcie_send_turnoff_msg(struct dw_pcie_rp *pp)
+static int ls1043a_pcie_send_turnoff_msg(struct dw_pcie_rp *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
 	struct ls_pcie *pcie = to_ls_pcie(pci);
 
-	scfg_pcie_send_turnoff_msg(pcie->scfg, SCFG_PEXPMECR, PEXPME(pcie->index));
+	return scfg_pcie_send_turnoff_msg(pcie->scfg, SCFG_PEXPMECR, PEXPME(pcie->index));
 }
 
 static int ls1043a_pcie_exit_from_l2(struct dw_pcie_rp *pp)

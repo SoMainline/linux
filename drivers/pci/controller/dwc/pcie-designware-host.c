@@ -931,7 +931,7 @@ int dw_pcie_suspend_noirq(struct dw_pcie *pci)
 		return 0;
 
 	if (pci->pp.ops->pme_turn_off)
-		pci->pp.ops->pme_turn_off(&pci->pp);
+		ret = pci->pp.ops->pme_turn_off(&pci->pp);
 	else
 		ret = dw_pcie_pme_turn_off(pci);
 

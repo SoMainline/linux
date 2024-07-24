@@ -352,7 +352,7 @@ struct dw_pcie_host_ops {
 	void (*deinit)(struct dw_pcie_rp *pp);
 	void (*post_init)(struct dw_pcie_rp *pp);
 	int (*msi_init)(struct dw_pcie_rp *pp);
-	void (*pme_turn_off)(struct dw_pcie_rp *pp);
+	int (*pme_turn_off)(struct dw_pcie_rp *pp);
 };
 
 struct dw_pcie_rp {
