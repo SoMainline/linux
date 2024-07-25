@@ -1807,20 +1807,9 @@ static int qcom_pcie_suspend_noirq(struct device *dev)
 		}
 	}
 
-	/*
-	 * Only disable CPU-PCIe interconnect path if the suspend is non-S2RAM.
-	 * Because on some platforms, DBI access can happen very late during the
-	 * S2RAM and a non-active CPU-PCIe interconnect path may lead to NoC
-	 * error.
-	 */
-	if (pm_suspend_target_state != PM_SUSPEND_MEM) {
-		ret = icc_disable(pcie->icc_cpu);
-		if (ret)
-			dev_err(dev, "Failed to disable CPU-PCIe interconnect path: %d\n", ret);
-
-		if (pcie->use_pm_opp)
+	if (pm_suspend_target_state != PM_SUSPEND_MEM)
+		if (!pcie->icc_mem)
 			dev_pm_opp_set_opp(pcie->pci->dev, NULL);
-	}
 
 	pcie->suspended = true;
 
@@ -1831,14 +1820,6 @@ static int qcom_pcie_resume_noirq(struct device *dev)
 {
 	struct qcom_pcie *pcie = dev_get_drvdata(dev);
 	int ret;
-
-	if (pm_suspend_target_state != PM_SUSPEND_MEM) {
-		ret = icc_enable(pcie->icc_cpu);
-		if (ret) {
-			dev_err(dev, "Failed to enable CPU-PCIe interconnect path: %d\n", ret);
-			return ret;
-		}
-	}
 
 	/*
 	 * Undo the tag change from qcom_pcie_suspend_noirq first in
