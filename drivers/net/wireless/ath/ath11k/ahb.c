@@ -407,7 +407,10 @@ static int ath11k_ahb_power_up(struct ath11k_base *ab)
 	int ret;
 
 	ret = rproc_boot(ab_ahb->tgt_rproc);
-	if (ret)
+	if (ret == -ENOENT) {
+		/* Keep deferring until we find the firmware (possibly indefinitely) */
+		return -EPROBE_DEFER;
+	} if (ret)
 		ath11k_err(ab, "failed to boot the remote processor Q6\n");
 
 	return ret;
