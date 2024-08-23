@@ -33,6 +33,7 @@
 
 	aliases {
 		serial0 = &uart5;
+		serial1 = &uart7;
 	};
 
 	chosen {
@@ -781,10 +782,82 @@
 &tlmm {
 	gpio-reserved-ranges = <32 2>, /* ADSP */
 			       <48 4>; /* NFC */
+
+	qup_uart7_sleep: qup-uart7-sleep-state {
+		qup_uart7_sleep_cts: qup-uart7-sleep-cts-pins {
+			pins = "gpio28";
+			function = "gpio";
+			bias-bus-hold;
+		};
+
+		qup_uart7_sleep_rts: qup-uart7-sleep-rts-pins {
+			pins = "gpio29";
+			function = "gpio";
+			bias-pull-down;
+		};
+
+		qup_uart7_sleep_tx: qup-uart7-sleep-tx-pins {
+			pins = "gpio30";
+			function = "gpio";
+			bias-pull-up;
+		};
+
+		qup_uart7_sleep_rx: qup-uart7-sleep-rx-pins {
+			pins = "gpio31";
+			function = "gpio";
+			bias-pull-up;
+		};
+	};
+
+	wcn_bt_en_default: wcn-bt-en-default-state {
+		pins = "gpio85";
+		function = "gpio";
+		bias-disable;
+		output-low;
+	};
+
+	sw_ctrl_default: sw-ctrl-default-state {
+		pins = "gpio86";
+		function = "gpio";
+		bias-pull-down;
+	};
 };
 
 &uart5 {
 	status = "okay";
+};
+
+&uart7 {
+	/delete-property/ interrupts;
+	interrupts-extended = <&intc GIC_SPI 608 IRQ_TYPE_LEVEL_HIGH>,
+			      <&tlmm 31 IRQ_TYPE_EDGE_FALLING>;
+
+	pinctrl-1 = <&qup_uart7_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	status = "okay";
+
+	bluetooth: bluetooth {
+		compatible = "qcom,wcn6750-bt";
+
+		pinctrl-0 = <&wcn_bt_en_default>, <&sw_ctrl_default>;
+		pinctrl-names = "default";
+
+		enable-gpios = <&tlmm 85 GPIO_ACTIVE_HIGH>;
+		swctrl-gpios = <&tlmm 86 GPIO_ACTIVE_HIGH>;
+
+		vddio-supply = <&vreg_l19b_1p8>;
+		vddaon-supply = <&vreg_s7b_0p972>;
+		vddbtcxmx-supply = <&vreg_s7b_0p972>;
+		vddrfacmn-supply = <&vreg_s7b_0p972>;
+		vddrfa0p8-supply = <&vreg_s7b_0p972>;
+		vddrfa1p7-supply = <&vreg_s1b_1p872>;
+		vddrfa1p2-supply = <&vreg_s8b_1p272>;
+		vddrfa2p2-supply = <&vreg_s1c_2p19>;
+		vddasd-supply = <&vreg_l11c_2p8>;
+
+		max-speed = <3200000>;
+	};
 };
 
 &usb_1 {
