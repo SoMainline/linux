@@ -38,7 +38,11 @@
 
 		pm8350c_pwm: pwm {
 			compatible = "qcom,pm8350c-pwm";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
 			#pwm-cells = <2>;
+
 			status = "disabled";
 		};
 	};
