@@ -22,7 +22,6 @@
 /delete-node/ &adsp_mem;
 /delete-node/ &cdsp_mem;
 /delete-node/ &video_mem;
-/delete-node/ &wlan_ce_mem;
 /delete-node/ &wpss_mem;
 /delete-node/ &xbl_mem;
 
@@ -966,7 +965,10 @@
 };
 
 &wifi {
+	qcom,ath11k-calibration-variant = "XXXX";
 	memory-region = <&wlan_fw_mem>;
+
+	status = "okay";
 };
 
 /* PINCTRL - ADDITIONS TO NODES IN PARENT DEVICE TREE FILES */
