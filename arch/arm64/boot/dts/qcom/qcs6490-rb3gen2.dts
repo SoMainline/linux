@@ -961,6 +961,10 @@
 	status = "okay";
 };
 
+&venus {
+	status = "okay";
+};
+
 &wifi {
 	memory-region = <&wlan_fw_mem>;
 };
